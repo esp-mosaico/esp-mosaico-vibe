@@ -32,19 +32,24 @@ ESP-Mosaico 只有一个 High-Speed USB 接口。normal 固件和 factory recove
 
 ### 保底重新烧录
 
-`idf.py flash` 是由开发者执行的保底初始烧录／恢复手段，仅在 normal 和 recovery
+`idf.py flash` 是保底初始烧录／恢复手段，仅在 normal 和 recovery
 模式下均没有可连接的 ESP-Iris 固件时使用。设备进入不可恢复的故障状态，且
-normal USB 与 recovery USB 均不可用时，应建议开发者手动进入 ROM 下载模式并
-重新烧录：
+normal USB 与 recovery USB 均不可用时，Agent 应先保存仍可获取的崩溃证据，
+再提示开发者完成进入 ROM 下载模式所需的物理操作：
 
 1. 将设备关机。
 2. 按住位于 USB-C 接口左侧的 **Boot** 键。
 3. 保持按住 **Boot** 键并开机。
-4. 执行经过确认的重新烧录流程；ESP-Iris 恢复可连接后，设备操作重新交回
-   ESP-Iris Gateway。
+4. 设备进入 ROM 下载模式后松开 **Boot** 键，并告知 Agent 物理操作已完成。
 
-手动进入 ROM 下载模式是保底恢复策略，不是日常开发路径。重新烧录前应保存
-仍可获取的崩溃证据，不要仅为恢复连接而擦除整片 Flash。
+开发者只需完成上述按键和上电操作。之后由 Agent 检测并确认 ROM 下载
+连接，执行经过确认的 `idf.py flash` 重新烧录流程，验证目标固件和产品
+功能。ESP-Iris 恢复可连接后，Agent 应立即将后续设备操作交回 ESP-Iris
+Gateway。
+
+手动进入 ROM 下载模式是保底恢复策略，不是日常开发路径。不要仅为恢复
+连接而擦除整片 Flash，也不应在未经用户明确授权时覆盖凭据、设备身份、
+recovery 数据或相关分区。
 
 ## 仓库结构
 

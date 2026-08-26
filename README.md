@@ -39,20 +39,29 @@ ownership of the session in either mode.
 
 ### Last-resort reflashing
 
-`idf.py flash` is a developer-operated provisioning fallback. Use it only
+`idf.py flash` is a last-resort provisioning and recovery path. Use it only
 when no normal or recovery ESP-Iris firmware can be reached. If the device is
 in an unrecoverable state and neither normal nor recovery USB is available,
-ask the developer to enter ROM download mode and reflash the device:
+the agent first preserves any accessible crash evidence, then asks the
+developer to perform only the physical steps required to enter ROM download
+mode:
 
 1. Power off the device.
 2. Press and hold the **Boot** button, located to the left of the USB-C port.
 3. Power on the device while continuing to hold **Boot**.
-4. Run the approved reflashing procedure, then return device operations to
-   the ESP-Iris Gateway after ESP-Iris becomes reachable.
+4. Release **Boot** after the device enters ROM download mode, then tell the
+   agent that the physical sequence is complete.
+
+The developer is responsible only for those button and power operations. The
+agent then detects and verifies the ROM download connection, runs the approved
+`idf.py flash` procedure, and verifies the intended firmware and product
+behavior. As soon as ESP-Iris is reachable, the agent returns subsequent
+device operations to the ESP-Iris Gateway.
 
 Manual ROM download mode is a last-resort recovery strategy, not the routine
-development path. Preserve available crash evidence before reflashing and do
-not erase the whole flash merely to restore connectivity.
+development path. Do not erase the whole flash merely to restore connectivity,
+or overwrite credentials, device identity, recovery data, or related
+partitions without explicit user authorization.
 
 ## Repository layout
 
@@ -62,4 +71,3 @@ not erase the whole flash merely to restore connectivity.
 - `docs/` — user-facing documentation.
 - `.agents/` — agent-facing documentation and tools.
 - `AGENTS.md` — concise routing and operating rules for coding agents.
-

@@ -4,14 +4,36 @@ idf_build_get_property(recovery_idf_path IDF_PATH)
 idf_build_get_property(recovery_idf_target IDF_TARGET)
 idf_build_get_property(recovery_python PYTHON)
 
+# Normal firmware must always retain the Gateway-controlled path back to the
+# factory recovery writer. Fail during configuration instead of producing an
+# application image that cannot be safely updated.
+if(NOT CONFIG_ESP_IRIS_OTA_DEFAULT_VIA_RECOVERY)
+    message(FATAL_ERROR
+        "Normal application/candidate profiles must set "
+        "CONFIG_ESP_IRIS_OTA_DEFAULT_VIA_RECOVERY=y")
+endif()
+
+if(CONFIG_ESP_IRIS_OTA)
+    message(FATAL_ERROR
+        "Normal application/candidate profiles must not enable the ESP-Iris "
+        "OTA writer; it belongs only in the factory recovery image")
+endif()
+
 partition_table_get_partition_info(
     recovery_partition_offset "--partition-name factory" "offset")
 partition_table_get_partition_info(
     recovery_partition_size "--partition-name factory" "size")
+partition_table_get_partition_info(
+    normal_partition_offset "--partition-name ota_0" "offset")
 
 if(NOT recovery_partition_offset OR NOT recovery_partition_size)
     message(FATAL_ERROR
         "The partition table must contain a factory partition for recovery")
+endif()
+
+if(NOT normal_partition_offset)
+    message(FATAL_ERROR
+        "The partition table must contain ota_0 for normal firmware")
 endif()
 
 set(recovery_tool "${CMAKE_CURRENT_LIST_DIR}/../tools/prepare_recovery.py")

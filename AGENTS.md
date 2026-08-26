@@ -51,6 +51,23 @@ Before running ESP-IDF tools, resolve the PC environment as follows:
 6. Keep user-facing documentation in `docs/` and agent-facing documentation
    or tools in `.agents/`.
 
+### Preserve the retained recovery path
+
+Unless the developer approves another architecture, every application must:
+
+1. Retain the compatible `factory` recovery partition, normal `ota_0`
+   partition, and recovery-image workflow from `projects/get-started`.
+2. Set `CONFIG_ESP_IRIS_OTA_DEFAULT_VIA_RECOVERY=y` in normal builds, keep the
+   OTA writer only in recovery, and call `iris_ota_support_start()` to expose
+   the enter-recovery RPC.
+3. Provision recovery before the first application OTA on a blank or unverified
+   device, following `docs/recovery-first-workflow.md`.
+4. Install normal firmware through Gateway recovery-mode OTA. Never use the
+   normal application's `idf.py flash`, which can overwrite recovery.
+
+Verify the same Device ID completes normal -> recovery -> normal with new Boot
+IDs, the recovery OTA writer, and a healthy application running from `ota_0`.
+
 ## Operate devices through ESP-Iris
 
 - Use the ESP-Iris Developer Gateway over USB High-Speed for routine logs,
@@ -70,22 +87,28 @@ Before running ESP-IDF tools, resolve the PC environment as follows:
   as proof of successful recovery. Verify the intended firmware and product
   behavior.
 
-## Last-resort recovery
+## Provisioning and last-resort recovery
 
-`idf.py flash` is developer-operated fallback provisioning. Ask the developer
-to use it only when neither normal nor recovery ESP-Iris firmware is
-reachable. Agents must return device operations to the Gateway as soon as
-ESP-Iris is available again.
+Use `idf.py flash` only to provision recovery on a blank/unverified device or
+when neither normal nor recovery ESP-Iris is reachable. The agent handles the
+software procedure; the developer performs only required physical actions.
 
 When the device is unrecoverable and both normal and recovery USB are
-unavailable, recommend manual ROM download mode for reflashing:
+unavailable, preserve any evidence that is still accessible, then instruct
+the developer to:
 
 1. Power off the device.
-2. Hold the **Boot** button to the left of the USB-C port.
+2. Press and hold the **Boot** button to the left of the USB-C port.
 3. Power on the device while continuing to hold **Boot**.
-4. Have the developer run the approved reflashing procedure.
+4. Release **Boot** after the device enters ROM download mode, then tell the
+   agent that the physical sequence is complete.
+
+After the developer completes those physical steps, the agent must detect and
+verify the ROM download connection, run the approved `idf.py flash` procedure,
+verify the intended firmware and product behavior, and return subsequent
+device operations to the ESP-Iris Gateway as soon as ESP-Iris is reachable.
 
 Manual ROM entry is the last recovery option, not the normal development
-workflow. Preserve available crash evidence first. Never erase the whole
-flash merely to recover connectivity, and do not overwrite credentials,
-identity, recovery data, or partitions without explicit user authorization.
+workflow. Never erase the whole flash merely to recover connectivity, and do
+not overwrite credentials, identity, recovery data, or partitions without
+explicit user authorization.

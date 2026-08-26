@@ -1,0 +1,4 @@
+interface:
+  display_name: "IDF Low-Noise Build"
+  short_description: "Low-noise ESP-IDF builds with focused diagnostics"
+  default_prompt: "Use $idf-low-noise-build to build this ESP-IDF project and diagnose any failure."

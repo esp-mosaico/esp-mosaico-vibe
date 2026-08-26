@@ -3,6 +3,9 @@
 The project builds three firmware profiles in independent build directories:
 `application`, `candidate`, and `recovery`.
 
+Retain the factory recovery image and enter-recovery RPC. See the
+[recovery-first workflow](../../docs/recovery-first-workflow.md).
+
 ## Recovery image source
 
 Application and candidate builds prepare a recovery artifact at
@@ -42,3 +45,6 @@ partition geometry, ESP-IDF version, source revision, and security settings.
 The normal `flash` target is intentionally unchanged: the recovery artifact is
 prepared for packaging or provisioning, but is not automatically written over
 the application image.
+
+Provision `BUILD_PROFILE=recovery` once. Never run the normal `flash` target;
+use ESP-Iris recovery-mode OTA to install normal images in `ota_0`.
