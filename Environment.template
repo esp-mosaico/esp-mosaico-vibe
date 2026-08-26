@@ -1,0 +1,86 @@
+# ESP-Mosaico host environment inventory
+#
+# Copy this file to `Environment`, fill in the values that apply to the current
+# PC, and keep that copy local. This is a data file for developers and agents
+# to read; it is NOT a shell script and must never be sourced/executed.
+#
+# Use absolute paths for host-installed tools. Use `null` for unknown or
+# inapplicable values. Do not put passwords, tokens, private keys, Wi-Fi
+# credentials, proxy credentials, signing material, or other secrets here.
+
+schema_version: 1
+
+# Required: how commands and paths must be interpreted on this host.
+host:
+  os: linux                     # linux | macos | windows
+  os_version: null              # Example: Ubuntu 24.04 or Windows 11 24H2
+  architecture: x86_64          # x86_64 | arm64
+  execution_environment: native # native | wsl | container | remote
+  shell: zsh                    # zsh | bash | fish | powershell | cmd
+  path_style: posix             # posix | windows
+
+# Required: the exact ESP-IDF installation intended for this workspace.
+# The project requirement is declared by projects/get-started/main/idf_component.yml
+# and the BSP. `version` and `git_revision` describe the actual checkout and let
+# the agent detect when a different or incompatible checkout is activated.
+esp_idf:
+  project_version_requirement: ">=6.1"
+  path: /absolute/path/to/esp-idf
+  version: null                 # Actual installed tag/branch, for example v6.1.1
+  git_revision: null            # Full or abbreviated commit SHA
+  tools_path: null              # IDF_TOOLS_PATH; null means IDF default
+  export_script: /absolute/path/to/esp-idf/export.sh
+  python_env_path: null         # IDF_PYTHON_ENV_PATH, if known
+  python_executable: null       # Absolute interpreter path after IDF export
+  python_version: null
+
+# If no compatible ESP-IDF installation can be found, do not guess installation
+# commands or a release tag from this file. Follow skills/espressif-env-setup/
+# SKILL.md; that workflow resolves current supported releases with the developer
+# and completes a verification build.
+
+# Required for project configuration. Keep the board identity distinct from
+# the ESP-IDF chip target; they are not interchangeable.
+hardware:
+  board: esp-mosaico
+  idf_target: esp32s31
+  preview_target: true          # Whether `idf.py --preview set-target` is needed
+  bsp_path: submodule/esp-mosaico-bsp
+
+# Recommended: stable defaults shared by build and diagnostic tasks.
+build:
+  default_project: projects/get-started
+  generator: ninja
+  jobs: null                    # null lets the build system choose
+  ccache_enabled: null          # true | false | null (unknown)
+
+# Recommended: paths are useful when multiple tool versions are installed.
+# Leave a value null when PATH resolution is intentional.
+tools:
+  git: null
+  cmake: null
+  ninja: null
+  ccache: null
+
+# Device operations normally go through ESP-Iris Developer Gateway. Do not
+# configure a raw serial port here while the Gateway owns the USB session.
+# Device ID and Boot ID are runtime evidence and must be queried, not cached in
+# this file. Fill in the CLI only after reading its component instructions.
+device_access:
+  mode: esp-iris-gateway        # esp-iris-gateway | unavailable
+  iris_cli_path: null           # Absolute path to the ESP-Iris CLI entry point
+  gateway_endpoint: null        # Example: http://127.0.0.1:<port>
+  workbench_url: null           # URL opened by the developer for observation
+  usb_permission_ready: null    # true | false | null (unknown)
+
+# Optional network facts that affect dependency installation. Store only
+# non-secret endpoints; never include credentials in URLs.
+network:
+  offline: false
+  git_mirror: null
+  pip_index_url: null
+
+# Free-form, non-secret constraints, for example:
+# - "Corporate proxy is required; ask the developer to activate it."
+# - "Do not use sudo; user is already in the device access group."
+notes: []

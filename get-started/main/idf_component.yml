@@ -1,5 +1,0 @@
-dependencies:
-  idf: ">=5.5"
-  esp_iris:
-    version: "*"
-    override_path: /home/lishenhang/esp/idf-gitlab/02_esp-rep/esp-clawgent-prj/esp-iris/components/esp_iris

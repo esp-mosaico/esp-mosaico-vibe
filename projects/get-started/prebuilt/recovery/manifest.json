@@ -1,0 +1,26 @@
+{
+  "idf_version": "v6.2-dev-2221-g7b9cc1ac79f-dirt",
+  "image": {
+    "file": "iris_get_started.bin",
+    "sha256": "7e0afcf29eeccf21ddd4ff943c6d490904ecae365ca9c82b776032f0cc558905",
+    "size": 336272
+  },
+  "partition": {
+    "name": "factory",
+    "offset": "0x20000",
+    "size": "0x100000"
+  },
+  "profile": "recovery",
+  "project": "iris_get_started",
+  "schema_version": 1,
+  "security": {
+    "flash_encryption": false,
+    "secure_boot": false
+  },
+  "source": {
+    "commit": "5c130e24406828e6f0319335cd088910e9027533",
+    "dirty": true
+  },
+  "target": "esp32s31",
+  "version": "1.0.0-recovery"
+}

@@ -4,3 +4,4 @@
 **/sdkconfig.old
 **/.codex-runs/
 **/dependencies.lock
+/Environment

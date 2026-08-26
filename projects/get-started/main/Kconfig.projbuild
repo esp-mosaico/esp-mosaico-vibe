@@ -1,0 +1,47 @@
+menu "Get Started OTA"
+
+config GET_STARTED_RECOVERY
+    bool "Build the retained factory recovery image"
+    default n
+    select ESP_IRIS_OTA
+    help
+        Build the image installed in the factory partition. It remains outside
+        the single normal OTA slot and writes updates while running from factory.
+
+choice GET_STARTED_RECOVERY_IMAGE_SOURCE
+    prompt "Recovery image source"
+    default GET_STARTED_RECOVERY_IMAGE_PREBUILT
+    depends on !GET_STARTED_RECOVERY
+    help
+        Select the recovery image prepared alongside application and candidate
+        builds. The selected image is staged under the active build directory.
+
+config GET_STARTED_RECOVERY_IMAGE_PREBUILT
+    bool "Use checked-in prebuilt recovery image"
+    help
+        Validate and copy the recovery image stored in prebuilt/recovery. This
+        is the fast path for normal development builds.
+
+config GET_STARTED_RECOVERY_IMAGE_BUILD
+    bool "Build recovery from current source"
+    help
+        Build recovery in an isolated sub-build before staging it. Select this
+        while changing recovery source code or configuration.
+
+endchoice
+
+config GET_STARTED_AUTO_ACCEPT
+    bool "Automatically accept a pending OTA image"
+    default y
+    depends on !GET_STARTED_RECOVERY
+    help
+        Mark an OTA image healthy after ESP-Iris starts. Disable this when
+        intentionally testing bootloader rollback.
+
+config GET_STARTED_ACCEPT_DELAY_MS
+    int "Automatic acceptance delay (milliseconds)"
+    range 1000 30000
+    default 3000
+    depends on GET_STARTED_AUTO_ACCEPT && !GET_STARTED_RECOVERY
+
+endmenu
