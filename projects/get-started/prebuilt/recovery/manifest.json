@@ -2,8 +2,8 @@
   "idf_version": "v6.2-dev-2221-g7b9cc1ac79f-dirt",
   "image": {
     "file": "iris_get_started.bin",
-    "sha256": "7e0afcf29eeccf21ddd4ff943c6d490904ecae365ca9c82b776032f0cc558905",
-    "size": 336272
+    "sha256": "fd51f85184129a0ae3042bb774cc3f7a2d45951a1993e1857a70773f6d45e837",
+    "size": 986608
   },
   "partition": {
     "name": "factory",
@@ -18,7 +18,7 @@
     "secure_boot": false
   },
   "source": {
-    "commit": "5c130e24406828e6f0319335cd088910e9027533",
+    "commit": "09fc6f9970f7356890b5e0b51ac33451314d84ad",
     "dirty": true
   },
   "target": "esp32s31",
