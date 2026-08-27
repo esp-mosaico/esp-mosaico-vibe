@@ -29,10 +29,16 @@ Before running ESP-IDF tools, resolve the PC environment as follows:
    inventory.
 3. If no compatible ESP-IDF environment exists, use
    `skills/espressif-env-setup/SKILL.md` for the fresh ESP-IDF installation and
-   its first verification build. Follow that skill's version-selection and
-   developer-confirmation gates instead of guessing a release or install path.
+   its first verification build.
 4. Query live device identity and availability at operation time; do not treat
    cached Device ID or Boot ID values as current evidence.
+
+If no compatible ESP-IDF environment exists, the agent may autonomously select
+and install one. Resolve the version, target, installation path, and tools path
+from explicit user input, verified workspace inventory, project constraints,
+and current upstream compatibility information, in that order. Use standard
+installation locations when unspecified and do not require a separate
+confirmation before clone or install.
 
 ### Route the application
 
