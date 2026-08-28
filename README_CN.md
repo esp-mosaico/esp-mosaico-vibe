@@ -2,8 +2,11 @@
 
 [English](README.md) | [中文](README_CN.md)
 
-本仓库是 ESP-Mosaico 开发版进行 vibe coding 的统一起点，为开发者和编码
-Agent 提供工程创建、板级资料加载、设备开发、调试及恢复的标准入口。
+本仓库是为 ESP-Mosaico 定制的 **Agent 主导（Agent-Led）人机协同开发统一入口**。
+它为 Agent 提供统一的工程能力与设备通道。
+
+用户定义目标并验收实物。Agent 作为默认执行主体，持续推进到真机验证。
+涉及授权、物理操作或高风险变更时，Agent 请求用户介入。
 
 ## 创建工程
 
@@ -47,9 +50,8 @@ normal USB 与 recovery USB 均不可用时，Agent 应先保存仍可获取的�
 功能。ESP-Iris 恢复可连接后，Agent 应立即将后续设备操作交回 ESP-Iris
 Gateway。
 
-手动进入 ROM 下载模式是保底恢复策略，不是日常开发路径。不要仅为恢复
-连接而擦除整片 Flash，也不应在未经用户明确授权时覆盖凭据、设备身份、
-recovery 数据或相关分区。
+手动进入 ROM 下载模式仅用于最后恢复。不要仅为恢复连接而擦除整片 Flash，
+也不应在未经用户明确授权时覆盖凭据、设备身份、recovery 数据或相关分区。
 
 ## 仓库结构
 
@@ -59,3 +61,6 @@ recovery 数据或相关分区。
 - `docs/`：面向用户的文档。
 - `.agents/`：面向 Agent 的文档和工具。
 - `AGENTS.md`：供编码 Agent 使用的简明路由与操作规则。
+
+仓库的目标、架构、功能契约和适用边界见
+[`docs/repository-specification.zh-CN.md`](docs/repository-specification.zh-CN.md)。

@@ -2,10 +2,14 @@
 
 [English](README.md) | [中文](README_CN.md)
 
-This repository is the starting point for vibe coding on the development
-version of ESP-Mosaico. It gives developers and coding agents a consistent
-place to create applications, load board resources, and develop, debug, and
-recover devices.
+This repository is the **Agent-led human-Agent collaborative development entry
+point purpose-built for ESP-Mosaico**. It gives the Agent a unified engineering
+workspace and device channel.
+
+The user defines the goal and accepts the physical result. The Agent is the
+default executor and advances the task through on-device validation. It asks
+the user to intervene when authorization, physical action, or a high-risk
+change is required.
 
 ## Start a project
 
