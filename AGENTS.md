@@ -25,7 +25,7 @@ Before running ESP-IDF tools, resolve the PC environment as follows:
    `Environment.template` for the supported fields.
 2. Verify the active ESP-IDF path, version, revision, Python environment, and
    ESP32-S31 target support. The project version constraint is declared in
-   `projects/get-started/main/idf_component.yml`; do not rely only on the
+   `projects/factory/main/idf_component.yml`; do not rely only on the
    inventory.
 3. If no compatible ESP-IDF environment exists, use
    `skills/espressif-env-setup/SKILL.md` for the fresh ESP-IDF installation and
@@ -44,9 +44,9 @@ confirmation before clone or install.
 
 1. Translate the user's request into a project-level goal and identify the
    required board capabilities.
-2. Use `projects/get-started` as the reference project and create the new
+2. Use `projects/factory` as the reference project and create the new
    application under `projects/<project-name>`. Do not implement a user
-   application directly in `projects/get-started` unless the user explicitly
+   application directly in `projects/factory` unless the user explicitly
    asks to change the template.
 3. Read `skills/README.md`, then load only the `SKILL.md` files relevant to the
    requested capabilities.
@@ -62,7 +62,7 @@ confirmation before clone or install.
 Unless the developer approves another architecture, every application must:
 
 1. Retain the compatible `factory` recovery partition, normal `ota_0`
-   partition, and recovery-image workflow from `projects/get-started`.
+   partition, and recovery-image workflow from `projects/factory`.
 2. Set `CONFIG_ESP_IRIS_OTA_DEFAULT_VIA_RECOVERY=y` in normal builds, keep the
    OTA writer only in recovery, and call `iris_ota_support_start()` to expose
    the enter-recovery RPC.

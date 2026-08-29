@@ -6,7 +6,7 @@
 | 文档类型 | 仓库级产品与工程规格书 |
 | 目标硬件 | ESP-Mosaico 开发板（ESP32-S31） |
 | 软件基线 | ESP-IDF 6.1 或更高版本，并具备 ESP32-S31 目标支持 |
-| 参考工程 | `projects/get-started` |
+| 参考工程 | `projects/factory` |
 | 板级能力来源 | `submodule/esp-mosaico-bsp` Git 子模块 |
 | 设备运维入口 | ESP-Iris Developer Gateway 及其随组件提供的 CLI |
 | 文档状态 | 产品定义与当前工程基线 |
@@ -72,9 +72,9 @@ Agent-Led 的默认主导关系是：**Agent 持续推进，用户在关键节�
 
 ### 2.4 模板化应用孵化
 
-- 以 `projects/get-started` 作为参考工程。
+- 以 `projects/factory` 作为参考工程。
 - 每个用户应用创建在独立的 `projects/<project-name>` 目录中。
-- 除非明确要求修改模板，不将具体业务直接实现到 `projects/get-started`。
+- 除非明确要求修改模板，不将具体业务直接实现到 `projects/factory`。
 - 参考工程固化芯片目标、设备接入和 recovery-first 契约。
 
 ### 2.5 UI 设计与真机视觉闭环
@@ -158,7 +158,7 @@ Agent 按可审查规则持续执行闭环，直到功能通过真机验证。
 Agent Orchestrator（统一控制面）
  ├── 规则与上下文：AGENTS.md / docs/
  ├── 能力路由：skills/
- ├── 工程执行：projects/get-started / projects/<project-name>
+ ├── 工程执行：projects/factory / projects/<project-name>
  ├── 板级知识：submodule/esp-mosaico-bsp
  └── 设备操作：ESP-Iris CLI
         │
@@ -184,7 +184,7 @@ ESP-Mosaico 真实设备
 | 仓库入口 | `README.md`、`README_CN.md` | 说明定位、创建工程和设备运维规则 | 保持中英文语义一致 |
 | Agent 规则 | `AGENTS.md` | 路由开发任务、约束设备操作和恢复流程 | 规则应简洁且可执行 |
 | 应用工程 | `projects/` | 容纳参考工程和用户应用 | 一个应用一个目录 |
-| 参考模板 | `projects/get-started` | 提供三种构建 profile、显示、ESP-Iris、屏幕镜像和 recovery-first OTA | 不承载具体用户业务 |
+| 参考模板 | `projects/factory` | 提供三种构建 profile、显示、ESP-Iris、屏幕镜像和 recovery-first OTA | 不承载具体用户业务 |
 | 板级子模块 | `submodule/esp-mosaico-bsp` | 提供 BSP、扩展模块、交互/网络组件和示例 | 按任务初始化和检查 |
 | 任务指南 | `skills/` | 提供环境安装、构建等任务化说明 | 只加载相关指南 |
 | 用户文档 | `docs/` | 面向开发者说明工作流、规格和应用文档 | 不放 Agent 私有工具 |
@@ -249,7 +249,7 @@ new normal@ota_0
 | --- | --- | --- |
 | FR-000 | 仓库必须作为 Agent 主导的人机协同开发统一入口 | Agent 从根目录 `AGENTS.md` 获取任务路由，作为默认执行主体推进开发闭环，过程可由用户复核 |
 | FR-001 | 仓库必须提供中英文入口说明 | 根目录存在 `README.md` 与 `README_CN.md`，且核心开发、调试、恢复规则一致 |
-| FR-002 | 仓库必须提供可复制的参考工程 | `projects/get-started` 可作为新应用基线，具体应用位于独立 `projects/<project-name>` |
+| FR-002 | 仓库必须提供可复制的参考工程 | `projects/factory` 可作为新应用基线，具体应用位于独立 `projects/<project-name>` |
 | FR-003 | 仓库必须将板级实现作为子模块管理 | `submodule/esp-mosaico-bsp` 可解析到固定 Git revision，应用通过组件依赖使用 BSP |
 | FR-004 | 仓库必须分离用户文档与 Agent 资产 | 用户材料进入 `docs/`，Agent 专用材料或工具进入 `.agents/` |
 | FR-005 | 开发任务必须按需加载指南和子模块 | 任务只初始化所需子模块，并先检查 `skills/README.md` 与相关 `SKILL.md` |
@@ -375,7 +375,7 @@ new normal@ota_0
 - 作为 ESP-Mosaico 定制的 Agent 主导人机协同开发统一入口，覆盖从想法到真机验证的工程链路。
 - 正常流程由 Agent 持续推进到真机验证。用户负责目标和验收。
 - 提供 ESP-Mosaico 开发版的统一工程起点和目录规范。
-- 提供 `get-started` 参考固件及 recovery-first 工作流。
+- 提供 `factory` 参考固件及 recovery-first 工作流。
 - 通过 BSP 子模块提供板级能力和示例来源。
 - 规定通过 ESP-Iris Gateway 执行日常设备操作并保留证据。
 - 规定固件交付与恢复的安全路径。

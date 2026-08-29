@@ -1,11 +1,13 @@
 CONFIG_APP_PROJECT_VER_FROM_CONFIG=y
 CONFIG_APP_PROJECT_VER="1.0.0"
 
-# Use the checked-in recovery image during normal application/candidate builds.
+# Validate and package the reviewed recovery image checked into prebuilt/.
+# Use update-recovery-prebuilt deliberately after recovery source changes.
 CONFIG_GET_STARTED_RECOVERY_IMAGE_PREBUILT=y
+CONFIG_ESP_IRIS_SYSTEM_INVENTORY=y
 
 # Normal firmware enters factory recovery before OTA. Only the recovery image
 # contains the writer, so there is no silent application-writer fallback.
 # CONFIG_ESP_IRIS_OTA is not set
 CONFIG_ESP_IRIS_OTA_DEFAULT_VIA_RECOVERY=y
-CONFIG_ESP_IRIS_USB_PRODUCT="ESP-Iris Get Started"
+CONFIG_ESP_IRIS_USB_PRODUCT="ESP-Iris Mosaico"

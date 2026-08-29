@@ -1,0 +1,11 @@
+dependencies:
+  idf: ">=6.1"
+  esp-mosaico-bsp:
+    version: "*"
+    override_path: ../../../submodule/esp-mosaico-bsp/components/esp-mosaico-bsp
+  esp_iris:
+    override_path: ../../../../../esp-clawgent-prj/esp-iris/components/esp_iris
+  espressif/mdns:
+    version: "^1.11.3"
+  espressif/cjson:
+    version: "^1.7.19"

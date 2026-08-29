@@ -38,15 +38,15 @@ endif()
 
 set(recovery_tool "${CMAKE_CURRENT_LIST_DIR}/../tools/prepare_recovery.py")
 set(recovery_prebuilt_image
-    "${RECOVERY_PREBUILT_DIR}/iris_get_started.bin")
+    "${RECOVERY_PREBUILT_DIR}/factory.bin")
 set(recovery_prebuilt_manifest
     "${RECOVERY_PREBUILT_DIR}/manifest.json")
 set(recovery_output_dir "${CMAKE_BINARY_DIR}/recovery")
-set(recovery_output_image "${recovery_output_dir}/iris_get_started.bin")
+set(recovery_output_image "${recovery_output_dir}/factory.bin")
 set(recovery_output_manifest "${recovery_output_dir}/manifest.json")
 set(recovery_source_build_dir "${CMAKE_BINARY_DIR}/recovery-from-source")
 set(recovery_source_image
-    "${recovery_source_build_dir}/iris_get_started.bin")
+    "${recovery_source_build_dir}/factory.bin")
 set(recovery_source_description
     "${recovery_source_build_dir}/project_description.json")
 
@@ -133,7 +133,7 @@ elseif(CONFIG_GET_STARTED_RECOVERY_IMAGE_BUILD)
 else()
     message(FATAL_ERROR
         "No recovery image source selected. Run menuconfig and select one "
-        "under 'Get Started OTA > Recovery image source'.")
+        "under 'Iris Factory OTA > Recovery image source'.")
 endif()
 
 add_custom_target(recovery-image ALL

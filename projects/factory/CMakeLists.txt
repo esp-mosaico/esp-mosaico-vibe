@@ -35,7 +35,7 @@ if(NOT SDKCONFIG_DEFAULTS)
 endif()
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-project(iris_get_started)
+project(factory)
 
 # A recovery build is the leaf sub-build. Adding the recovery artifact workflow
 # there would recursively create another recovery build.

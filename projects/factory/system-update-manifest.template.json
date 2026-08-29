@@ -1,0 +1,37 @@
+{
+  "schema": "esp-iris-system-update/v1",
+  "release": "1.0.0",
+  "minimum_recovery_version": "2.0.0-recovery",
+  "signature": {
+    "algorithm": "ecdsa-p256-sha256",
+    "key_id": "product-release-1"
+  },
+  "target": {
+    "chip_id": 32,
+    "flash_size": 16777216
+  },
+  "source_layout_sha256": [
+    "0000000000000000000000000000000000000000000000000000000000000000"
+  ],
+  "target_layout_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "components": [
+    {
+      "id": 1,
+      "kind": "application",
+      "target_offset": 2228224,
+      "file": "ota_0.bin"
+    },
+    {
+      "id": 2,
+      "kind": "bootloader",
+      "target_offset": 8192,
+      "file": "bootloader.bin"
+    },
+    {
+      "id": 3,
+      "kind": "partition_table",
+      "target_offset": 32768,
+      "file": "partition-table.bin"
+    }
+  ]
+}

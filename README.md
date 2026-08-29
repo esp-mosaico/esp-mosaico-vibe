@@ -13,9 +13,9 @@ change is required.
 
 ## Start a project
 
-Use [`projects/get-started`](projects/get-started) as the reference project.
+Use [`projects/factory`](projects/factory) as the reference project.
 Create each new application as its own directory under `projects/`; do not
-turn `get-started` into the application itself unless the task explicitly
+turn `factory` into the application itself unless the task explicitly
 changes the template.
 
 Component repositories and other project material are provided as Git
@@ -69,7 +69,7 @@ partitions without explicit user authorization.
 
 ## Repository layout
 
-- `projects/` — developer applications; start from `projects/get-started`.
+- `projects/` — developer applications; start from `projects/factory`.
 - `skills/` — task-oriented integration guides for agents and humans. See
   [`skills/README.md`](skills/README.md).
 - `docs/` — user-facing documentation.

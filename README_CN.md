@@ -10,9 +10,9 @@
 
 ## 创建工程
 
-以 [`projects/get-started`](projects/get-started) 为参考工程，在 `projects/`
+以 [`projects/factory`](projects/factory) 为参考工程，在 `projects/`
 目录下为每个新应用创建独立目录。除非任务明确要求修改模板，否则不要直接把
-`get-started` 改造成具体应用。
+`factory` 改造成具体应用。
 
 组件仓库和其他项目资料通过 Git 子模组提供。只加载或初始化当前任务所需的
 子模组。实现功能前，先查看 [`skills/README.md`](skills/README.md)，并按需读取
@@ -55,7 +55,7 @@ Gateway。
 
 ## 仓库结构
 
-- `projects/`：开发者工程目录，新工程从 `projects/get-started` 开始。
+- `projects/`：开发者工程目录，新工程从 `projects/factory` 开始。
 - `skills/`：面向 Agent 和开发者的任务集成指南，详见
   [`skills/README.md`](skills/README.md)。
 - `docs/`：面向用户的文档。

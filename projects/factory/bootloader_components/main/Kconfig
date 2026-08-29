@@ -1,0 +1,20 @@
+menu "Factory recovery boot"
+
+    config FACTORY_RECOVERY_BOOT_GPIO
+        int "GPIO used to request factory recovery"
+        range 0 61 if IDF_TARGET_ESP32S31
+        default 7
+        help
+            The bootloader configures this pin as an input with its internal
+            pull-up enabled. Holding it low during reset selects the factory
+            recovery image for this boot only.
+
+    config FACTORY_RECOVERY_BOOT_DEBOUNCE_MS
+        int "Low-level debounce time (milliseconds)"
+        range 0 1000
+        default 50
+        help
+            The pin must remain low for this duration. A released pin adds no
+            debounce delay to normal startup.
+
+endmenu

@@ -34,7 +34,7 @@ the recovery image to the factory partition; it does not place the game there.
 
 ```sh
 . /home/lishenhang/esp/idf-gitlab/esp-idf-master-1/export.sh
-cd projects/get-started
+cd projects/factory
 idf.py -B build-recovery -D BUILD_PROFILE=recovery \
   --preview set-target esp32s31
 idf.py -B build-recovery -D BUILD_PROFILE=recovery build
@@ -61,7 +61,7 @@ From another terminal at the repository root, obtain the live Device ID with
 `ctl devices`, then perform the recovery-writer OTA:
 
 ```sh
-IRIS=projects/get-started/managed_components/esp_iris/tools/esp_iris.py
+IRIS=projects/factory/managed_components/esp_iris/tools/esp_iris.py
 python "$IRIS" ctl devices
 python "$IRIS" ctl ota \
   --elf projects/star-wars-assault/build/star_wars_mosaico.elf \

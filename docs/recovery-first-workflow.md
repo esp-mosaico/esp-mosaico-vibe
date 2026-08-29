@@ -6,7 +6,7 @@ from `ota_0` and enters factory recovery before an update.
 ## Required application contract
 
 - Retain `factory`, `ota_0`, the build profiles, and recovery staging from
-  `projects/get-started`.
+  `projects/factory`.
 - Normal builds set `CONFIG_ESP_IRIS_OTA_DEFAULT_VIA_RECOVERY=y` and disable
   `CONFIG_ESP_IRIS_OTA`.
 - Compile `iris_ota_support.c` (or a reviewed equivalent) and call
@@ -18,7 +18,7 @@ from `ota_0` and enters factory recovery before an update.
 Always query live identity and state:
 
 ```sh
-IRIS=projects/get-started/managed_components/esp_iris/tools/esp_iris.py
+IRIS=projects/factory/managed_components/esp_iris/tools/esp_iris.py
 python "$IRIS" ctl --json devices
 python "$IRIS" ctl --json status DEVICE_ID
 ```
@@ -29,7 +29,7 @@ For a blank, missing, or unverified recovery partition, preserve available
 evidence, stop the Gateway if it owns the programming port, then run:
 
 ```sh
-cd projects/get-started
+cd projects/factory
 idf.py -B build-recovery -D BUILD_PROFILE=recovery \
   --preview set-target esp32s31
 idf.py -B build-recovery -D BUILD_PROFILE=recovery build
@@ -47,7 +47,7 @@ Boot ID. A build artifact alone does not prove recovery was provisioned.
 From the repository root, install normal firmware through the Gateway:
 
 ```sh
-IRIS=projects/get-started/managed_components/esp_iris/tools/esp_iris.py
+IRIS=projects/factory/managed_components/esp_iris/tools/esp_iris.py
 python "$IRIS" ctl --json devices
 python "$IRIS" ctl ota DEVICE_ID projects/PROJECT/build/APP.bin \
   --elf projects/PROJECT/build/APP.elf \

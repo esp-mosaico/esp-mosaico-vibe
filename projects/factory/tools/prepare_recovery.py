@@ -14,11 +14,12 @@ from typing import Any
 
 
 SCHEMA_VERSION = 1
-PROJECT_NAME = "iris_get_started"
+PROJECT_NAME = "factory"
 PARTITION_NAME = "factory"
 ESP_IMAGE_MAGIC = 0xE9
 RECOVERY_SOURCE_PATHS = (
     "CMakeLists.txt",
+    "bootloader_components",
     "main",
     "partitions.csv",
     "sdkconfig.defaults",

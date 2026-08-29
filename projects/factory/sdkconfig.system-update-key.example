@@ -1,0 +1,4 @@
+# Public configuration only. Never place the private signing key here.
+CONFIG_IRIS_FACTORY_SYSTEM_UPDATE_BACKEND=y
+CONFIG_IRIS_FACTORY_SYSTEM_UPDATE_KEY_ID="product-release-1"
+CONFIG_IRIS_FACTORY_SYSTEM_UPDATE_PUBLIC_KEY_DER_HEX="<replace-with-spki-der-hex>"
