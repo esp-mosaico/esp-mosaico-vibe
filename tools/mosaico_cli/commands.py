@@ -90,7 +90,8 @@ def install(repository: Path, arguments: Any, context: RunContext) -> dict[str, 
     recovery_manifest = load_bundle(repository / model.recovery_dir, model.target)
     if artifacts.target != model.target:
         raise BuildError(
-            f"工程 target 为 {artifacts.target!r}，设备要求 {model.target!r}"
+            f"The project target is {artifacts.target!r}, but the device requires "
+            f"{model.target!r}."
         )
 
     context.status("gateway: connecting")
@@ -107,7 +108,8 @@ def install(repository: Path, arguments: Any, context: RunContext) -> dict[str, 
         device_id, status, str(recovery_manifest.get("version") or "")
     ):
         raise RecoveryRequiredError(
-            "设备尚未完成 Recovery 初始化或验证，请先运行 python mosaico.py recover"
+            "The device has not completed Recovery initialization or verification. "
+            "Run 'python mosaico.py recover' first."
         )
     context.status("recovery: verified retained Recovery service")
 
@@ -157,7 +159,10 @@ def recover(repository: Path, arguments: Any, context: RunContext) -> dict[str, 
             f"({recovery_image.get('size', 'unknown')} bytes)"
         )
     elif not arguments.dry_run:
-        print("警告：将从当前源码构建未经评审的 Recovery 候选包。", file=sys.stderr)
+        print(
+            "Warning: building an unreviewed Recovery candidate bundle from the current source.",
+            file=sys.stderr,
+        )
         context.status("bundle: current-source Recovery candidate selected")
 
     prior_device_id: str | None = arguments.device_id
@@ -246,8 +251,14 @@ def recover(repository: Path, arguments: Any, context: RunContext) -> dict[str, 
     )
     verified_device_id = str(status.get("device_id") or prior_device_id or "")
     if not verified_device_id:
-        raise OperationError("Recovery 已就绪，但无法确认 Device ID")
-    recovery_version = str(manifest.get("version") if manifest else status.get("app_version") or "current-source")
+        raise OperationError(
+            "Recovery is ready, but the Device ID could not be confirmed."
+        )
+    recovery_version = str(
+        manifest.get("version")
+        if manifest
+        else status.get("app_version") or "current-source"
+    )
     record_recovery_verification(
         verified_device_id, recovery_version, status.get("boot_id")
     )
@@ -329,7 +340,8 @@ def monitor(repository: Path, arguments: Any, context: RunContext, json_output: 
         return_code = process.wait(timeout=5)
         if return_code not in {0, -15}:
             raise DeviceError(
-                "日志连接异常结束", details={"log": str(context.log_path)}
+                "The log connection ended unexpectedly.",
+                details={"log": str(context.log_path)},
             )
     except KeyboardInterrupt:
         process.terminate()

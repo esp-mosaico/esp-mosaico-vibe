@@ -173,7 +173,8 @@ def resolve_idf_path(repository: Path, project: Path | None = None) -> Path:
         if (resolved / "export.sh").is_file() and (resolved / "tools" / "idf.py").is_file():
             return resolved
     raise EnvironmentError(
-        "未找到兼容的 ESP-IDF 环境；请先配置 IDF_PATH 或完成一次环境验证"
+        "No compatible ESP-IDF environment was found. Set IDF_PATH or complete "
+        "environment verification first."
     )
 
 
@@ -203,9 +204,14 @@ def build_application(context: RunContext, project: Path) -> None:
         cwd=context.repository,
     )
     if result.returncode:
+        diagnostic = (result.stdout or "").strip()
         raise BuildError(
-            "应用构建失败",
-            details={"log": str(context.log_path), "build_log_dir": str(context.directory / "build")},
+            "Application build failed.",
+            details={
+                "diagnostic": diagnostic,
+                "log": str(context.log_path),
+                "build_log_dir": str(context.directory / "build"),
+            },
         )
     for line in (result.stdout or "").splitlines():
         if line.strip():
@@ -324,22 +330,24 @@ def run_idf_target(
         )
     except subprocess.TimeoutExpired as error:
         raise BuildError(
-            f"ESP-IDF 操作超时（{timeout:g} 秒）",
+            f"ESP-IDF operation timed out after {timeout:g} seconds.",
             details={"log": str(context.log_path)},
         ) from error
     if result.returncode:
         output = (result.stdout or "").lower()
         if "port is busy" in output or "could not exclusively lock port" in output:
             raise DeviceError(
-                "设备配置通道被其他进程占用；请关闭占用该设备的程序后重试",
+                "The device configuration channel is busy. Close the process using "
+                "the device and try again.",
                 details={"log": str(context.log_path)},
             )
         if "could not connect to an espressif device" in output:
             raise DeviceError(
-                "无法连接处于恢复配置状态的 ESP-Mosaico 设备",
+                "Could not connect to the ESP-Mosaico device in recovery "
+                "configuration mode.",
                 details={"log": str(context.log_path)},
             )
         raise BuildError(
-            f"ESP-IDF target {target} 执行失败",
+            f"ESP-IDF target {target} failed.",
             details={"log": str(context.log_path)},
         )

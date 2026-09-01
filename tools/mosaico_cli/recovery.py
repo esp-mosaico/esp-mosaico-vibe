@@ -80,35 +80,43 @@ def load_bundle(directory: Path, expected_target: str) -> dict[str, Any]:
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     except FileNotFoundError as error:
-        raise EnvironmentError(f"评审 Recovery 基础包不存在：{manifest_path}") from error
+        raise EnvironmentError(
+            f"The reviewed Recovery bundle does not exist: {manifest_path}"
+        ) from error
     except (OSError, json.JSONDecodeError) as error:
-        raise EnvironmentError(f"Recovery manifest 无效：{manifest_path}") from error
+        raise EnvironmentError(f"Invalid Recovery manifest: {manifest_path}") from error
     if manifest.get("schema_version") != 2:
-        raise EnvironmentError("Recovery 基础包版本过旧，请重新发布完整评审包")
+        raise EnvironmentError(
+            "The Recovery bundle schema is obsolete; publish a complete reviewed bundle again."
+        )
     if manifest.get("target") != expected_target or manifest.get("profile") != "recovery":
-        raise EnvironmentError("Recovery 基础包与目标型号不兼容")
+        raise EnvironmentError("The Recovery bundle is incompatible with the target model.")
     images = manifest.get("images")
     if not isinstance(images, dict):
-        raise EnvironmentError("Recovery manifest 缺少 images")
+        raise EnvironmentError("The Recovery manifest is missing 'images'.")
     seen_offsets: set[int] = set()
     for name in REQUIRED_IMAGES:
         item = images.get(name)
         if not isinstance(item, dict):
-            raise EnvironmentError(f"Recovery manifest 缺少 {name}")
+            raise EnvironmentError(f"The Recovery manifest is missing '{name}'.")
         try:
             path = directory / item["file"]
             offset = int(str(item["offset"]), 0)
             size = int(item["size"])
             expected_hash = str(item["sha256"])
         except (KeyError, TypeError, ValueError) as error:
-            raise EnvironmentError(f"Recovery manifest 的 {name} 项无效") from error
+            raise EnvironmentError(
+                f"The '{name}' entry in the Recovery manifest is invalid."
+            ) from error
         if path.parent.resolve() != directory.resolve() or not path.is_file():
-            raise EnvironmentError(f"Recovery 基础包文件不存在：{path}")
+            raise EnvironmentError(f"A Recovery bundle file does not exist: {path}")
         if offset in seen_offsets:
-            raise EnvironmentError(f"Recovery 基础包包含重复 offset：0x{offset:x}")
+            raise EnvironmentError(
+                f"The Recovery bundle contains a duplicate offset: 0x{offset:x}"
+            )
         seen_offsets.add(offset)
         if path.stat().st_size != size or _sha256(path) != expected_hash:
-            raise EnvironmentError(f"Recovery 基础包校验失败：{path.name}")
+            raise EnvironmentError(f"Recovery bundle verification failed: {path.name}")
     return manifest
 
 
@@ -151,13 +159,15 @@ def provisioning_candidate(context: RunContext, model: DeviceModel) -> str:
     try:
         result = context.run([python, script, "doctor", "--json"], timeout=15)
     except subprocess.TimeoutExpired as error:
-        raise DeviceError("设备配置通道检测超时") from error
+        raise DeviceError("Device configuration channel detection timed out.") from error
     if result.returncode:
-        raise DeviceError("无法检测设备配置通道")
+        raise DeviceError("Could not detect a device configuration channel.")
     try:
         report = json.loads(result.stdout)
     except json.JSONDecodeError as error:
-        raise DeviceError("设备配置通道检测结果无效") from error
+        raise DeviceError(
+            "Device configuration channel detection returned an invalid result."
+        ) from error
     candidates = [
         item for item in report.get("devices", [])
         if isinstance(item, dict)
@@ -171,11 +181,15 @@ def provisioning_candidate(context: RunContext, model: DeviceModel) -> str:
     )
     if not candidates:
         raise DeviceError(
-            "未检测到处于恢复配置状态的 ESP-Mosaico。请关机，按住 USB-C 左侧的 "
-            "Boot 键上电，进入恢复模式后重试"
+            "No ESP-Mosaico device in recovery configuration mode was detected. "
+            "Power off the device, hold the Boot button to the left of the USB-C port, "
+            "power it on, release Boot after it enters recovery mode, and try again."
         )
     if len(candidates) != 1:
-        raise SelectionError("检测到多个底层候选设备，请只保留目标设备连接")
+        raise SelectionError(
+            "Multiple low-level device candidates were detected; leave only the target "
+            "device connected."
+        )
     return str(candidates[0]["path"])
 
 
@@ -264,6 +278,6 @@ def wait_recovery_ready(
             last_wait_notice = time.monotonic()
         time.sleep(0.5)
     raise OperationError(
-        "Recovery 写入完成，但未能验证 Recovery 就绪状态",
+        "Recovery was written, but the Recovery service could not be verified as ready.",
         details={"last_status": last_status, "log": str(context.log_path)},
     )

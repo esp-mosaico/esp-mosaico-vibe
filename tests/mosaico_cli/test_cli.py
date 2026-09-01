@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import argparse
+import ast
+from contextlib import redirect_stderr
 import hashlib
+import io
 import json
 import os
 from pathlib import Path
+import re
 import signal
 import shutil
 import subprocess
@@ -16,9 +20,10 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
 
-from mosaico_cli.cli import REPOSITORY, build_parser, _normalize_globals
+from mosaico_cli.cli import REPOSITORY, _emit_error, build_parser, _normalize_globals
 from mosaico_cli.commands import list_models, monitor, recover
 from mosaico_cli.errors import (
+    BuildError,
     DeviceError,
     EnvironmentError,
     OperationError,
@@ -40,7 +45,7 @@ from mosaico_cli.recovery import (
     recovery_is_verified,
 )
 from mosaico_cli.registry import load_registry, select_model
-from mosaico_cli.runtime import RunContext, run_idf_target
+from mosaico_cli.runtime import RunContext, build_application, run_idf_target
 
 
 class ParserTests(unittest.TestCase):
@@ -72,13 +77,63 @@ class ParserTests(unittest.TestCase):
 
     def test_no_public_recovery_port(self) -> None:
         options = build_parser().format_help()
-        recover_help = build_parser()._subparsers._group_actions[0].choices["recover"].format_help()
+        recover_help = (
+            build_parser()
+            ._subparsers._group_actions[0]
+            .choices["recover"]
+            .format_help()
+        )
         self.assertNotIn("--port", options + recover_help)
 
     def test_recover_has_no_confirmation_option(self) -> None:
         with self.assertRaises(SystemExit) as caught:
             self.parse("recover", "--yes")
         self.assertEqual(caught.exception.code, 2)
+
+    def test_user_visible_literals_are_english_only(self) -> None:
+        han_character = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff]")
+        package = REPOSITORY / "tools" / "mosaico_cli"
+        violations: list[str] = []
+        for path in sorted(package.glob("*.py")):
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+            for node in ast.walk(tree):
+                if (
+                    isinstance(node, ast.Constant)
+                    and isinstance(node.value, str)
+                    and han_character.search(node.value)
+                ):
+                    violations.append(f"{path.name}:{node.lineno}: {node.value!r}")
+        self.assertEqual(violations, [])
+
+
+class BuildDiagnosticsTests(unittest.TestCase):
+    def test_build_failure_prints_bounded_diagnostic_without_verbose(self) -> None:
+        summary = (
+            "IDF LOW-NOISE BUILD: FAILED\n"
+            "category: compiler\n"
+            "error: main/main.c:7:5: error: expected ';' before '}'\n"
+            "log: /runs/build/raw.log"
+        )
+        context = mock.Mock(
+            repository=REPOSITORY,
+            directory=Path("/runs"),
+            log_path=Path("/runs/raw.log"),
+        )
+        context.run.return_value = subprocess.CompletedProcess([], 1, summary, None)
+        with (
+            mock.patch("mosaico_cli.runtime.resolve_idf_path", return_value=Path("/idf")),
+            self.assertRaises(BuildError) as caught,
+        ):
+            build_application(context, Path("/project"))
+
+        self.assertEqual(caught.exception.details["diagnostic"], summary)
+        stderr = io.StringIO()
+        with redirect_stderr(stderr):
+            _emit_error(caught.exception, json_output=False, verbose=False)
+        output = stderr.getvalue()
+        self.assertIn("mosaico: Application build failed.", output)
+        self.assertIn("main/main.c:7:5: error: expected ';'", output)
+        self.assertIn("Build logs: /runs/build", output)
 
 
 class RegistryAndSelectionTests(unittest.TestCase):

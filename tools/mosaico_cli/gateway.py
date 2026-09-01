@@ -31,7 +31,9 @@ def locate_iris_tools(repository: Path) -> tuple[Path, Path]:
     try:
         text = manifest.read_text(encoding="utf-8")
     except OSError as error:
-        raise EnvironmentError(f"无法读取 ESP-Iris 组件声明：{manifest}") from error
+        raise EnvironmentError(
+            f"Could not read the ESP-Iris component manifest: {manifest}"
+        ) from error
     match = re.search(r"(?ms)^\s*esp_iris:\s*\n\s*override_path:\s*([^\n#]+)", text)
     candidates: list[Path] = []
     if match:
@@ -49,7 +51,7 @@ def locate_iris_tools(repository: Path) -> tuple[Path, Path]:
         component_repo = component.parent.parent
         python = component_repo / ".venv" / "bin" / "python"
         return (python if python.is_file() else Path(os.sys.executable), script)
-    raise EnvironmentError("未找到仓库声明的 ESP-Iris CLI")
+    raise EnvironmentError("The ESP-Iris CLI declared by this repository was not found.")
 
 
 @dataclass(frozen=True)
@@ -72,7 +74,7 @@ def _decode_json(output: str) -> Any:
     try:
         return json.loads(output)
     except json.JSONDecodeError as error:
-        raise OperationError("ESP-Iris 返回了无效结果") from error
+        raise OperationError("ESP-Iris returned an invalid result.") from error
 
 
 def _probe(
@@ -176,7 +178,9 @@ def pause_managed_local_gateway(context: RunContext) -> bool:
         return False
 
     if not _terminate_managed_gateway(pid):
-        raise DeviceError("本地 ESP-Iris Gateway 未能释放设备配置通道")
+        raise DeviceError(
+            "The local ESP-Iris Gateway could not release the device configuration channel."
+        )
     pid_path.unlink(missing_ok=True)
     context.note(f"paused managed local Gateway pid={pid} for recovery")
     return True
@@ -187,7 +191,7 @@ def ensure_gateway(context: RunContext, profile: str | None) -> GatewaySession:
     if profile:
         connection = ("--profile", profile)
         if not _probe(context, python, script, connection):
-            raise DeviceError(f"Gateway profile 不可达：{profile}")
+            raise DeviceError(f"Gateway profile is unreachable: {profile}")
         return GatewaySession(python, script, connection, profile, False)
 
     if _probe(context, python, script, ()):
@@ -204,7 +208,7 @@ def ensure_gateway(context: RunContext, profile: str | None) -> GatewaySession:
         if _pid_alive(old_pid):
             if _owned_local_gateway(old_pid, script, state):
                 if not _terminate_managed_gateway(old_pid):
-                    raise DeviceError("无法清理失效的本地 ESP-Iris Gateway")
+                    raise DeviceError("Could not stop the stale local ESP-Iris Gateway.")
         pid_path.unlink(missing_ok=True)
     except (OSError, ValueError):
         pid_path.unlink(missing_ok=True)
@@ -237,7 +241,7 @@ def ensure_gateway(context: RunContext, profile: str | None) -> GatewaySession:
         pid_path.write_text(f"{process.pid}\n", encoding="ascii")
     except OSError as error:
         raise DeviceError(
-            "无法启动本地 ESP-Iris Gateway",
+            "Could not start the local ESP-Iris Gateway.",
             details={"gateway_log": str(log_path)},
         ) from error
 
@@ -254,7 +258,7 @@ def ensure_gateway(context: RunContext, profile: str | None) -> GatewaySession:
         except OSError:
             pass
     raise DeviceError(
-        "本地 ESP-Iris Gateway 启动失败",
+        "The local ESP-Iris Gateway failed to start.",
         details={"gateway_log": str(log_path)},
     )
 
@@ -268,10 +272,11 @@ def gateway_json(
     try:
         result = context.run(session.ctl_argv(*arguments), timeout=timeout)
     except subprocess.TimeoutExpired as error:
-        raise DeviceError("ESP-Iris Gateway 请求超时") from error
+        raise DeviceError("The ESP-Iris Gateway request timed out.") from error
     if result.returncode:
         raise DeviceError(
-            "ESP-Iris Gateway 请求失败", details={"log": str(context.log_path)}
+            "The ESP-Iris Gateway request failed.",
+            details={"log": str(context.log_path)},
         )
     return _decode_json(result.stdout)
 
@@ -286,7 +291,7 @@ def connected_devices(
     while True:
         value = gateway_json(context, session, "devices")
         if not isinstance(value, dict):
-            raise DeviceError("ESP-Iris 设备列表格式无效")
+            raise DeviceError("ESP-Iris returned an invalid device list.")
         devices = [
             item for item in value.get("devices", [])
             if isinstance(item, dict) and item.get("connected") is not False
@@ -301,13 +306,13 @@ def select_device(devices: list[dict[str, Any]], requested: str | None) -> dict[
         matches = [item for item in devices if item.get("device_id") == requested]
         if len(matches) == 1:
             return matches[0]
-        raise DeviceError(f"指定设备当前不可用：{requested}")
+        raise DeviceError(f"The requested device is currently unavailable: {requested}")
     if len(devices) == 1:
         return devices[0]
     if not devices:
-        raise DeviceError("未发现可用的 ESP-Mosaico 设备")
+        raise DeviceError("No available ESP-Mosaico device was found.")
     raise SelectionError(
-        "发现多个设备，请使用 --device-id 指定",
+        "Multiple devices were found; specify one with --device-id.",
         details={"candidates": [item.get("device_id") for item in devices]},
     )
 
@@ -344,7 +349,8 @@ def run_ota(
         )
     except subprocess.TimeoutExpired as error:
         raise OutcomeUnknownError(
-            "安装等待超时，设备结果不确定；不会自动重放写操作",
+            "Installation timed out and the device outcome is unknown; the write "
+            "operation will not be replayed automatically.",
             details={"log": str(context.log_path)},
         ) from error
     try:
@@ -359,16 +365,18 @@ def run_ota(
     if result.returncode:
         if status in {"outcome_unknown", "unknown"} or status is None:
             raise OutcomeUnknownError(
-                "安装提交结果不确定；不会自动重放写操作",
+                "The installation submission outcome is unknown; the write operation "
+                "will not be replayed automatically.",
                 details={"result": value, "log": str(context.log_path)},
             )
         raise OperationError(
-            "安装提交失败",
+            "Installation submission failed.",
             details={"result": value, "log": str(context.log_path)},
         )
     if not operation_id or status in {"outcome_unknown", "unknown"} or status is None:
         raise OutcomeUnknownError(
-            "安装结果不确定；不会自动重放写操作",
+            "The installation outcome is unknown; the write operation will not be "
+            "replayed automatically.",
             details={"result": value, "log": str(context.log_path)},
         )
 
@@ -387,7 +395,8 @@ def run_ota(
     while status not in terminal:
         if time.monotonic() - started >= timeout:
             raise OutcomeUnknownError(
-                "安装等待超时，设备结果不确定；不会自动重放写操作",
+                "Installation timed out and the device outcome is unknown; the write "
+                "operation will not be replayed automatically.",
                 details={"operation_id": operation_id, "log": str(context.log_path)},
             )
         progress = operation.get("progress")
@@ -412,7 +421,8 @@ def run_ota(
         status = operation.get("status")
         if status is None:
             raise OutcomeUnknownError(
-                "安装状态响应无效；不会自动重放写操作",
+                "The installation status response is invalid; the write operation will "
+                "not be replayed automatically.",
                 details={"operation_id": operation_id, "result": current,
                          "log": str(context.log_path)},
             )
@@ -425,7 +435,7 @@ def run_ota(
     )
     if status not in {"succeeded", "success", "completed"}:
         raise OperationError(
-            f"安装失败：{status}",
+            f"Installation failed: {status}",
             details={"result": operation, "log": str(context.log_path)},
         )
     if isinstance(value, dict):

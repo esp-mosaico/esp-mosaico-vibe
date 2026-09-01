@@ -31,7 +31,7 @@ def load_registry() -> list[DeviceModel]:
             raise ValueError("unsupported schema")
         return [DeviceModel(**item) for item in value["devices"]]
     except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
-        raise EnvironmentError(f"设备注册表无效：{path}") from error
+        raise EnvironmentError(f"Invalid device registry: {path}") from error
 
 
 def select_model(model_id: str | None) -> DeviceModel:
@@ -41,7 +41,7 @@ def select_model(model_id: str | None) -> DeviceModel:
             if item.id == model_id:
                 return item
         raise SelectionError(
-            f"未知或不受支持的设备型号：{model_id}",
+            f"Unknown or unsupported device model: {model_id}",
             details={"candidates": [item.id for item in models]},
         )
     defaults = [item for item in models if item.default]
@@ -50,6 +50,6 @@ def select_model(model_id: str | None) -> DeviceModel:
     if len(defaults) == 1:
         return defaults[0]
     raise SelectionError(
-        "存在多个适配设备，请使用 --model 指定",
+        "Multiple supported device models are available; specify one with --model.",
         details={"candidates": [item.id for item in models]},
     )

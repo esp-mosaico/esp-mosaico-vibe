@@ -26,7 +26,7 @@ static esp_err_t hello_world_ui_start(void)
     lv_obj_clear_flag(screen, LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_t *label = lv_label_create(screen);
-    lv_label_set_text(label, "1234567890");
+    lv_label_set_text(label, "Hello World!");
     lv_obj_set_style_text_font(label, &lv_font_montserrat_48, LV_PART_MAIN);
     lv_obj_set_style_text_color(label, lv_color_hex(0x101010), LV_PART_MAIN);
     lv_obj_center(label);

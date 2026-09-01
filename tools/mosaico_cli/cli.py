@@ -43,9 +43,9 @@ def positive_timeout(value: str) -> float:
     try:
         result = float(value)
     except ValueError as error:
-        raise argparse.ArgumentTypeError("必须是数字") from error
+        raise argparse.ArgumentTypeError("must be a number") from error
     if result <= 0:
-        raise argparse.ArgumentTypeError("必须大于 0")
+        raise argparse.ArgumentTypeError("must be greater than 0")
     return result
 
 
@@ -53,74 +53,111 @@ def monitor_timeout(value: str) -> float:
     try:
         result = float(value)
     except ValueError as error:
-        raise argparse.ArgumentTypeError("必须是数字") from error
+        raise argparse.ArgumentTypeError("must be a number") from error
     if result < 0:
-        raise argparse.ArgumentTypeError("不能小于 0")
+        raise argparse.ArgumentTypeError("must not be less than 0")
     return result
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = MosaicoArgumentParser(
         prog="mosaico.py",
-        description="ESP-Mosaico 统一设备命令行",
+        description="Unified ESP-Mosaico device command-line tool",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("--json", action="store_true", help="输出稳定 JSON；monitor 输出 NDJSON")
-    parser.add_argument("--verbose", action="store_true", help="显示内部阶段和完整日志路径")
+    parser.add_argument(
+        "--json", action="store_true", help="Emit stable JSON; monitor emits NDJSON"
+    )
+    parser.add_argument(
+        "--verbose", action="store_true", help="Show internal stages and full log paths"
+    )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     commands = parser.add_subparsers(dest="command", required=True)
 
     install_parser = commands.add_parser(
         "install",
-        help="通过 ESP-Iris 安装普通应用",
+        help="Install a normal application through ESP-Iris",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    install_parser.add_argument("--project", help="ESP-IDF 用户工程路径；默认自动选择")
-    install_parser.add_argument("--device-id", help="目标 Device ID；单设备时自动选择")
-    install_parser.add_argument("--gateway-profile", help="ESP-Iris profile；默认使用当前 profile")
-    install_parser.add_argument("--skip-build", action="store_true", help="复用完整的已有构建")
+    install_parser.add_argument(
+        "--project", help="ESP-IDF application path; selected automatically by default"
+    )
+    install_parser.add_argument(
+        "--device-id", help="Target Device ID; selected automatically when only one is available"
+    )
+    install_parser.add_argument(
+        "--gateway-profile", help="ESP-Iris profile; use the current profile by default"
+    )
+    install_parser.add_argument(
+        "--skip-build", action="store_true", help="Reuse a complete existing build"
+    )
     install_parser.add_argument(
         "--validation",
         choices=("elf-sha256", "version"),
         default="elf-sha256",
-        help="安装后的固件身份验证方式",
+        help="Firmware identity validation method after installation",
     )
-    install_parser.add_argument("--timeout", type=positive_timeout, default=600.0, help="安装超时秒数")
+    install_parser.add_argument(
+        "--timeout", type=positive_timeout, default=600.0, help="Installation timeout in seconds"
+    )
 
     recover_parser = commands.add_parser(
         "recover",
-        help="恢复设备基础固件",
+        help="Restore the device base firmware",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    recover_parser.add_argument("--model", help="设备型号；单一适配型号时自动选择")
+    recover_parser.add_argument(
+        "--model", help="Device model; selected automatically when only one is supported"
+    )
     recover_parser.add_argument(
         "--source",
         choices=("reviewed", "current"),
         default="reviewed",
-        help="评审基础包或当前源码候选包",
+        help="Reviewed base bundle or current-source candidate bundle",
     )
-    recover_parser.add_argument("--device-id", help="用于恢复前后身份关联的 Device ID")
-    recover_parser.add_argument("--gateway-profile", help="ESP-Iris profile；默认使用当前 profile")
-    recover_parser.add_argument("--timeout", type=positive_timeout, default=180.0, help="恢复及验证超时秒数")
-    recover_parser.add_argument("--dry-run", action="store_true", help="只检查，不构建或写入")
+    recover_parser.add_argument(
+        "--device-id", help="Device ID used to correlate identity before and after recovery"
+    )
+    recover_parser.add_argument(
+        "--gateway-profile", help="ESP-Iris profile; use the current profile by default"
+    )
+    recover_parser.add_argument(
+        "--timeout", type=positive_timeout, default=180.0,
+        help="Recovery and validation timeout in seconds",
+    )
+    recover_parser.add_argument(
+        "--dry-run", action="store_true", help="Check only; do not build or write firmware"
+    )
 
     monitor_parser = commands.add_parser(
         "monitor",
-        help="查看 ESP-Iris 保留日志",
+        help="View retained ESP-Iris logs",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    monitor_parser.add_argument("--device-id", help="目标 Device ID；单设备时自动选择")
-    monitor_parser.add_argument("--gateway-profile", help="ESP-Iris profile；默认使用当前 profile")
-    monitor_parser.add_argument("--timeout", type=monitor_timeout, default=0.0, help="跟随秒数；0 表示不限制")
-    monitor_parser.add_argument("--snapshot", action="store_true", help="输出保留日志后退出")
-    monitor_parser.add_argument("--grep", help="客户端文本过滤")
+    monitor_parser.add_argument(
+        "--device-id", help="Target Device ID; selected automatically when only one is available"
+    )
+    monitor_parser.add_argument(
+        "--gateway-profile", help="ESP-Iris profile; use the current profile by default"
+    )
+    monitor_parser.add_argument(
+        "--timeout", type=monitor_timeout, default=0.0,
+        help="Follow duration in seconds; 0 means no limit",
+    )
+    monitor_parser.add_argument(
+        "--snapshot", action="store_true", help="Print retained logs and exit"
+    )
+    monitor_parser.add_argument("--grep", help="Client-side text filter")
 
     list_parser = commands.add_parser(
         "list",
-        help="列出仓库适配的设备型号",
+        help="List device models supported by this repository",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    list_parser.add_argument("--details", action="store_true", help="显示参考工程、BSP 和 Recovery 基线")
+    list_parser.add_argument(
+        "--details", action="store_true",
+        help="Show the reference project, BSP, and Recovery baseline",
+    )
     return parser
 
 
@@ -141,10 +178,20 @@ def _print_table(result: dict[str, Any], details: bool) -> None:
         fields.extend(["reference_project", "bsp_revision", "recovery_version"])
     headers = [field.upper() for field in fields]
     rows = [
-        ["yes" if item.get(field) is True else "" if item.get(field) is False else str(item.get(field, "")) for field in fields]
+        [
+            "yes"
+            if item.get(field) is True
+            else ""
+            if item.get(field) is False
+            else str(item.get(field, ""))
+            for field in fields
+        ]
         for item in result["models"]
     ]
-    widths = [max(len(headers[index]), *(len(row[index]) for row in rows)) for index in range(len(fields))]
+    widths = [
+        max(len(headers[index]), *(len(row[index]) for row in rows))
+        for index in range(len(fields))
+    ]
     print("  ".join(headers[index].ljust(widths[index]) for index in range(len(fields))))
     for row in rows:
         print("  ".join(row[index].ljust(widths[index]) for index in range(len(fields))))
@@ -168,6 +215,12 @@ def _emit_error(error: MosaicoError, json_output: bool, verbose: bool) -> None:
         )
     else:
         print(f"mosaico: {error}", file=sys.stderr)
+        diagnostic = error.details.get("diagnostic")
+        if diagnostic:
+            print(diagnostic, file=sys.stderr)
+        build_log_dir = error.details.get("build_log_dir")
+        if build_log_dir:
+            print(f"Build logs: {build_log_dir}", file=sys.stderr)
         if verbose and error.details:
             print(json.dumps(error.details, ensure_ascii=False, indent=2), file=sys.stderr)
 
@@ -195,7 +248,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         arguments.json,
     )
     if arguments.verbose and not arguments.json:
-        print(f"运行日志：{context.log_path}", file=sys.stderr)
+        print(f"Run log: {context.log_path}", file=sys.stderr)
     try:
         if arguments.command == "install":
             result = install(REPOSITORY, arguments, context)
@@ -215,7 +268,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         status = result.get("status", "succeeded")
         print(f"{arguments.command}: {status}")
         if arguments.command == "recover" and status == "dry_run":
-            print("检查通过；未构建、未写入设备。")
+            print("Checks passed; no firmware was built or written.")
         if arguments.verbose:
             print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0

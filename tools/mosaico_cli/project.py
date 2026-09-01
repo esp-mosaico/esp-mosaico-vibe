@@ -40,7 +40,7 @@ def resolve_project(repository: Path, requested: str | None, cwd: Path) -> Path:
         else:
             path = path.resolve()
         if not _is_idf_project(path):
-            raise SelectionError(f"不是有效的 ESP-IDF 工程：{path}")
+            raise SelectionError(f"Not a valid ESP-IDF project: {path}")
         return path
 
     current = cwd.resolve()
@@ -60,10 +60,11 @@ def resolve_project(repository: Path, requested: str | None, cwd: Path) -> Path:
         return candidates[0]
     if not candidates:
         raise SelectionError(
-            "未找到用户工程；请使用 --project PATH 指定工程（factory 不会被自动选择）"
+            "No application project was found. Specify one with --project PATH; "
+            "the factory project is never selected automatically."
         )
     raise SelectionError(
-        "存在多个用户工程，请使用 --project PATH 指定",
+        "Multiple application projects were found; specify one with --project PATH.",
         details={"candidates": [str(item) for item in candidates]},
     )
 
@@ -74,9 +75,9 @@ def discover_artifacts(project: Path) -> BuildArtifacts:
     try:
         description = json.loads(description_path.read_text(encoding="utf-8"))
     except FileNotFoundError as error:
-        raise BuildError(f"没有可复用的构建：{description_path}") from error
+        raise BuildError(f"No reusable build was found: {description_path}") from error
     except (OSError, json.JSONDecodeError) as error:
-        raise BuildError(f"构建描述无效：{description_path}") from error
+        raise BuildError(f"Invalid build description: {description_path}") from error
 
     name = str(description.get("project_name") or project.name)
     image = build_dir / str(description.get("app_bin") or f"{name}.bin")
@@ -85,7 +86,7 @@ def discover_artifacts(project: Path) -> BuildArtifacts:
     missing = [str(path) for path in (image, elf, map_file) if not path.is_file()]
     if missing:
         raise BuildError(
-            "构建产物不完整",
+            "Build artifacts are incomplete.",
             details={"missing": missing, "build_dir": str(build_dir)},
         )
     return BuildArtifacts(
