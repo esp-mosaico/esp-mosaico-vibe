@@ -23,10 +23,32 @@
 日常安装、日志和恢复统一通过仓库根目录的 `mosaico.py` 完成：
 
 ```sh
+python mosaico.py doctor
 python mosaico.py list
 python mosaico.py recover
 python mosaico.py install --project projects/<project>
 python mosaico.py monitor
+```
+
+CLI 支持 Linux、macOS 原生终端，以及 Windows PowerShell 和 CMD，不依赖 WSL
+或 Git Bash。主机需使用 Python 3.11 或更新版本、满足 factory 工程约束的
+ESP-IDF，以及按 ESP-Iris `tools/requirements.txt` 安装的运行环境。首次操作前运行
+`doctor`，可检查 Python、ESP-IDF、ESP32-S31 target、ESP-Iris、主机状态目录和
+实时 USB 枚举；该命令不会构建或写入固件。
+
+状态文件遵循各平台约定：Linux 使用 `$XDG_STATE_HOME/esp-mosaico`（未设置时为
+`~/.local/state/esp-mosaico`），macOS 使用
+`~/Library/Application Support/esp-mosaico`，Windows 使用
+`%LOCALAPPDATA%\esp-mosaico`。
+
+在每种原生主机上运行相同的兼容性冒烟测试：
+
+```sh
+python -m unittest discover -s tests/mosaico_cli -v
+python mosaico.py --version
+python mosaico.py --json list
+python mosaico.py --json doctor
+python mosaico.py monitor --timeout 1 --grep __mosaico_host_smoke__
 ```
 
 `install` 只通过 **ESP-Iris Developer Gateway** 更新普通应用；设备未完成初始化

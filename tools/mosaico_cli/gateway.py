@@ -11,8 +11,18 @@ import signal
 import subprocess
 import time
 from typing import Any
+from urllib.error import URLError
+from urllib.request import urlopen
+import uuid
 
-from .errors import DeviceError, EnvironmentError, OperationError, OutcomeUnknownError, SelectionError
+from .errors import (
+    DeviceError,
+    EnvironmentError,
+    OperationError,
+    OutcomeUnknownError,
+    SelectionError,
+)
+from .host import state_root, virtual_environment_python
 from .runtime import RunContext
 
 
@@ -20,10 +30,7 @@ LOCAL_URL = "http://127.0.0.1:8443"
 
 
 def _state_home() -> Path:
-    configured = os.environ.get("XDG_STATE_HOME")
-    if configured:
-        return Path(configured).expanduser() / "esp-mosaico" / "gateway"
-    return Path.home() / ".local" / "state" / "esp-mosaico" / "gateway"
+    return state_root("esp-mosaico") / "gateway"
 
 
 def locate_iris_tools(repository: Path) -> tuple[Path, Path]:
@@ -49,7 +56,7 @@ def locate_iris_tools(repository: Path) -> tuple[Path, Path]:
         if not script.is_file():
             continue
         component_repo = component.parent.parent
-        python = component_repo / ".venv" / "bin" / "python"
+        python = virtual_environment_python(component_repo / ".venv")
         return (python if python.is_file() else Path(os.sys.executable), script)
     raise EnvironmentError("The ESP-Iris CLI declared by this repository was not found.")
 
@@ -98,26 +105,71 @@ def _probe(
     return isinstance(value, dict) and isinstance(value.get("devices"), list)
 
 
-def _pid_alive(pid: int) -> bool:
+def _health_instance(url: str = LOCAL_URL) -> str | None:
     try:
-        os.kill(pid, 0)
-    except (OSError, ValueError):
-        return False
+        with urlopen(f"{url}/v1/health", timeout=2) as response:
+            value = json.loads(response.read().decode("utf-8"))
+    except (OSError, URLError, ValueError, json.JSONDecodeError):
+        return None
+    instance = value.get("instance_id") if isinstance(value, dict) else None
+    return str(instance) if instance else None
+
+
+def _ownership_path(state: Path) -> Path:
+    return state / "gateway-owner.json"
+
+
+def _load_owner(state: Path) -> dict[str, Any] | None:
     try:
-        stat = Path(f"/proc/{pid}/stat").read_text(encoding="ascii")
-    except FileNotFoundError:
+        value = json.loads(_ownership_path(state).read_text(encoding="utf-8"))
+        if (
+            value.get("schema_version") == 1
+            and isinstance(value.get("pid"), int)
+            and isinstance(value.get("instance_id"), str)
+            and isinstance(value.get("script"), str)
+        ):
+            return value
+    except (OSError, TypeError, ValueError, json.JSONDecodeError):
+        pass
+    return None
+
+
+def _write_owner(state: Path, *, pid: int, instance_id: str, script: Path) -> None:
+    path = _ownership_path(state)
+    temporary = path.with_suffix(".tmp")
+    temporary.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "pid": pid,
+                "instance_id": instance_id,
+                "script": str(script.resolve()),
+                "state_dir": str((state / "state").resolve()),
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    temporary.replace(path)
+
+
+def _owner_is_current(owner: dict[str, Any], script: Path) -> bool:
+    try:
+        recorded_script = Path(owner["script"]).resolve()
+    except (KeyError, OSError, TypeError, ValueError):
         return False
-    except OSError:
-        # kill(pid, 0) succeeded, so conservatively treat an unreadable process
-        # as live rather than risk terminating or replacing an unrelated one.
-        return True
-    # A zombie has already closed all file descriptors, including the USB
-    # device. PID 1 may reap it slightly after the Gateway has stopped.
-    state = stat.rpartition(") ")[2][:1]
-    return state not in {"Z", "X"}
+    return (
+        recorded_script == script.resolve()
+        and _health_instance() == owner["instance_id"]
+    )
 
 
 def _owned_local_gateway(pid: int, script: Path, state: Path) -> bool:
+    """Validate a legacy Linux PID record during one-way state migration."""
+
+    if not Path("/proc").is_dir():
+        return False
     try:
         command_line = Path(f"/proc/{pid}/cmdline").read_bytes()
     except OSError:
@@ -128,33 +180,49 @@ def _owned_local_gateway(pid: int, script: Path, state: Path) -> bool:
     )
 
 
-def _terminate_managed_gateway(pid: int) -> bool:
+def _terminate_managed_gateway(pid: int, instance_id: str) -> bool:
     """Terminate the complete, dedicated process group created by this CLI."""
 
     try:
-        os.killpg(pid, signal.SIGTERM)
-    except ProcessLookupError:
-        return True
-    except OSError:
-        return False
+        if os.name == "nt":
+            break_event = getattr(signal, "CTRL_BREAK_EVENT", None)
+            if break_event is None:
+                raise OSError("CTRL_BREAK_EVENT is unavailable")
+            os.kill(pid, break_event)
+        else:
+            os.killpg(pid, signal.SIGTERM)
+    except (OSError, ProcessLookupError):
+        pass
     deadline = time.monotonic() + 3
-    while _pid_alive(pid) and time.monotonic() < deadline:
+    while _health_instance() == instance_id and time.monotonic() < deadline:
         time.sleep(0.1)
-    if not _pid_alive(pid):
+    if _health_instance() != instance_id:
         return True
 
-    # start_new_session=True makes this process group exclusive to the local
-    # Gateway. Escalation prevents a worker retaining the USB descriptor.
-    try:
-        os.killpg(pid, signal.SIGKILL)
-    except ProcessLookupError:
-        return True
-    except OSError:
-        return False
+    if os.name == "nt":
+        try:
+            result = subprocess.run(
+                ["taskkill", "/PID", str(pid), "/T", "/F"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=5,
+                check=False,
+            )
+            if result.returncode and _health_instance() == instance_id:
+                return False
+        except (OSError, subprocess.TimeoutExpired):
+            return False
+    else:
+        try:
+            os.killpg(pid, signal.SIGKILL)
+        except ProcessLookupError:
+            return True
+        except OSError:
+            return False
     deadline = time.monotonic() + 2
-    while _pid_alive(pid) and time.monotonic() < deadline:
+    while _health_instance() == instance_id and time.monotonic() < deadline:
         time.sleep(0.1)
-    return not _pid_alive(pid)
+    return _health_instance() != instance_id
 
 
 def pause_managed_local_gateway(context: RunContext) -> bool:
@@ -166,22 +234,28 @@ def pause_managed_local_gateway(context: RunContext) -> bool:
 
     _, script = locate_iris_tools(context.repository)
     state = _state_home()
-    pid_path = state / "gateway.pid"
-    try:
-        pid = int(pid_path.read_text(encoding="ascii").strip())
-    except (OSError, ValueError):
-        return False
-    if not _pid_alive(pid):
-        pid_path.unlink(missing_ok=True)
-        return False
-    if not _owned_local_gateway(pid, script, state):
-        return False
+    owner = _load_owner(state)
+    if owner is not None and _owner_is_current(owner, script):
+        pid = int(owner["pid"])
+        instance_id = str(owner["instance_id"])
+    else:
+        _ownership_path(state).unlink(missing_ok=True)
+        pid_path = state / "gateway.pid"
+        try:
+            pid = int(pid_path.read_text(encoding="ascii").strip())
+        except (OSError, ValueError):
+            return False
+        if not _owned_local_gateway(pid, script, state):
+            pid_path.unlink(missing_ok=True)
+            return False
+        instance_id = _health_instance() or "mosaico"
 
-    if not _terminate_managed_gateway(pid):
+    if not _terminate_managed_gateway(pid, instance_id):
         raise DeviceError(
             "The local ESP-Iris Gateway could not release the device configuration channel."
         )
-    pid_path.unlink(missing_ok=True)
+    _ownership_path(state).unlink(missing_ok=True)
+    (state / "gateway.pid").unlink(missing_ok=True)
     context.note(f"paused managed local Gateway pid={pid} for recovery")
     return True
 
@@ -203,19 +277,26 @@ def ensure_gateway(context: RunContext, profile: str | None) -> GatewaySession:
     state = _state_home()
     state.mkdir(parents=True, exist_ok=True)
     pid_path = state / "gateway.pid"
-    try:
-        old_pid = int(pid_path.read_text(encoding="ascii").strip())
-        if _pid_alive(old_pid):
-            if _owned_local_gateway(old_pid, script, state):
-                if not _terminate_managed_gateway(old_pid):
-                    raise DeviceError("Could not stop the stale local ESP-Iris Gateway.")
-        pid_path.unlink(missing_ok=True)
-    except (OSError, ValueError):
-        pid_path.unlink(missing_ok=True)
+    owner = _load_owner(state)
+    if owner is not None and _owner_is_current(owner, script):
+        if not _terminate_managed_gateway(
+            int(owner["pid"]), str(owner["instance_id"])
+        ):
+            raise DeviceError("Could not stop the stale local ESP-Iris Gateway.")
+    _ownership_path(state).unlink(missing_ok=True)
+    pid_path.unlink(missing_ok=True)
 
     log_path = state / "gateway.log"
+    instance_id = f"mosaico-{uuid.uuid4().hex}"
     try:
         log_stream = log_path.open("a", encoding="utf-8")
+        popen_options: dict[str, Any] = {"close_fds": True}
+        if os.name == "nt":
+            popen_options["creationflags"] = getattr(
+                subprocess, "CREATE_NEW_PROCESS_GROUP", 0
+            )
+        else:
+            popen_options["start_new_session"] = True
         process = subprocess.Popen(
             [
                 str(python),
@@ -226,7 +307,7 @@ def ensure_gateway(context: RunContext, profile: str | None) -> GatewaySession:
                 "--port",
                 "8443",
                 "--instance-id",
-                "mosaico",
+                instance_id,
                 "--state-dir",
                 str(state / "state"),
                 "--no-tls",
@@ -234,11 +315,10 @@ def ensure_gateway(context: RunContext, profile: str | None) -> GatewaySession:
             stdin=subprocess.DEVNULL,
             stdout=log_stream,
             stderr=subprocess.STDOUT,
-            start_new_session=True,
-            close_fds=True,
+            **popen_options,
         )
         log_stream.close()
-        pid_path.write_text(f"{process.pid}\n", encoding="ascii")
+        _write_owner(state, pid=process.pid, instance_id=instance_id, script=script)
     except OSError as error:
         raise DeviceError(
             "Could not start the local ESP-Iris Gateway.",
@@ -249,14 +329,16 @@ def ensure_gateway(context: RunContext, profile: str | None) -> GatewaySession:
     while time.monotonic() < deadline:
         if process.poll() is not None:
             break
-        if _probe(context, python, script, local):
+        if _probe(context, python, script, local) and _health_instance() == instance_id:
             return GatewaySession(python, script, local, None, True)
         time.sleep(0.25)
     if process.poll() is None:
+        process.terminate()
         try:
-            os.killpg(process.pid, signal.SIGTERM)
-        except OSError:
-            pass
+            process.wait(timeout=3)
+        except subprocess.TimeoutExpired:
+            process.kill()
+    _ownership_path(state).unlink(missing_ok=True)
     raise DeviceError(
         "The local ESP-Iris Gateway failed to start.",
         details={"gateway_log": str(log_path)},

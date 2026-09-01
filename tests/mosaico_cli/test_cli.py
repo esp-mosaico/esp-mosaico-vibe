@@ -6,7 +6,6 @@ from contextlib import redirect_stderr, redirect_stdout
 import hashlib
 import io
 import json
-import os
 from pathlib import Path
 import re
 import signal
@@ -20,7 +19,7 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
 
-from mosaico_cli.cli import REPOSITORY, _emit_error, build_parser, _normalize_globals
+from mosaico_cli.cli import REPOSITORY, _emit_error, build_parser, main, _normalize_globals
 from mosaico_cli.commands import _MonitorTextRenderer, list_models, monitor, recover
 from mosaico_cli.errors import (
     BuildError,
@@ -32,11 +31,18 @@ from mosaico_cli.errors import (
 )
 from mosaico_cli.gateway import (
     GatewaySession,
-    _pid_alive,
+    _terminate_managed_gateway,
     ensure_gateway,
     pause_managed_local_gateway,
     run_ota,
     select_device,
+)
+from mosaico_cli.host import (
+    IdfEnvironment,
+    _parse_idf_exports,
+    prepare_idf_environment,
+    state_root,
+    virtual_environment_python,
 )
 from mosaico_cli.project import resolve_project
 from mosaico_cli.recovery import (
@@ -76,6 +82,30 @@ class ParserTests(unittest.TestCase):
         self.assertTrue(value.json)
         self.assertTrue(value.verbose)
         self.assertTrue(value.details)
+
+    def test_doctor_is_public_and_has_no_device_options(self) -> None:
+        value = self.parse("doctor", "--json")
+        self.assertEqual(value.command, "doctor")
+        self.assertTrue(value.json)
+
+    def test_doctor_json_is_stable(self) -> None:
+        diagnosis = {
+            "command": "doctor",
+            "status": "ready",
+            "host": {},
+            "idf": {},
+            "iris": {},
+            "checks": [],
+            "exit_code": 0,
+        }
+        output = io.StringIO()
+        with (
+            mock.patch("mosaico_cli.cli.MosaicoArgumentParser.json_errors", False),
+            mock.patch("mosaico_cli.cli.diagnose_host", return_value=diagnosis),
+            redirect_stdout(output),
+        ):
+            self.assertEqual(main(["doctor", "--json"]), 0)
+        self.assertEqual(json.loads(output.getvalue())["status"], "ready")
 
     def test_no_public_recovery_port(self) -> None:
         options = build_parser().format_help()
@@ -158,17 +188,6 @@ class RegistryAndSelectionTests(unittest.TestCase):
 
 
 class GatewayTests(unittest.TestCase):
-    def test_zombie_gateway_is_not_alive(self) -> None:
-        with (
-            mock.patch("mosaico_cli.gateway.os.kill"),
-            mock.patch.object(
-                Path,
-                "read_text",
-                return_value="1234 (python) Z 1 1234 1234 0 -1",
-            ),
-        ):
-            self.assertFalse(_pid_alive(1234))
-
     def test_unreachable_explicit_profile_never_starts_local_gateway(self) -> None:
         context = mock.Mock(repository=REPOSITORY)
         with (
@@ -183,7 +202,17 @@ class GatewayTests(unittest.TestCase):
     def test_recovery_pauses_only_owned_local_gateway(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             state = Path(temporary)
-            (state / "gateway.pid").write_text("1234\n", encoding="ascii")
+            (state / "gateway-owner.json").write_text(
+                json.dumps(
+                    {
+                        "schema_version": 1,
+                        "pid": 1234,
+                        "instance_id": "mosaico-test",
+                        "script": str(Path("iris").resolve()),
+                    }
+                ),
+                encoding="utf-8",
+            )
             context = mock.Mock(repository=REPOSITORY)
             with (
                 mock.patch("mosaico_cli.gateway._state_home", return_value=state),
@@ -191,13 +220,60 @@ class GatewayTests(unittest.TestCase):
                     "mosaico_cli.gateway.locate_iris_tools",
                     return_value=(Path("python"), Path("iris")),
                 ),
-                mock.patch("mosaico_cli.gateway._owned_local_gateway", return_value=True),
-                mock.patch("mosaico_cli.gateway._pid_alive", side_effect=[True, False, False]),
-                mock.patch("mosaico_cli.gateway.os.killpg") as terminate,
+                mock.patch("mosaico_cli.gateway._owner_is_current", return_value=True),
+                mock.patch(
+                    "mosaico_cli.gateway._terminate_managed_gateway", return_value=True
+                ) as terminate,
             ):
                 self.assertTrue(pause_managed_local_gateway(context))
-            terminate.assert_called_once_with(1234, signal.SIGTERM)
-            self.assertFalse((state / "gateway.pid").exists())
+            terminate.assert_called_once_with(1234, "mosaico-test")
+            self.assertFalse((state / "gateway-owner.json").exists())
+
+    def test_stale_gateway_owner_is_never_terminated(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            state = Path(temporary)
+            (state / "gateway-owner.json").write_text(
+                json.dumps(
+                    {
+                        "schema_version": 1,
+                        "pid": 1234,
+                        "instance_id": "stale",
+                        "script": str(Path("iris").resolve()),
+                    }
+                ),
+                encoding="utf-8",
+            )
+            context = mock.Mock(repository=REPOSITORY)
+            with (
+                mock.patch("mosaico_cli.gateway._state_home", return_value=state),
+                mock.patch(
+                    "mosaico_cli.gateway.locate_iris_tools",
+                    return_value=(Path("python"), Path("iris")),
+                ),
+                mock.patch("mosaico_cli.gateway._owner_is_current", return_value=False),
+                mock.patch("mosaico_cli.gateway._terminate_managed_gateway") as terminate,
+            ):
+                self.assertFalse(pause_managed_local_gateway(context))
+            terminate.assert_not_called()
+
+    def test_windows_gateway_uses_process_group_break(self) -> None:
+        with (
+            mock.patch("mosaico_cli.gateway.os.name", "nt"),
+            mock.patch("mosaico_cli.gateway.signal.CTRL_BREAK_EVENT", 21, create=True),
+            mock.patch("mosaico_cli.gateway.os.kill") as terminate,
+            mock.patch("mosaico_cli.gateway._health_instance", return_value=None),
+        ):
+            self.assertTrue(_terminate_managed_gateway(1234, "mosaico-test"))
+        terminate.assert_called_once_with(1234, 21)
+
+    def test_posix_gateway_uses_dedicated_process_group(self) -> None:
+        with (
+            mock.patch("mosaico_cli.gateway.os.name", "posix"),
+            mock.patch("mosaico_cli.gateway.os.killpg") as terminate,
+            mock.patch("mosaico_cli.gateway._health_instance", return_value=None),
+        ):
+            self.assertTrue(_terminate_managed_gateway(1234, "mosaico-test"))
+        terminate.assert_called_once_with(1234, signal.SIGTERM)
 
     def test_unknown_ota_result_is_not_replayed(self) -> None:
         context = mock.Mock()
@@ -299,10 +375,8 @@ class GatewayTests(unittest.TestCase):
         )
         context = mock.Mock(repository=REPOSITORY)
         session = GatewaySession(Path("python"), Path("iris"), (), None, False)
-        read_fd, write_fd = os.pipe()
-        os.close(write_fd)
         process = mock.Mock()
-        process.stdout = os.fdopen(read_fd, "rb", buffering=0)
+        process.stdout = io.StringIO("")
         process.poll.return_value = 0
         process.wait.return_value = 0
         try:
@@ -335,12 +409,9 @@ class GatewayTests(unittest.TestCase):
         payload = "".join(
             json.dumps({"text": text}, separators=(",", ":")) + "\n"
             for text in ("I (123) demo: first\r\n", "W (124) demo: second\r\n")
-        ).encode()
-        read_fd, write_fd = os.pipe()
-        os.write(write_fd, payload)
-        os.close(write_fd)
+        )
         process = mock.Mock()
-        process.stdout = os.fdopen(read_fd, "rb", buffering=0)
+        process.stdout = io.StringIO(payload)
         process.poll.return_value = 0
         process.wait.return_value = 0
         output = io.StringIO()
@@ -390,6 +461,90 @@ class MonitorRenderingTests(unittest.TestCase):
             "\033[1;31mE (3) tag: error\033[0m\n"
             "D (4) tag: debug\n",
         )
+
+
+class HostCompatibilityTests(unittest.TestCase):
+    def test_platform_state_directories(self) -> None:
+        home = Path("/users/example")
+        self.assertEqual(
+            state_root(
+                "esp-mosaico",
+                environment={"LOCALAPPDATA": "C:/Users/example/AppData/Local"},
+                home=home,
+                os_name="nt",
+                sys_platform="win32",
+            ),
+            Path("C:/Users/example/AppData/Local/esp-mosaico"),
+        )
+        self.assertEqual(
+            state_root(
+                "esp-mosaico",
+                environment={},
+                home=home,
+                os_name="posix",
+                sys_platform="darwin",
+            ),
+            home / "Library" / "Application Support" / "esp-mosaico",
+        )
+        self.assertEqual(
+            state_root(
+                "esp-mosaico",
+                environment={"XDG_STATE_HOME": "/state"},
+                home=home,
+                os_name="posix",
+                sys_platform="linux",
+            ),
+            Path("/state/esp-mosaico"),
+        )
+
+    def test_virtual_environment_python_layouts(self) -> None:
+        root = Path("C:/workspace/.venv")
+        self.assertEqual(
+            virtual_environment_python(root, os_name="nt"),
+            root / "Scripts" / "python.exe",
+        )
+        self.assertEqual(
+            virtual_environment_python(root, os_name="posix"), root / "bin" / "python"
+        )
+
+    def test_idf_key_value_export_preserves_inherited_path(self) -> None:
+        self.assertEqual(
+            _parse_idf_exports(
+                "IDF_PYTHON_ENV_PATH=C:/ESP Python\nPATH=C:/tools;%PATH%\n",
+                {"PATH": "C:/Windows/System32"},
+            ),
+            {
+                "IDF_PYTHON_ENV_PATH": "C:/ESP Python",
+                "PATH": "C:/tools;C:/Windows/System32",
+            },
+        )
+
+    def test_idf_environment_uses_idf_python_without_a_shell(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            idf = Path(temporary) / "ESP IDF"
+            (idf / "tools").mkdir(parents=True)
+            (idf / "tools" / "idf.py").touch()
+            (idf / "tools" / "idf_tools.py").touch()
+            python_env = Path(temporary) / "Python Env"
+            python = python_env / "bin" / "python"
+            python.parent.mkdir(parents=True)
+            python.touch()
+            exported = (
+                f"IDF_PYTHON_ENV_PATH={python_env}\n"
+                f"PATH={idf / 'tools'}:$PATH\n"
+            )
+            completed = subprocess.CompletedProcess([], 0, exported, "")
+            with mock.patch("mosaico_cli.host.subprocess.run", return_value=completed) as run:
+                prepared = prepare_idf_environment(
+                    idf,
+                    base_environment={"PATH": "/usr/bin"},
+                    bootstrap_python=Path("/bootstrap/python"),
+                )
+            self.assertEqual(prepared.python, python)
+            self.assertEqual(prepared.values["PATH"], f"{idf / 'tools'}:/usr/bin")
+            argv = run.call_args.args[0]
+            self.assertEqual(argv[0], "/bootstrap/python")
+            self.assertNotIn("bash", argv)
 
 
 class ProjectTests(unittest.TestCase):
@@ -517,16 +672,25 @@ class RecoveryCommandTests(unittest.TestCase):
         context.repository = REPOSITORY
         context.log_path = Path("run.log")
         context.run.return_value = subprocess.CompletedProcess([], 0, "", "")
-        run_idf_target(
-            context,
-            idf_path=Path("/idf"),
-            project=Path("/project"),
-            build_dir=Path("/build"),
-            target="mosaico-recover-flash",
-            definitions={"MOSAICO_RECOVERY_SOURCE": "reviewed"},
-            port="internal-device",
-            timeout=180,
+        prepared = IdfEnvironment(
+            Path("/idf"),
+            Path("/idf-python"),
+            Path("/idf/tools/idf.py"),
+            {"PATH": "idf-tools"},
         )
+        with mock.patch(
+            "mosaico_cli.runtime.prepare_idf_environment", return_value=prepared
+        ):
+            run_idf_target(
+                context,
+                idf_path=Path("/idf"),
+                project=Path("/project"),
+                build_dir=Path("/build"),
+                target="mosaico-recover-flash",
+                definitions={"MOSAICO_RECOVERY_SOURCE": "reviewed"},
+                port="internal-device",
+                timeout=180,
+            )
         argv = context.run.call_args.args[0]
         environment = context.run.call_args.kwargs["env"]
         self.assertIn("mosaico-recover-flash", argv)
@@ -546,7 +710,18 @@ class RecoveryCommandTests(unittest.TestCase):
         context.run.return_value = subprocess.CompletedProcess(
             [], 1, "Could not exclusively lock port: port is busy", ""
         )
-        with self.assertRaises(DeviceError):
+        prepared = IdfEnvironment(
+            Path("/idf"),
+            Path("/idf-python"),
+            Path("/idf/tools/idf.py"),
+            {"PATH": "idf-tools"},
+        )
+        with (
+            mock.patch(
+                "mosaico_cli.runtime.prepare_idf_environment", return_value=prepared
+            ),
+            self.assertRaises(DeviceError),
+        ):
             run_idf_target(
                 context,
                 idf_path=Path("/idf"),

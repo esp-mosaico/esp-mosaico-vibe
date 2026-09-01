@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-import codecs
 import json
 import os
 from pathlib import Path
+from queue import Empty, Queue
 import re
-import selectors
 import subprocess
 import sys
+from threading import Thread
 import time
 from typing import Any, TextIO
 
@@ -97,7 +97,23 @@ class _MonitorTextRenderer:
 def _monitor_color_enabled(arguments: Any, json_output: bool) -> bool:
     if json_output or getattr(arguments, "disable_auto_color", False):
         return False
-    return bool(getattr(arguments, "force_color", False) or sys.stdout.isatty())
+    if getattr(arguments, "force_color", False):
+        return True
+    if not sys.stdout.isatty():
+        return False
+    if os.name != "nt":
+        return True
+    try:
+        import ctypes
+
+        kernel = ctypes.windll.kernel32
+        handle = kernel.GetStdHandle(-11)
+        mode = ctypes.c_uint32()
+        if not kernel.GetConsoleMode(handle, ctypes.byref(mode)):
+            return False
+        return bool(kernel.SetConsoleMode(handle, mode.value | 0x0004))
+    except (AttributeError, OSError, ValueError):
+        return False
 
 
 def list_models(repository: Path, details: bool) -> dict[str, Any]:
@@ -361,17 +377,29 @@ def monitor(repository: Path, arguments: Any, context: RunContext, json_output: 
         argv,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
-        bufsize=0,
+        bufsize=1,
         env=monitor_environment,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     deadline = time.monotonic() + arguments.timeout if arguments.timeout else None
     try:
         assert process.stdout is not None
-        selector = selectors.DefaultSelector()
-        selector.register(process.stdout, selectors.EVENT_READ)
-        decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
-        child_buffer = ""
+        sentinel = object()
+        records: Queue[str | object] = Queue()
+
+        def read_records() -> None:
+            try:
+                for record in process.stdout:
+                    records.put(record)
+            finally:
+                records.put(sentinel)
+
+        reader = Thread(target=read_records, daemon=True)
+        reader.start()
         invalid_child_output = False
+        stopped_by_us = False
         renderer = _MonitorTextRenderer(
             sys.stdout,
             grep=arguments.grep,
@@ -403,32 +431,29 @@ def monitor(repository: Path, arguments: Any, context: RunContext, json_output: 
         while True:
             if deadline is not None and time.monotonic() >= deadline:
                 process.terminate()
+                stopped_by_us = True
                 break
             wait = 0.2
             if deadline is not None:
                 wait = max(0, min(wait, deadline - time.monotonic()))
-            events = selector.select(wait)
-            if not events:
+            try:
+                record = records.get(timeout=wait)
+            except Empty:
                 if process.poll() is not None:
                     break
                 continue
-            chunk = os.read(process.stdout.fileno(), 4096)
-            if not chunk:
+            if record is sentinel:
                 break
-            child_buffer += decoder.decode(chunk)
-            while True:
-                newline = child_buffer.find("\n")
-                if newline < 0:
-                    break
-                record = child_buffer[: newline + 1]
-                child_buffer = child_buffer[newline + 1 :]
-                handle_record(record)
-        child_buffer += decoder.decode(b"", final=True)
-        if child_buffer:
-            handle_record(child_buffer)
+            handle_record(str(record))
         renderer.finish()
-        return_code = process.wait(timeout=5)
-        if return_code not in {0, -15}:
+        try:
+            return_code = process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            return_code = process.wait(timeout=5)
+        reader.join(timeout=1)
+        process.stdout.close()
+        if not stopped_by_us and return_code != 0:
             raise DeviceError(
                 "The log connection ended unexpectedly.",
                 details={"log": str(context.log_path)},
@@ -444,5 +469,8 @@ def monitor(repository: Path, arguments: Any, context: RunContext, json_output: 
             process.wait(timeout=5)
         except subprocess.TimeoutExpired:
             process.kill()
+            process.wait(timeout=5)
+        if process.stdout is not None:
+            process.stdout.close()
         return 0
     return 0

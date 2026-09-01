@@ -17,6 +17,16 @@ import time
 from typing import Any, Sequence
 
 
+REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(REPOSITORY_ROOT / "tools"))
+
+from mosaico_cli.host import (  # noqa: E402
+    HostEnvironmentError,
+    prepare_idf_environment,
+    valid_idf_path,
+)
+
+
 ANSI_RE = re.compile(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07]*(?:\x07|\x1b\\))")
 PROJECT_RE = re.compile(r"(?:^|\n)\s*(?:include\s*\([^)]*project\.cmake|project\s*\()", re.I)
 TARGET_RE = re.compile(r'^CONFIG_IDF_TARGET="([^"]+)"$', re.M)
@@ -137,10 +147,6 @@ def resolve_project(candidate: Path) -> Path:
     raise RunnerError(f"No ESP-IDF project found from: {candidate}")
 
 
-def valid_idf_path(path: Path) -> bool:
-    return (path / "export.sh").is_file() and (path / "tools" / "idf.py").is_file()
-
-
 def idf_from_active_command() -> Path | None:
     command = shutil.which("idf.py")
     if not command:
@@ -225,12 +231,18 @@ def create_run_dir(log_root: Path, action: str) -> tuple[str, Path]:
     return run_id, run_dir
 
 
-def idf_command(idf_path: Path, project: Path, arguments: Sequence[str]) -> list[str]:
-    bash = shutil.which("bash")
-    if not bash:
-        raise RunnerError("bash is required to source ESP-IDF export.sh.")
-    script = 'source "$1/export.sh" && cd "$2" && exec idf.py "${@:3}"'
-    return [bash, "-c", script, "idf-low-noise-build", str(idf_path), str(project), *arguments]
+def idf_command(
+    idf_path: Path, arguments: Sequence[str]
+) -> tuple[list[str], dict[str, str], Path]:
+    try:
+        prepared = prepare_idf_environment(idf_path)
+    except HostEnvironmentError as error:
+        raise RunnerError(str(error)) from error
+    return (
+        [str(prepared.python), str(prepared.idf_py), *arguments],
+        prepared.values,
+        prepared.python,
+    )
 
 
 def save_clean_log(raw_path: Path, clean_path: Path) -> str:
@@ -347,13 +359,15 @@ def run_build_step(
 
     started = time.monotonic()
     try:
+        command, environment, _ = idf_command(idf_path, arguments)
         with raw_path.open("wb") as output:
             completed = subprocess.run(
-                idf_command(idf_path, project, arguments),
+                command,
                 stdout=output,
                 stderr=subprocess.STDOUT,
                 check=False,
                 cwd=project,
+                env=environment,
             )
         exit_code = completed.returncode
     except OSError as exc:
@@ -384,7 +398,9 @@ def run_build_step(
     return exit_code if 0 <= exit_code <= 125 else 1
 
 
-def command_output(command: Sequence[str], cwd: Path) -> tuple[int, str]:
+def command_output(
+    command: Sequence[str], cwd: Path, *, environment: dict[str, str] | None = None
+) -> tuple[int, str]:
     try:
         completed = subprocess.run(
             command,
@@ -394,6 +410,7 @@ def command_output(command: Sequence[str], cwd: Path) -> tuple[int, str]:
             cwd=cwd,
             text=True,
             errors="replace",
+            env=environment,
         )
     except OSError as exc:
         return 127, str(exc)
@@ -443,7 +460,11 @@ def doctor(project: Path, idf_path: Path | None) -> int:
     if idf_path is None:
         return 2
 
-    version_code, version_output = command_output(idf_command(idf_path, project, ["--version"]), project)
+    command, environment, idf_python = idf_command(idf_path, ["--version"])
+
+    version_code, version_output = command_output(
+        command, project, environment=environment
+    )
     version_lines = [line.strip() for line in version_output.splitlines() if line.strip()]
     idf_version = next((line for line in reversed(version_lines) if "ESP-IDF" in line), None)
     print(f"idf_version: {idf_version or 'unresolved'}")
@@ -451,8 +472,14 @@ def doctor(project: Path, idf_path: Path | None) -> int:
     constraint_status = {True: "yes", False: "no", None: "unverified"}[constraint_ok]
     print(f"idf_constraint_satisfied: {constraint_status}")
 
+    targets_command = [
+        str(idf_python),
+        str(idf_path / "tools" / "idf.py"),
+        "--preview",
+        "--list-targets",
+    ]
     targets_code, targets_output = command_output(
-        idf_command(idf_path, project, ["--preview", "--list-targets"]), project
+        targets_command, project, environment=environment
     )
     supported_targets = {
         line.strip()
@@ -469,17 +496,13 @@ def doctor(project: Path, idf_path: Path | None) -> int:
     revision = revision_output.strip().splitlines()[-1] if revision_code == 0 else "unresolved"
     print(f"idf_revision: {revision}")
 
-    bash = shutil.which("bash")
-    python_value = "unresolved"
-    python_code = 127
-    if bash:
-        probe = 'source "$1/export.sh" >/dev/null && command -v python && python --version'
-        python_code, python_output = command_output(
-            [bash, "-c", probe, "idf-low-noise-build-doctor", str(idf_path)], project
-        )
-        python_lines = [line.strip() for line in python_output.splitlines() if line.strip()]
-        if python_lines:
-            python_value = " | ".join(python_lines[-2:])
+    python_code, python_output = command_output(
+        [str(idf_python), "--version"], project, environment=environment
+    )
+    python_lines = [line.strip() for line in python_output.splitlines() if line.strip()]
+    python_value = (
+        f"{idf_python} | {python_lines[-1]}" if python_lines else str(idf_python)
+    )
     print(f"idf_python: {python_value}")
     constraint_check_passed = constraint_ok is True if constraint else True
     checks_pass = (

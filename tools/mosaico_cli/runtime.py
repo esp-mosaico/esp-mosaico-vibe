@@ -10,11 +10,13 @@ from pathlib import Path
 from queue import Empty, Queue
 import re
 import subprocess
+import sys
 from threading import Thread
 import time
 from typing import Callable, Sequence
 
 from .errors import BuildError, DeviceError, EnvironmentError
+from .host import HostEnvironmentError, prepare_idf_environment, valid_idf_path
 
 
 @dataclass
@@ -170,7 +172,7 @@ def resolve_idf_path(repository: Path, project: Path | None = None) -> Path:
             pass
     for candidate in candidates:
         resolved = candidate.expanduser().resolve()
-        if (resolved / "export.sh").is_file() and (resolved / "tools" / "idf.py").is_file():
+        if valid_idf_path(resolved):
             return resolved
     raise EnvironmentError(
         "No compatible ESP-IDF environment was found. Set IDF_PATH or complete "
@@ -190,7 +192,7 @@ def build_application(context: RunContext, project: Path) -> None:
     context.status(f"build: compiling {project}")
     result = context.run(
         [
-            "python3",
+            sys.executable,
             runner,
             "--project",
             project,
@@ -301,12 +303,16 @@ def run_idf_target(
     port: str | None = None,
     timeout: float,
 ) -> None:
+    try:
+        prepared = prepare_idf_environment(idf_path)
+    except HostEnvironmentError as error:
+        raise BuildError(
+            "The ESP-IDF environment could not be prepared.",
+            details={"diagnostic": str(error), "log": str(context.log_path)},
+        ) from error
     command: list[str | Path] = [
-        "bash",
-        "-c",
-        'source "$1/export.sh" >/dev/null && shift && exec idf.py "$@"',
-        "mosaico-idf",
-        idf_path,
+        prepared.python,
+        prepared.idf_py,
         "-C",
         project,
         "-B",
@@ -315,7 +321,7 @@ def run_idf_target(
     for key, value in (definitions or {}).items():
         command.extend(["-D", f"{key}={value}"])
     command.append(target)
-    process_environment = os.environ.copy()
+    process_environment = prepared.values.copy()
     if port:
         # Custom ESP-IDF flash targets consume ESPPORT in run_serial_tool.cmake;
         # idf.py's -p option is only propagated to its built-in flash actions.

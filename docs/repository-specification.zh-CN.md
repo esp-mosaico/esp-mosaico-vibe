@@ -194,6 +194,7 @@ ESP-Mosaico 真实设备
 
 | 命令 | 用户语义 | 默认行为 |
 | --- | --- | --- |
+| `python mosaico.py doctor` | 检查主机开发环境 | 只检查 Python、ESP-IDF、ESP-Iris、状态目录和 USB 枚举，不构建或写设备 |
 | `python mosaico.py list` | 查看适配型号 | 只读取仓库注册表，不依赖硬件或 ESP-IDF |
 | `python mosaico.py recover` | 初始化或恢复设备 | 使用评审基础包，完成后停留在 Recovery 就绪状态 |
 | `python mosaico.py install` | 安装普通应用 | 构建工程并通过 ESP-Iris 安装，不自动触发恢复 |

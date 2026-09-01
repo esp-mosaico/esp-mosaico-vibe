@@ -12,6 +12,7 @@ from typing import Any
 
 from .errors import DeviceError, EnvironmentError, OperationError, SelectionError
 from .gateway import GatewaySession, connected_devices, gateway_json, locate_iris_tools
+from .host import state_root
 from .registry import DeviceModel
 from .runtime import RunContext
 
@@ -20,9 +21,16 @@ REQUIRED_IMAGES = ("bootloader", "partition_table", "ota_data", "recovery")
 
 
 def _verification_path(device_id: str) -> Path:
-    state_root = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local" / "state"))
     key = hashlib.sha256(device_id.encode("utf-8")).hexdigest()
-    return state_root / "esp-mosaico" / "devices" / f"{key}.json"
+    return state_root("esp-mosaico") / "devices" / f"{key}.json"
+
+
+def _legacy_verification_path(device_id: str) -> Path:
+    key = hashlib.sha256(device_id.encode("utf-8")).hexdigest()
+    legacy_root = Path(
+        os.environ.get("XDG_STATE_HOME", Path.home() / ".local" / "state")
+    )
+    return legacy_root / "esp-mosaico" / "devices" / f"{key}.json"
 
 
 def recovery_is_verified(
@@ -35,15 +43,19 @@ def recovery_is_verified(
             and "ota" in capabilities
             and status.get("app_version") == expected_version
         )
-    path = _verification_path(device_id)
-    try:
-        value = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return False
-    return (
-        value.get("device_id") == device_id
-        and value.get("recovery_version") == expected_version
-    )
+    for path in dict.fromkeys(
+        (_verification_path(device_id), _legacy_verification_path(device_id))
+    ):
+        try:
+            value = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if (
+            value.get("device_id") == device_id
+            and value.get("recovery_version") == expected_version
+        ):
+            return True
+    return False
 
 
 def record_recovery_verification(

@@ -10,6 +10,7 @@ from typing import Any, Sequence
 
 from . import __version__
 from .commands import install, list_models, monitor, recover
+from .doctor import diagnose_host, print_diagnosis
 from .errors import MosaicoError
 from .runtime import RunContext
 
@@ -73,6 +74,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     commands = parser.add_subparsers(dest="command", required=True)
+
+    commands.add_parser(
+        "doctor",
+        help="Check the host environment without building or writing a device",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
 
     install_parser = commands.add_parser(
         "install",
@@ -238,6 +245,24 @@ def main(argv: Sequence[str] | None = None) -> int:
     raw = list(argv or sys.argv[1:])
     MosaicoArgumentParser.json_errors = "--json" in raw
     arguments = build_parser().parse_args(_normalize_globals(raw))
+    if sys.version_info < (3, 11):
+        message = "mosaico.py requires Python 3.11 or newer."
+        if arguments.json:
+            print(
+                json.dumps(
+                    {
+                        "ok": False,
+                        "error": "environment_error",
+                        "message": message,
+                        "exit_code": 3,
+                    },
+                    sort_keys=True,
+                ),
+                file=sys.stderr,
+            )
+        else:
+            print(f"mosaico: {message}", file=sys.stderr)
+        return 3
     if arguments.command == "list":
         try:
             result = list_models(REPOSITORY, arguments.details)
@@ -249,6 +274,20 @@ def main(argv: Sequence[str] | None = None) -> int:
         else:
             _print_table(result, arguments.details)
         return 0
+
+    if arguments.command == "doctor":
+        result = diagnose_host(REPOSITORY)
+        if arguments.json:
+            print(
+                json.dumps(
+                    {"ok": result["exit_code"] == 0, **result},
+                    ensure_ascii=False,
+                    sort_keys=True,
+                )
+            )
+        else:
+            print_diagnosis(result)
+        return int(result["exit_code"])
 
     context = RunContext(
         REPOSITORY,

@@ -29,7 +29,7 @@ esp_idf:
   version: null                 # Actual installed tag/branch, for example v6.1.1
   git_revision: null            # Full or abbreviated commit SHA
   tools_path: null              # IDF_TOOLS_PATH; null means IDF default
-  export_script: /absolute/path/to/esp-idf/export.sh
+  export_script: /absolute/path/to/esp-idf/export.sh # export.sh | export.ps1 | export.bat
   python_env_path: null         # IDF_PYTHON_ENV_PATH, if known
   python_executable: null       # Absolute interpreter path after IDF export
   python_version: null

@@ -28,10 +28,33 @@ and read only the relevant `SKILL.md` guides.
 Use the repository-level product commands for installation, logs, and recovery:
 
 ```sh
+python mosaico.py doctor
 python mosaico.py list
 python mosaico.py recover
 python mosaico.py install --project projects/<project>
 python mosaico.py monitor
+```
+
+The CLI supports native Linux and macOS shells plus Windows PowerShell and
+Command Prompt; WSL and Git Bash are not required. Use Python 3.11 or newer,
+an ESP-IDF checkout satisfying the factory project's version constraint, and
+an ESP-Iris environment installed from its `tools/requirements.txt`. Run
+`doctor` first to verify Python, ESP-IDF, ESP32-S31 target support, ESP-Iris,
+the host state directory, and current USB discovery. It does not build or
+write firmware.
+
+Host state follows platform conventions: `$XDG_STATE_HOME/esp-mosaico` (or
+`~/.local/state/esp-mosaico`) on Linux, `~/Library/Application Support/esp-mosaico`
+on macOS, and `%LOCALAPPDATA%\esp-mosaico` on Windows.
+
+Run the same host compatibility smoke test from each native host:
+
+```sh
+python -m unittest discover -s tests/mosaico_cli -v
+python mosaico.py --version
+python mosaico.py --json list
+python mosaico.py --json doctor
+python mosaico.py monitor --timeout 1 --grep __mosaico_host_smoke__
 ```
 
 `install` updates normal applications only through the **ESP-Iris Developer
