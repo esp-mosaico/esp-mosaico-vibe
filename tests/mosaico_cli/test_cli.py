@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import signal
 import shutil
@@ -16,7 +17,7 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
 
 from mosaico_cli.cli import REPOSITORY, build_parser, _normalize_globals
-from mosaico_cli.commands import list_models, recover
+from mosaico_cli.commands import list_models, monitor, recover
 from mosaico_cli.errors import (
     DeviceError,
     EnvironmentError,
@@ -39,7 +40,7 @@ from mosaico_cli.recovery import (
     recovery_is_verified,
 )
 from mosaico_cli.registry import load_registry, select_model
-from mosaico_cli.runtime import run_idf_target
+from mosaico_cli.runtime import RunContext, run_idf_target
 
 
 class ParserTests(unittest.TestCase):
@@ -180,6 +181,87 @@ class GatewayTests(unittest.TestCase):
                 timeout=600,
             )
 
+    def test_ota_progress_is_polled_and_reported(self) -> None:
+        context = mock.Mock()
+        context.log_path = Path("run.log")
+        context.run.return_value = subprocess.CompletedProcess(
+            [],
+            0,
+            json.dumps(
+                {
+                    "operation": {
+                        "operation_id": "operation-1",
+                        "status": "running",
+                        "progress": {
+                            "stage": "waiting_recovery",
+                            "progress_permille": 50,
+                        },
+                    }
+                }
+            ),
+            "",
+        )
+        completed = {
+            "operation": {
+                "operation_id": "operation-1",
+                "status": "succeeded",
+                "progress": {
+                    "stage": "succeeded",
+                    "progress_permille": 1000,
+                },
+            }
+        }
+        session = GatewaySession(Path("python"), Path("iris"), (), None, False)
+        with (
+            mock.patch("mosaico_cli.gateway.gateway_json", return_value=completed) as poll,
+            mock.patch("mosaico_cli.gateway.time.sleep"),
+        ):
+            result = run_ota(
+                context,
+                session,
+                device_id="device",
+                image=Path("app.bin"),
+                elf=Path("app.elf"),
+                map_file=Path("app.map"),
+                validation="elf-sha256",
+                timeout=600,
+            )
+        self.assertEqual(result["operation"]["status"], "succeeded")
+        poll.assert_called_once_with(context, session, "ota-status", "operation-1")
+        messages = [call.args[0] for call in context.status.call_args_list]
+        self.assertTrue(any("waiting_recovery" in message for message in messages))
+        self.assertTrue(any("succeeded" in message for message in messages))
+
+    def test_monitor_forces_unbuffered_child_output(self) -> None:
+        arguments = argparse.Namespace(
+            gateway_profile=None,
+            device_id=None,
+            snapshot=True,
+            timeout=1,
+            grep=None,
+        )
+        context = mock.Mock(repository=REPOSITORY)
+        session = GatewaySession(Path("python"), Path("iris"), (), None, False)
+        read_fd, write_fd = os.pipe()
+        os.close(write_fd)
+        process = mock.Mock()
+        process.stdout = os.fdopen(read_fd, "rb", buffering=0)
+        process.poll.return_value = 0
+        process.wait.return_value = 0
+        try:
+            with (
+                mock.patch("mosaico_cli.commands.ensure_gateway", return_value=session),
+                mock.patch(
+                    "mosaico_cli.commands.connected_devices",
+                    return_value=[{"device_id": "device"}],
+                ),
+                mock.patch("mosaico_cli.commands.subprocess.Popen", return_value=process) as start,
+            ):
+                self.assertEqual(monitor(REPOSITORY, arguments, context, False), 0)
+            self.assertEqual(start.call_args.kwargs["env"]["PYTHONUNBUFFERED"], "1")
+        finally:
+            process.stdout.close()
+
 
 class ProjectTests(unittest.TestCase):
     def _project(self, root: Path, name: str) -> Path:
@@ -296,6 +378,10 @@ class RecoveryCommandTests(unittest.TestCase):
             result = recover(REPOSITORY, arguments, context)
         self.assertEqual(result["status"], "dry_run")
         target.assert_not_called()
+        messages = [call.args[0] for call in context.status.call_args_list]
+        self.assertTrue(any(message.startswith("recovery: model=") for message in messages))
+        self.assertTrue(any(message.startswith("device: recovery interface") for message in messages))
+        self.assertTrue(any(message.startswith("validation:") for message in messages))
 
     def test_idf_wrapper_invokes_only_named_target(self) -> None:
         context = mock.Mock()
@@ -319,6 +405,12 @@ class RecoveryCommandTests(unittest.TestCase):
         self.assertEqual(environment["ESPPORT"], "internal-device")
         self.assertNotIn("esptool", " ".join(str(item) for item in argv))
         self.assertNotIn("erase", " ".join(str(item) for item in argv))
+        progress = context.run.call_args.kwargs["output_status"]
+        self.assertEqual(progress("[10/100] compiling\n"), "idf: building 10% (10/100)")
+        self.assertEqual(
+            progress("Writing at 0x00002000... ( 50 % )\n"),
+            "flash: writing 50% at 0x00002000",
+        )
 
     def test_busy_recovery_port_is_reported_without_retry(self) -> None:
         context = mock.Mock(repository=REPOSITORY, log_path=Path("run.log"))
@@ -336,6 +428,18 @@ class RecoveryCommandTests(unittest.TestCase):
                 timeout=180,
             )
         self.assertEqual(context.run.call_count, 1)
+
+    def test_run_context_streams_selected_child_status(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            context = RunContext(Path(temporary), "stream-test")
+            with mock.patch.object(context, "status") as status:
+                result = context.run(
+                    [sys.executable, "-c", "print('streamed child output')"],
+                    output_status=lambda line: f"child: {line.strip()}",
+                )
+            self.assertEqual(result.returncode, 0)
+            status.assert_called_once_with("child: streamed child output")
+            self.assertIn("streamed child output", context.log_path.read_text())
 
 
 if __name__ == "__main__":

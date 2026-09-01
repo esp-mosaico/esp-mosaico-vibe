@@ -1,0 +1,17 @@
+idf_component_register(
+    SRCS
+        "main.c"
+        "../../factory/main/iris_ota_support.c"
+    INCLUDE_DIRS
+        "."
+        "../../factory/main"
+    REQUIRES
+        app_update
+        esp_app_format
+        esp_iris
+        esp-mosaico-bsp
+        esp_partition
+        freertos
+        lvgl__lvgl
+        nvs_flash
+)

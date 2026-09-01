@@ -1,0 +1,15 @@
+# ESP-Mosaico Hello World
+
+The application shows `Hello World!` in the center of the 480x480 display and
+logs the same message every five seconds.
+
+Install it from the repository root after the device Recovery image has been
+initialized and verified:
+
+```sh
+python mosaico.py install --project projects/hello_world
+```
+
+Use `python mosaico.py monitor --timeout 20` to observe the periodic log. USB
+and firmware operations remain owned by ESP-Iris; do not open the serial port
+directly.

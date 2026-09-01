@@ -188,7 +188,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             _print_table(result, arguments.details)
         return 0
 
-    context = RunContext(REPOSITORY, arguments.command, arguments.verbose)
+    context = RunContext(
+        REPOSITORY,
+        arguments.command,
+        arguments.verbose,
+        arguments.json,
+    )
     if arguments.verbose and not arguments.json:
         print(f"运行日志：{context.log_path}", file=sys.stderr)
     try:

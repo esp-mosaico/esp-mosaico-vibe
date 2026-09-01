@@ -223,6 +223,8 @@ def wait_recovery_ready(
 ) -> dict[str, Any]:
     deadline = time.monotonic() + timeout
     last_status: dict[str, Any] | None = None
+    last_reported: tuple[Any, ...] | None = None
+    last_wait_notice = time.monotonic()
     while time.monotonic() < deadline:
         try:
             devices = connected_devices(context, session)
@@ -244,10 +246,22 @@ def wait_recovery_ready(
                     boot_changed = not previous_boot_id or boot_id != previous_boot_id
                     version_matches = not expected_version or version == expected_version
                     writer_ready = isinstance(capabilities, list) and "ota" in capabilities
+                    observation = (device_id, mode, boot_id, version, writer_ready)
+                    if observation != last_reported:
+                        context.status(
+                            f"validation: device={device_id} mode={mode or 'unknown'} "
+                            f"version={version or 'unknown'} boot_id={boot_id or 'unknown'} "
+                            f"ota={'ready' if writer_ready else 'unavailable'}"
+                        )
+                        last_reported = observation
+                        last_wait_notice = time.monotonic()
                     if mode == "recovery" and boot_changed and version_matches and writer_ready:
                         return status
         except DeviceError:
             pass
+        if time.monotonic() - last_wait_notice >= 5:
+            context.status("validation: still waiting for Recovery to reconnect")
+            last_wait_notice = time.monotonic()
         time.sleep(0.5)
     raise OperationError(
         "Recovery 写入完成，但未能验证 Recovery 就绪状态",

@@ -105,6 +105,7 @@ typedef struct {
     lv_obj_t *update_percent;
     lv_obj_t *update_bar;
     lv_obj_t *update_owner;
+    lv_obj_t *update_verified;
     lv_obj_t *result_mark;
     lv_obj_t *result_title;
     lv_obj_t *result_detail;
@@ -112,6 +113,9 @@ typedef struct {
     char ap_ssids[FACTORY_NETWORK_MAX_RESULTS][FACTORY_NETWORK_SSID_BYTES];
     uint32_t scan_generation;
     esp_iris_system_update_phase_t update_phase;
+    uint32_t ota_job_id;
+    uint16_t ota_logged_bucket;
+    bool ota_was_active;
 } factory_ui_context_t;
 
 static factory_ui_context_t s_ui;
@@ -514,10 +518,10 @@ static void update_screen_create(void)
     s_ui.update_screen = lv_obj_create(NULL);
     screen_prepare(s_ui.update_screen);
     header_create(s_ui.update_screen, "", "", false);
-    lv_obj_t *badge = box_create(s_ui.update_screen, 132, 30,
+    lv_obj_t *badge = box_create(s_ui.update_screen, 94, 30,
                                  COLOR_ORANGE, 15);
     lv_obj_align(badge, LV_ALIGN_TOP_RIGHT, -40, 28);
-    lv_obj_t *badge_label = label_create(badge, "SYSTEM UPDATE",
+    lv_obj_t *badge_label = label_create(badge, "UPDATE",
                                          &lv_font_montserrat_12, COLOR_PAPER);
     lv_obj_center(badge_label);
     lv_obj_t *icon = box_create(s_ui.update_screen, 74, 74, COLOR_TEXT, 22);
@@ -554,9 +558,9 @@ static void update_screen_create(void)
                                             &lv_font_montserrat_12,
                                             COLOR_MUTED);
     lv_obj_align(verified_label, LV_ALIGN_TOP_LEFT, 56, 365);
-    lv_obj_t *verified = label_create(s_ui.update_screen, "Unsigned",
-                                      &lv_font_montserrat_12, COLOR_ORANGE);
-    lv_obj_align(verified, LV_ALIGN_TOP_RIGHT, -56, 365);
+    s_ui.update_verified = label_create(s_ui.update_screen, "Unsigned",
+                                        &lv_font_montserrat_12, COLOR_ORANGE);
+    lv_obj_align(s_ui.update_verified, LV_ALIGN_TOP_RIGHT, -56, 365);
     lv_obj_t *warning = label_create(
         s_ui.update_screen,
         "Keep power connected. The device restarts automatically.",
@@ -739,6 +743,8 @@ static void system_update_ui_update(const esp_iris_status_t *iris)
     if (esp_iris_system_update_get_status(&update) != ESP_OK) {
         return;
     }
+    lv_label_set_text(s_ui.update_title, "Updating system");
+    lv_label_set_text(s_ui.update_verified, "Unsigned");
     if (update.phase == ESP_IRIS_SYSTEM_UPDATE_PHASE_IDLE) {
         return;
     }
@@ -789,6 +795,64 @@ static void system_update_ui_update(const esp_iris_status_t *iris)
     s_ui.update_phase = update.phase;
 }
 
+static bool ota_ui_update(const esp_iris_status_t *iris)
+{
+    esp_iris_ota_status_t ota = {0};
+    if (esp_iris_ota_get_status(&ota) != ESP_OK || ota.job_id == 0) {
+        return false;
+    }
+
+    if (ota.active) {
+        s_ui.ota_job_id = ota.job_id;
+        s_ui.ota_was_active = true;
+        lv_label_set_text(s_ui.update_title, "Updating firmware");
+        lv_label_set_text_fmt(s_ui.update_detail,
+                              "Receiving application - %lu / %lu KB",
+                              (unsigned long)(ota.received_size / 1024U),
+                              (unsigned long)(ota.total_size / 1024U));
+        lv_label_set_text_fmt(s_ui.update_percent, "%u%%",
+                              ota.progress_permille / 10U);
+        lv_bar_set_value(s_ui.update_bar, ota.progress_permille, LV_ANIM_OFF);
+        lv_label_set_text(s_ui.update_owner, transport_name(iris->transport));
+        lv_label_set_text(s_ui.update_verified, "SHA-256");
+        if (s_ui.page != FACTORY_PAGE_UPDATE) {
+            show_page(FACTORY_PAGE_UPDATE);
+        }
+        const uint16_t bucket = ota.progress_permille / 100U;
+        if (bucket != s_ui.ota_logged_bucket) {
+            s_ui.ota_logged_bucket = bucket;
+            ESP_LOGI(TAG, "Recovery OTA progress: %u%% (%lu/%lu bytes)",
+                     ota.progress_permille / 10U,
+                     (unsigned long)ota.received_size,
+                     (unsigned long)ota.total_size);
+        }
+        return true;
+    }
+
+    if (!s_ui.ota_was_active || ota.job_id != s_ui.ota_job_id) {
+        return false;
+    }
+    if (ota.state == ESP_IRIS_JOB_SUCCEEDED) {
+        lv_label_set_text(s_ui.update_title, "Firmware verified");
+        lv_label_set_text(s_ui.update_detail,
+                          "Restarting into the application");
+        lv_label_set_text(s_ui.update_percent, "100%");
+        lv_bar_set_value(s_ui.update_bar, 1000, LV_ANIM_OFF);
+        ESP_LOGI(TAG, "Recovery OTA verified; restarting application");
+    } else if (ota.state == ESP_IRIS_JOB_FAILED ||
+               ota.state == ESP_IRIS_JOB_CANCELLED) {
+        lv_obj_set_style_bg_color(s_ui.result_mark, COLOR_RED, LV_PART_MAIN);
+        lv_label_set_text(s_ui.result_title, "Firmware update failed");
+        lv_label_set_text_fmt(s_ui.result_detail,
+                              "Error 0x%08x - reconnect and retry",
+                              (unsigned)ota.result);
+        show_page(FACTORY_PAGE_RESULT);
+        ESP_LOGE(TAG, "Recovery OTA failed: %s",
+                 esp_err_to_name(ota.result));
+    }
+    return true;
+}
+
 static void ui_status_task(void *arg)
 {
     (void)arg;
@@ -803,7 +867,9 @@ static void ui_status_task(void *arg)
             if (have_network) {
                 network_ui_update(&network);
             }
-            system_update_ui_update(&iris);
+            if (!ota_ui_update(&iris)) {
+                system_update_ui_update(&iris);
+            }
             bsp_display_unlock();
         }
         vTaskDelay(pdMS_TO_TICKS(250));

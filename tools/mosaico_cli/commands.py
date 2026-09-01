@@ -75,10 +75,17 @@ def list_models(repository: Path, details: bool) -> dict[str, Any]:
 
 def install(repository: Path, arguments: Any, context: RunContext) -> dict[str, Any]:
     project = resolve_project(repository, arguments.project, Path.cwd())
+    context.status(f"project: {project}")
     reused = bool(arguments.skip_build)
     if not reused:
         build_application(context, project)
+    else:
+        context.status("build: reusing existing artifacts (--skip-build)")
     artifacts = discover_artifacts(project)
+    context.status(
+        f"artifact: {artifacts.project_name} {artifacts.project_version} "
+        f"({artifacts.image.stat().st_size} bytes, {artifacts.target})"
+    )
     model = select_model(None)
     recovery_manifest = load_bundle(repository / model.recovery_dir, model.target)
     if artifacts.target != model.target:
@@ -86,9 +93,14 @@ def install(repository: Path, arguments: Any, context: RunContext) -> dict[str, 
             f"工程 target 为 {artifacts.target!r}，设备要求 {model.target!r}"
         )
 
+    context.status("gateway: connecting")
     session = ensure_gateway(context, arguments.gateway_profile)
     device = select_device(connected_devices(context, session), arguments.device_id)
     device_id = str(device.get("device_id"))
+    context.status(
+        f"device: {device_id} mode={device.get('firmware_mode', 'unknown')} "
+        f"boot_id={device.get('boot_id', 'unknown')}"
+    )
     status_value = gateway_json(context, session, "status", device_id)
     status = status_value.get("device", status_value) if isinstance(status_value, dict) else {}
     if not isinstance(status, dict) or not recovery_is_verified(
@@ -97,7 +109,9 @@ def install(repository: Path, arguments: Any, context: RunContext) -> dict[str, 
         raise RecoveryRequiredError(
             "设备尚未完成 Recovery 初始化或验证，请先运行 python mosaico.py recover"
         )
+    context.status("recovery: verified retained Recovery service")
 
+    context.status(f"ota: starting recovery-first installation ({arguments.validation})")
     operation = run_ota(
         context,
         session,
@@ -108,6 +122,7 @@ def install(repository: Path, arguments: Any, context: RunContext) -> dict[str, 
         validation=arguments.validation,
         timeout=arguments.timeout,
     )
+    context.status("validation: installed application is connected and healthy")
     return {
         "command": "install",
         "status": "succeeded",
@@ -128,17 +143,27 @@ def install(repository: Path, arguments: Any, context: RunContext) -> dict[str, 
 
 def recover(repository: Path, arguments: Any, context: RunContext) -> dict[str, Any]:
     model = select_model(arguments.model)
+    context.status(
+        f"recovery: model={model.id} target={model.target} source={arguments.source}"
+    )
     factory = repository / model.reference_project
     bundle_dir = repository / model.recovery_dir
     manifest: dict[str, Any] | None = None
     if arguments.source == "reviewed":
         manifest = load_bundle(bundle_dir, model.target)
+        recovery_image = manifest.get("images", {}).get("recovery", {})
+        context.status(
+            f"bundle: verified {manifest.get('version', 'unknown')} "
+            f"({recovery_image.get('size', 'unknown')} bytes)"
+        )
     elif not arguments.dry_run:
         print("警告：将从当前源码构建未经评审的 Recovery 候选包。", file=sys.stderr)
+        context.status("bundle: current-source Recovery candidate selected")
 
     prior_device_id: str | None = arguments.device_id
     prior_boot_id: str | None = None
     prior_session = None
+    context.status("gateway: checking the currently connected device")
     try:
         prior_session = ensure_gateway(context, arguments.gateway_profile)
         prior_device = select_device(
@@ -146,12 +171,23 @@ def recover(repository: Path, arguments: Any, context: RunContext) -> dict[str, 
         )
         prior_device_id = str(prior_device.get("device_id"))
         prior_boot_id = str(prior_device.get("boot_id") or "") or None
+        context.status(
+            f"device: {prior_device_id} mode="
+            f"{prior_device.get('firmware_mode', 'unknown')} "
+            f"boot_id={prior_boot_id or 'unknown'}"
+        )
     except (DeviceError, SelectionError):
+        context.status(
+            "gateway: managed device unavailable; checking the recovery interface"
+        )
         if arguments.device_id:
             context.note("warning: requested device was not reachable through Gateway")
 
+    context.status("device: detecting a unique ROM/recovery configuration interface")
     port = provisioning_candidate(context, model)
+    context.status(f"device: recovery interface ready at {port}")
     idf_path = resolve_idf_path(repository, factory)
+    context.status(f"idf: environment ready at {idf_path}")
     plan = {
         "command": "recover",
         "status": "dry_run" if arguments.dry_run else "planned",
@@ -168,16 +204,21 @@ def recover(repository: Path, arguments: Any, context: RunContext) -> dict[str, 
         "log": str(context.log_path),
     }
     if arguments.dry_run:
+        context.status("validation: recovery preflight checks passed; no write performed")
         return plan
 
     if prior_session and prior_device_id:
+        context.status("evidence: preserving crash index and any valid core dump")
         preserve_evidence(context, prior_session, prior_device_id)
+        context.status("evidence: preservation attempt complete")
 
     # ESP-Iris and the ESP-IDF recovery target use the same USB device.  Stop
     # only the local process managed by this CLI after evidence collection and
     # immediately before handing exclusive ownership to ESP-IDF.
+    context.status("gateway: releasing the USB interface for ESP-IDF")
     pause_managed_local_gateway(context)
 
+    context.status("flash: building and writing the complete Recovery bundle")
     run_idf_target(
         context,
         idf_path=idf_path,
@@ -191,7 +232,10 @@ def recover(repository: Path, arguments: Any, context: RunContext) -> dict[str, 
         port=port,
         timeout=arguments.timeout,
     )
+    context.status("flash: ESP-IDF write completed successfully")
+    context.status("gateway: reconnecting after device reset")
     session = ensure_gateway(context, arguments.gateway_profile)
+    context.status("validation: waiting for the new Recovery service")
     status = wait_recovery_ready(
         context,
         session,
@@ -206,6 +250,10 @@ def recover(repository: Path, arguments: Any, context: RunContext) -> dict[str, 
     recovery_version = str(manifest.get("version") if manifest else status.get("app_version") or "current-source")
     record_recovery_verification(
         verified_device_id, recovery_version, status.get("boot_id")
+    )
+    context.status(
+        f"validation: Recovery {recovery_version} ready on {verified_device_id} "
+        f"boot_id={status.get('boot_id', 'unknown')}"
     )
     return {
         **plan,
@@ -225,11 +273,17 @@ def monitor(repository: Path, arguments: Any, context: RunContext, json_output: 
         json_output=json_output,
     )
     context.note("$ " + " ".join(argv))
+    monitor_environment = os.environ.copy()
+    # The ESP-Iris CLI writes into a pipe here, so Python would otherwise use
+    # block buffering. Force each printed log line through to this process,
+    # whose user-facing print calls already use flush=True below.
+    monitor_environment["PYTHONUNBUFFERED"] = "1"
     process = subprocess.Popen(
         argv,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         bufsize=0,
+        env=monitor_environment,
     )
     deadline = time.monotonic() + arguments.timeout if arguments.timeout else None
     try:

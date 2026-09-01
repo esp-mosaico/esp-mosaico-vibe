@@ -324,6 +324,7 @@ def run_ota(
     timeout: float,
 ) -> dict[str, Any]:
     validation_mode = validation.replace("-", "_")
+    started = time.monotonic()
     try:
         result = context.run(
             session.ctl_argv(
@@ -338,7 +339,6 @@ def run_ota(
                 "recovery",
                 "--validation-mode",
                 validation_mode,
-                "--wait",
             ),
             timeout=timeout,
         )
@@ -352,15 +352,83 @@ def run_ota(
     except OperationError:
         value = {}
     operation = value.get("operation", value) if isinstance(value, dict) else {}
-    status = operation.get("status") if isinstance(operation, dict) else None
-    if status in {"outcome_unknown", "unknown"} or status is None:
+    if not isinstance(operation, dict):
+        operation = {}
+    operation_id = str(operation.get("operation_id") or "")
+    status = operation.get("status")
+    if result.returncode:
+        if status in {"outcome_unknown", "unknown"} or status is None:
+            raise OutcomeUnknownError(
+                "安装提交结果不确定；不会自动重放写操作",
+                details={"result": value, "log": str(context.log_path)},
+            )
+        raise OperationError(
+            "安装提交失败",
+            details={"result": value, "log": str(context.log_path)},
+        )
+    if not operation_id or status in {"outcome_unknown", "unknown"} or status is None:
         raise OutcomeUnknownError(
             "安装结果不确定；不会自动重放写操作",
             details={"result": value, "log": str(context.log_path)},
         )
-    if result.returncode or status not in {"succeeded", "success", "completed"}:
+
+    terminal = {
+        "succeeded",
+        "success",
+        "completed",
+        "failed",
+        "cancelled",
+        "interrupted",
+        "outcome_unknown",
+        "unknown",
+    }
+    last_stage = ""
+    last_bucket = -1
+    while status not in terminal:
+        if time.monotonic() - started >= timeout:
+            raise OutcomeUnknownError(
+                "安装等待超时，设备结果不确定；不会自动重放写操作",
+                details={"operation_id": operation_id, "log": str(context.log_path)},
+            )
+        progress = operation.get("progress")
+        progress = progress if isinstance(progress, dict) else {}
+        stage = str(progress.get("stage") or status)
+        permille = max(0, min(int(progress.get("progress_permille") or 0), 1000))
+        bucket = permille // 50
+        if stage != last_stage or bucket != last_bucket:
+            detail = f"ota: {stage} {permille / 10:.1f}%"
+            received = int(progress.get("bytes_received") or 0)
+            total = int(progress.get("bytes_total") or 0)
+            if total > 0:
+                detail += f" ({received}/{total} bytes)"
+            context.status(detail)
+            last_stage = stage
+            last_bucket = bucket
+        time.sleep(0.25)
+        current = gateway_json(context, session, "ota-status", operation_id)
+        operation = current.get("operation", current) if isinstance(current, dict) else {}
+        if not isinstance(operation, dict):
+            operation = {}
+        status = operation.get("status")
+        if status is None:
+            raise OutcomeUnknownError(
+                "安装状态响应无效；不会自动重放写操作",
+                details={"operation_id": operation_id, "result": current,
+                         "log": str(context.log_path)},
+            )
+
+    progress = operation.get("progress")
+    progress = progress if isinstance(progress, dict) else {}
+    context.status(
+        f"ota: {progress.get('stage', status)} "
+        f"{int(progress.get('progress_permille') or 0) / 10:.1f}%"
+    )
+    if status not in {"succeeded", "success", "completed"}:
         raise OperationError(
             f"安装失败：{status}",
-            details={"result": value, "log": str(context.log_path)},
+            details={"result": operation, "log": str(context.log_path)},
         )
-    return value if isinstance(value, dict) else {"result": value}
+    if isinstance(value, dict):
+        value["operation"] = operation
+        return value
+    return {"operation": operation}
