@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 import ast
-from contextlib import redirect_stderr
+from contextlib import redirect_stderr, redirect_stdout
 import hashlib
 import io
 import json
@@ -21,7 +21,7 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
 
 from mosaico_cli.cli import REPOSITORY, _emit_error, build_parser, _normalize_globals
-from mosaico_cli.commands import list_models, monitor, recover
+from mosaico_cli.commands import _MonitorTextRenderer, list_models, monitor, recover
 from mosaico_cli.errors import (
     BuildError,
     DeviceError,
@@ -68,6 +68,8 @@ class ParserTests(unittest.TestCase):
         value = self.parse("monitor")
         self.assertEqual(value.timeout, 0)
         self.assertFalse(value.snapshot)
+        self.assertFalse(value.force_color)
+        self.assertFalse(value.disable_auto_color)
 
     def test_global_flags_work_after_command(self) -> None:
         value = self.parse("list", "--details", "--json", "--verbose")
@@ -314,8 +316,80 @@ class GatewayTests(unittest.TestCase):
             ):
                 self.assertEqual(monitor(REPOSITORY, arguments, context, False), 0)
             self.assertEqual(start.call_args.kwargs["env"]["PYTHONUNBUFFERED"], "1")
+            self.assertIn("--json", start.call_args.args[0])
         finally:
             process.stdout.close()
+
+    def test_monitor_removes_transport_blank_lines(self) -> None:
+        arguments = argparse.Namespace(
+            gateway_profile=None,
+            device_id=None,
+            snapshot=True,
+            timeout=1,
+            grep=None,
+            force_color=False,
+            disable_auto_color=True,
+        )
+        context = mock.Mock(repository=REPOSITORY)
+        session = GatewaySession(Path("python"), Path("iris"), (), None, False)
+        payload = "".join(
+            json.dumps({"text": text}, separators=(",", ":")) + "\n"
+            for text in ("I (123) demo: first\r\n", "W (124) demo: second\r\n")
+        ).encode()
+        read_fd, write_fd = os.pipe()
+        os.write(write_fd, payload)
+        os.close(write_fd)
+        process = mock.Mock()
+        process.stdout = os.fdopen(read_fd, "rb", buffering=0)
+        process.poll.return_value = 0
+        process.wait.return_value = 0
+        output = io.StringIO()
+        try:
+            with (
+                mock.patch("mosaico_cli.commands.ensure_gateway", return_value=session),
+                mock.patch(
+                    "mosaico_cli.commands.connected_devices",
+                    return_value=[{"device_id": "device"}],
+                ),
+                mock.patch("mosaico_cli.commands.subprocess.Popen", return_value=process),
+                redirect_stdout(output),
+            ):
+                self.assertEqual(monitor(REPOSITORY, arguments, context, False), 0)
+        finally:
+            process.stdout.close()
+        self.assertEqual(
+            output.getvalue(),
+            "I (123) demo: first\r\nW (124) demo: second\r\n",
+        )
+
+
+class MonitorRenderingTests(unittest.TestCase):
+    def test_fragmented_crlf_is_reassembled_without_extra_newline(self) -> None:
+        output = io.StringIO()
+        renderer = _MonitorTextRenderer(output, grep=None, color_enabled=False)
+        renderer.feed("I (123) demo: hel")
+        renderer.feed("lo\r")
+        renderer.feed("\n\r\n")
+        renderer.finish()
+        self.assertEqual(output.getvalue(), "I (123) demo: hello\r\n\r\n")
+
+    def test_colors_match_idf_monitor(self) -> None:
+        output = io.StringIO()
+        renderer = _MonitorTextRenderer(output, grep=None, color_enabled=True)
+        renderer.feed(
+            "I (1) tag: info\n"
+            "W (2) tag: warning\n"
+            "E (3) tag: error\n"
+            "D (4) tag: debug\n"
+        )
+        renderer.finish()
+        self.assertEqual(
+            output.getvalue(),
+            "\033[0;32mI (1) tag: info\033[0m\n"
+            "\033[0;33mW (2) tag: warning\033[0m\n"
+            "\033[1;31mE (3) tag: error\033[0m\n"
+            "D (4) tag: debug\n",
+        )
 
 
 class ProjectTests(unittest.TestCase):

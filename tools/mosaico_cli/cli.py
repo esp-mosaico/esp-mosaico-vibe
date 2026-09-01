@@ -148,6 +148,15 @@ def build_parser() -> argparse.ArgumentParser:
         "--snapshot", action="store_true", help="Print retained logs and exit"
     )
     monitor_parser.add_argument("--grep", help="Client-side text filter")
+    monitor_colors = monitor_parser.add_mutually_exclusive_group()
+    monitor_colors.add_argument(
+        "--force-color", action="store_true", help="Always emit ANSI log colors"
+    )
+    monitor_colors.add_argument(
+        "--disable-auto-color",
+        action="store_true",
+        help="Disable automatic log coloring",
+    )
 
     list_parser = commands.add_parser(
         "list",
