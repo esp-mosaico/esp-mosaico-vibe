@@ -2,8 +2,8 @@
   "idf_version": "v6.2-dev-2221-g7b9cc1ac79f-dirt",
   "image": {
     "file": "factory.bin",
-    "sha256": "9d82f98d503fea3f89d22631659e38e01096a28092bd93282aeac9f4550e8178",
-    "size": 1682896
+    "sha256": "517df318b8c417a3a16726ae91d117b0edd040d090fd4b251f2e8c1e17f62bc0",
+    "size": 1700352
   },
   "partition": {
     "name": "factory",
@@ -18,9 +18,9 @@
     "secure_boot": false
   },
   "source": {
-    "commit": "ce2cd8e5ad8170c9c6e30288dc193f211e821a39",
+    "commit": "8181f1db0a21e0fa9f5cf22fc5d22aa5ee860a9b",
     "dirty": true
   },
   "target": "esp32s31",
-  "version": "2.0.0-recovery"
+  "version": "2.1.0-recovery"
 }

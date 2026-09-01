@@ -26,13 +26,9 @@
 #include "factory_system_metadata.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "mbedtls/md.h"
-#include "mbedtls/pk.h"
 #include "psa/crypto.h"
 
 #define FACTORY_SYSTEM_SCHEMA "esp-iris-system-update/v1"
-#define FACTORY_SYSTEM_SIGNATURE_ALGORITHM "ecdsa-p256-sha256"
-#define FACTORY_SYSTEM_KEY_DER_MAX_BYTES 256U
 #define FACTORY_SYSTEM_HASH_CHUNK_BYTES 1024U
 #define FACTORY_SYSTEM_RESTART_DELAY_MS 1800U
 #define FACTORY_SYSTEM_ESP32S31_CHIP_ID 0x20U
@@ -44,8 +40,6 @@ typedef struct {
 } factory_update_plan_component_t;
 
 typedef struct {
-    mbedtls_pk_context trust_key;
-    bool trust_key_ready;
     bool prepared;
     factory_update_plan_component_t
         plan[CONFIG_ESP_IRIS_SYSTEM_UPDATE_MAX_COMPONENTS];
@@ -222,25 +216,6 @@ static esp_err_t json_sha256(const cJSON *object, const char *name,
     return output_size == 32 ? ESP_OK : ESP_ERR_INVALID_SIZE;
 }
 
-static esp_err_t verify_manifest_signature(
-    const esp_iris_system_update_manifest_t *manifest)
-{
-    if (!s_update.trust_key_ready || manifest == NULL ||
-        manifest->manifest == NULL || manifest->manifest_size == 0 ||
-        manifest->signature == NULL || manifest->signature_size == 0) {
-        return ESP_ERR_INVALID_ARG;
-    }
-    const int result = mbedtls_pk_verify(
-        &s_update.trust_key, MBEDTLS_MD_SHA256, manifest->manifest_sha256,
-        sizeof(manifest->manifest_sha256), manifest->signature,
-        manifest->signature_size);
-    if (result != 0) {
-        ESP_LOGE(TAG, "manifest signature rejected: -0x%04x", -result);
-        return ESP_ERR_INVALID_CRC;
-    }
-    return ESP_OK;
-}
-
 static bool source_layout_authorized(const cJSON *root,
                                      const uint8_t actual[32])
 {
@@ -414,12 +389,9 @@ static esp_err_t parse_manifest_json(
 
     esp_err_t err = ESP_OK;
     const char *schema = NULL;
-    const char *algorithm = NULL;
-    const char *key_id = NULL;
     uint32_t chip_id = 0;
     uint32_t flash_size = 0;
     uint32_t actual_flash_size = 0;
-    const cJSON *signature = json_member(root, "signature");
     const cJSON *target = json_member(root, "target");
     const cJSON *components = json_member(root, "components");
     const cJSON *minimum_recovery =
@@ -427,10 +399,7 @@ static esp_err_t parse_manifest_json(
 
     if (json_string(root, "schema", &schema) != ESP_OK ||
         strcmp(schema, FACTORY_SYSTEM_SCHEMA) != 0 ||
-        json_string(signature, "algorithm", &algorithm) != ESP_OK ||
-        strcmp(algorithm, FACTORY_SYSTEM_SIGNATURE_ALGORITHM) != 0 ||
-        json_string(signature, "key_id", &key_id) != ESP_OK ||
-        strcmp(key_id, CONFIG_IRIS_FACTORY_SYSTEM_UPDATE_KEY_ID) != 0 ||
+        json_member(root, "signature") != NULL ||
         json_uint32(target, "chip_id", UINT16_MAX, &chip_id) != ESP_OK ||
         chip_id != FACTORY_SYSTEM_ESP32S31_CHIP_ID ||
         json_uint32(target, "flash_size", UINT32_MAX, &flash_size) != ESP_OK ||
@@ -509,14 +478,17 @@ static esp_err_t prepare_update(
 {
     (void)user_ctx;
     update_state_reset();
-    ESP_RETURN_ON_ERROR(verify_manifest_signature(manifest), TAG,
-                        "authenticate manifest");
+    ESP_RETURN_ON_FALSE(manifest != NULL && manifest->manifest != NULL &&
+                            manifest->manifest_size > 0 &&
+                            manifest->signature_size == 0,
+                        ESP_ERR_INVALID_ARG, TAG,
+                        "unsigned manifest required");
     ESP_RETURN_ON_ERROR(parse_manifest_json(manifest), TAG,
-                        "authorize manifest");
+                        "validate manifest");
     memcpy(s_update.operation_id, manifest->operation_id,
            sizeof(s_update.operation_id));
     s_update.prepared = true;
-    ESP_LOGI(TAG, "authenticated system plan with %u component(s)",
+    ESP_LOGW(TAG, "accepted unsigned system plan with %u component(s)",
              (unsigned)s_update.plan_count);
     return ESP_OK;
 }
@@ -549,7 +521,7 @@ static esp_err_t begin_component(
     const int index = find_plan_component(component);
     ESP_RETURN_ON_FALSE(index >= 0 && !s_update.plan[index].completed,
                         ESP_ERR_INVALID_ARG, TAG,
-                        "descriptor not in authenticated plan");
+                        "descriptor not in validated plan");
 
     if (component->kind == ESP_IRIS_SYSTEM_UPDATE_COMPONENT_APPLICATION) {
         s_update.ota_partition = esp_partition_find_first(
@@ -902,13 +874,13 @@ static void abort_update(
     esp_err_t reason, void *user_ctx)
 {
     (void)user_ctx;
-    const bool authenticated = s_update.prepared;
+    const bool prepared = s_update.prepared;
     uint8_t saved_operation_id[ESP_IRIS_SYSTEM_OPERATION_ID_BYTES] = {0};
     if (operation_id != NULL) {
         memcpy(saved_operation_id, operation_id, sizeof(saved_operation_id));
     }
     update_state_reset();
-    if (authenticated &&
+    if (prepared &&
         persist_result(saved_operation_id, reason) != ESP_OK) {
         ESP_LOGE(TAG, "could not persist failed system-update result");
     }
@@ -917,26 +889,6 @@ static void abort_update(
 
 esp_err_t factory_system_update_register(void)
 {
-    uint8_t key_der[FACTORY_SYSTEM_KEY_DER_MAX_BYTES];
-    size_t key_der_size = 0;
-    ESP_RETURN_ON_ERROR(
-        decode_hex(CONFIG_IRIS_FACTORY_SYSTEM_UPDATE_PUBLIC_KEY_DER_HEX,
-                   key_der, sizeof(key_der), &key_der_size),
-        TAG, "decode product release public key");
-    mbedtls_pk_init(&s_update.trust_key);
-    const int parse_result = mbedtls_pk_parse_public_key(
-        &s_update.trust_key, key_der, key_der_size);
-    ESP_RETURN_ON_FALSE(parse_result == 0, ESP_ERR_INVALID_ARG, TAG,
-                        "parse product release public key: -0x%04x",
-                        -parse_result);
-    ESP_RETURN_ON_FALSE(
-        mbedtls_pk_can_do_psa(&s_update.trust_key,
-                              PSA_ALG_ECDSA(PSA_ALG_SHA_256),
-                              PSA_KEY_USAGE_VERIFY_HASH) &&
-            mbedtls_pk_get_bitlen(&s_update.trust_key) == 256,
-        ESP_ERR_INVALID_ARG, TAG, "release key must be ECDSA P-256");
-    s_update.trust_key_ready = true;
-
     const esp_iris_system_update_backend_t backend = {
         .prepare = prepare_update,
         .begin_component = begin_component,
@@ -948,8 +900,7 @@ esp_err_t factory_system_update_register(void)
     };
     ESP_RETURN_ON_ERROR(esp_iris_system_update_register(&backend), TAG,
                         "register system update backend");
-    ESP_LOGI(TAG, "authenticated system update enabled with key '%s'",
-             CONFIG_IRIS_FACTORY_SYSTEM_UPDATE_KEY_ID);
+    ESP_LOGW(TAG, "unsigned full-system update backend enabled");
     return ESP_OK;
 }
 

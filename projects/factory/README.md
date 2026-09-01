@@ -2,7 +2,7 @@
 
 这是 ESP-Mosaico 的常驻 Factory Recovery 工程。它保留原有的
 ESP-Mosaico 视觉语言，同时提供离线 USB OTA、联网 TCP OTA、Factory
-独立配网和签名全系统更新。
+独立配网和无签名全系统更新。
 
 ## 已实现能力
 
@@ -22,9 +22,9 @@ ESP-Mosaico 视觉语言，同时提供离线 USB OTA、联网 TCP OTA、Factory
   mDNS、IP 和 TCP pairing token。
 - 正常应用只注册只读 System Inventory 与进入 Recovery 的 RPC。只有
   Recovery 可以注册 OTA writer 和全系统 Flash backend。
-- 全系统 backend 支持签名清单、`ota_0` application、bootloader 和 partition
-  table；每个镜像都经过 descriptor 绑定、SHA-256、写后 readback 和镜像格式
-  校验。
+- 全系统 backend 默认启用，不需要配置密钥，支持更新 `ota_0` application、
+  bootloader 和 partition table；每个镜像仍经过 descriptor 绑定、SHA-256、
+  写后 readback 和镜像格式校验。
 
 ## 分区与更新约束
 
@@ -38,7 +38,7 @@ ESP-Mosaico 视觉语言，同时提供离线 USB OTA、联网 TCP OTA、Factory
 | `coredump` | `0xe20000` | `0xd0000` | 崩溃证据 |
 | `sysmeta` | `0xef0000` | `0x10000` | 最近一次系统更新结果 |
 
-签名系统更新可以修改分区表内容，但产品策略要求 `factory`、`ota_0`、
+全系统更新可以修改分区表内容，但产品策略要求 `factory`、`ota_0`、
 `factory_nvs`、`otadata` 与 `sysmeta` 的 offset 和 size 保持不变。这样可以调整
 其余数据分区，同时保留 Recovery、正常应用启动路径和凭据隔离。
 
@@ -71,41 +71,21 @@ idf.py -B build -D BUILD_PROFILE=application build
 ESP-Iris Gateway 进入 Recovery 后安装 normal firmware。
 
 GPIO7 Recovery 选择逻辑位于二级 Bootloader。已有设备只更新 application 或
-Factory app 镜像不会获得该功能；需要通过 Recovery provisioning 或签名的
+Factory app 镜像不会获得该功能；需要通过 Recovery provisioning 或
 full-system update 同步更新 Bootloader。
 
-## 配置产品系统更新公钥
+## 无签名全系统更新
 
-全系统 Flash backend 已实现，但默认不注册 writer，因为仓库中没有产品发布
-公钥。先在离线发布环境生成/保管 ECDSA P-256 私钥，只把公钥放入 firmware：
-
-```sh
-openssl pkey -pubin -in release-public-key.pem -outform DER | xxd -p -c 999
-```
-
-把输出写入 `sdkconfig.recovery.defaults`：
-
-```text
-CONFIG_IRIS_FACTORY_SYSTEM_UPDATE_BACKEND=y
-CONFIG_IRIS_FACTORY_SYSTEM_UPDATE_KEY_ID="product-release-1"
-CONFIG_IRIS_FACTORY_SYSTEM_UPDATE_PUBLIC_KEY_DER_HEX="<SPKI-DER-HEX>"
-```
-
-可复制 [`sdkconfig.system-update-key.example`](sdkconfig.system-update-key.example)
-作为配置参考。私钥和密码不得提交到本仓库，也不得放在 Gateway 主机。
-
-Gateway 同样需要同一把公钥的 PEM 文件。签名 bundle 的基础模板见
+Recovery 默认注册无签名全系统 Flash backend，不需要固件公钥、bundle 私钥或
+Gateway trust key。基础模板见
 [`system-update-manifest.template.json`](system-update-manifest.template.json)：
 
 ```sh
 python "$IRIS" bundle build system-update-manifest.template.json \
   --component-root build/system-update \
-  --signing-key /private/release-signing-key.pem \
-  --signing-key-password-file /private/release-signing-key.password \
   --output release.irisfw
 
-python "$IRIS" web \
-  --system-update-trust-key release-public-key.pem
+python "$IRIS" web
 
 python "$IRIS" ctl system-update DEVICE_ID release.irisfw --wait
 ```
@@ -114,6 +94,10 @@ python "$IRIS" ctl system-update DEVICE_ID release.irisfw --wait
 Inventory 报告的 partition-table SHA-256。Gateway 会在进入 Recovery 前再次
 核对该值，并在重启后核对 operation ID、application、bootloader 和 partition
 table 的实际身份。
+
+无签名模式只提供传输完整性和镜像/分区策略校验，不提供发布者身份认证。USB
+依赖物理访问控制；TCP 依赖 pairing token 和 Gateway 访问控制。任何取得有效
+ESP-Iris 更新会话的客户端都可以提交 Bootloader 和分区表更新。
 
 ## TCP 配对
 

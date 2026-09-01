@@ -1,11 +1,7 @@
 {
   "schema": "esp-iris-system-update/v1",
   "release": "1.0.0",
-  "minimum_recovery_version": "2.0.0-recovery",
-  "signature": {
-    "algorithm": "ecdsa-p256-sha256",
-    "key_id": "product-release-1"
-  },
+  "minimum_recovery_version": "2.1.0-recovery",
   "target": {
     "chip_id": 32,
     "flash_size": 16777216

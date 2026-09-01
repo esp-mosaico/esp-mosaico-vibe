@@ -62,37 +62,21 @@ config IRIS_FACTORY_MDNS_PREFIX
     default "mosaico"
 
 config IRIS_FACTORY_SYSTEM_UPDATE_BACKEND
-    bool "Register the product full-system update Flash backend"
-    default n
+    bool "Register the unsigned full-system update Flash backend"
+    default y
     depends on ESP_IRIS_SYSTEM_UPDATE && !SECURE_FLASH_ENC_ENABLED
     help
-        Authenticate signed manifests on the device and allow recovery to
-        update ota_0, the bootloader and the partition table. The recovery,
-        factory Wi-Fi NVS, OTA data and sysmeta regions must retain their
-        current offsets and sizes. Other partition-table entries may change.
+        Accept unsigned manifests and allow recovery to update ota_0, the
+        bootloader and the partition table. Transport/session access control,
+        manifest/component SHA-256, image validation and protected-partition
+        policy still apply, but there is no release-key authentication.
+
+        The recovery, factory Wi-Fi NVS, OTA data and sysmeta regions must
+        retain their current offsets and sizes. Other partition-table entries
+        may change.
 
         This first product backend intentionally rejects flash-encrypted
         builds. System Inventory remains available without a writer.
-
-config IRIS_FACTORY_SYSTEM_UPDATE_KEY_ID
-    string "System-update release key identifier"
-    default "product-release-1"
-    depends on IRIS_FACTORY_SYSTEM_UPDATE_BACKEND
-    help
-        Must exactly match signature.key_id in the signed manifest.
-
-config IRIS_FACTORY_SYSTEM_UPDATE_PUBLIC_KEY_DER_HEX
-    string "ECDSA P-256 public key (SPKI DER hex)"
-    default ""
-    depends on IRIS_FACTORY_SYSTEM_UPDATE_BACKEND
-    help
-        Hex encoding of the SubjectPublicKeyInfo DER public key. Generate it
-        from the separately managed release public key with:
-
-        openssl pkey -pubin -in release-public-key.pem -outform DER | xxd -p -c 999
-
-        The private signing key must never be stored in this repository or on
-        the Gateway host.
 
 endmenu
 

@@ -550,12 +550,12 @@ static void update_screen_create(void)
     s_ui.update_owner = label_create(s_ui.update_screen, "Negotiating",
                                      &lv_font_montserrat_12, COLOR_TEXT);
     lv_obj_align(s_ui.update_owner, LV_ALIGN_TOP_RIGHT, -56, 329);
-    lv_obj_t *verified_label = label_create(s_ui.update_screen, "Manifest",
+    lv_obj_t *verified_label = label_create(s_ui.update_screen, "Authorization",
                                             &lv_font_montserrat_12,
                                             COLOR_MUTED);
     lv_obj_align(verified_label, LV_ALIGN_TOP_LEFT, 56, 365);
-    lv_obj_t *verified = label_create(s_ui.update_screen, "Verified",
-                                      &lv_font_montserrat_12, COLOR_GREEN);
+    lv_obj_t *verified = label_create(s_ui.update_screen, "Unsigned",
+                                      &lv_font_montserrat_12, COLOR_ORANGE);
     lv_obj_align(verified, LV_ALIGN_TOP_RIGHT, -56, 365);
     lv_obj_t *warning = label_create(
         s_ui.update_screen,
@@ -770,7 +770,7 @@ static void system_update_ui_update(const esp_iris_status_t *iris)
         ? (uint16_t)(((uint64_t)update.component_received * 1000U) /
                      update.component_size)
         : 0;
-    const char *detail = "Validating signed update";
+    const char *detail = "Validating unsigned update plan";
     if (update.phase == ESP_IRIS_SYSTEM_UPDATE_PHASE_RECEIVING) {
         detail = "Receiving system component";
     } else if (update.phase ==
