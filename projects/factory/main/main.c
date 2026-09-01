@@ -16,15 +16,28 @@ static const char *TAG = "factory";
 void app_main(void)
 {
     ESP_ERROR_CHECK(nvs_flash_init());
+
+#if CONFIG_GET_STARTED_RECOVERY
+    /* Make the retained USB OTA writer reachable before display and network
+     * initialization. Inventory and system-update providers must be
+     * registered before esp_iris_start(); the screen backend may be attached
+     * after the transport is running. */
+    ESP_ERROR_CHECK(factory_system_inventory_register());
+    ESP_ERROR_CHECK(factory_system_update_register());
+    iris_ota_support_start();
+
+    ESP_ERROR_CHECK(factory_ui_start());
+    ESP_ERROR_CHECK(iris_screen_mirror_register());
+#else
+    /* Normal firmware becomes reachable only after its product services and
+     * UI are initialized, so OTA health validation still represents a fully
+     * started application. */
     ESP_ERROR_CHECK(factory_ui_start());
     ESP_ERROR_CHECK(iris_screen_mirror_register());
     ESP_ERROR_CHECK(factory_system_inventory_register());
     ESP_ERROR_CHECK(factory_system_update_register());
-
-    /* Register product RPCs and start ESP-Iris before Wi-Fi. USB recovery must
-     * remain available even when credentials are absent or radio startup fails.
-     */
     iris_ota_support_start();
+#endif
 
 #if CONFIG_GET_STARTED_RECOVERY
     const esp_err_t network_err = factory_network_start();

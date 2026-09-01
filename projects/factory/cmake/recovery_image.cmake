@@ -121,16 +121,15 @@ add_custom_command(
     VERBATIM)
 add_custom_target(recovery-image ALL DEPENDS ${recovery_output_files})
 
-add_custom_command(
-    OUTPUT ${recovery_current_output_files}
+add_custom_target(recovery-current-bundle
     COMMAND "${recovery_python}" "${recovery_tool}"
         ${recovery_source_inputs}
         ${recovery_layout_args}
         --output-dir "${recovery_current_output_dir}"
+    BYPRODUCTS ${recovery_current_output_files}
     DEPENDS recovery-from-source "${recovery_tool}"
     COMMENT "Building an unreviewed Recovery candidate bundle"
     VERBATIM)
-add_custom_target(recovery-current-bundle DEPENDS ${recovery_current_output_files})
 
 add_custom_target(update-recovery-prebuilt
     COMMAND "${recovery_python}" "${recovery_tool}"

@@ -2,6 +2,9 @@ CONFIG_APP_PROJECT_VER_FROM_CONFIG=y
 CONFIG_APP_PROJECT_VER="2.1.0-recovery"
 
 CONFIG_ESP_IRIS_OTA=y
+# Reduce OTA request and flash-write count while keeping each aligned data
+# block plus its offset inside the protocol's 4000-byte payload limit.
+CONFIG_ESP_IRIS_OTA_CHUNK_BYTES=3968
 CONFIG_ESP_IRIS_SYSTEM_INVENTORY=y
 CONFIG_ESP_IRIS_SYSTEM_UPDATE=y
 CONFIG_IRIS_FACTORY_SYSTEM_UPDATE_BACKEND=y
