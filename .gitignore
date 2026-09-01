@@ -4,4 +4,6 @@
 **/sdkconfig.old
 **/.codex-runs/
 **/dependencies.lock
+**/__pycache__/
+**/*.py[cod]
 /Environment

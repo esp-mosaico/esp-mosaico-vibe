@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "devices": [
+    {
+      "id": "esp-mosaico",
+      "name": "ESP-Mosaico",
+      "target": "esp32s31",
+      "status": "supported",
+      "default": true,
+      "preview_target": true,
+      "reference_project": "projects/factory",
+      "bsp_path": "submodule/esp-mosaico-bsp",
+      "recovery_dir": "projects/factory/prebuilt/recovery",
+      "recovery_usb_ids": [
+        {
+          "vid": "0x303a",
+          "pid": "0x0020",
+          "product": "ESP32-S31"
+        }
+      ]
+    }
+  ]
+}

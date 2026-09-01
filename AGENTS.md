@@ -54,50 +54,49 @@ confirmation before clone or install.
    Initialize and inspect only the submodules needed for the current task.
 5. Follow component source, examples, and upstream documentation. Do not
    invent board or component APIs.
-6. Keep user-facing documentation in `docs/` and agent-facing documentation
-   or tools in `.agents/`.
+6. Keep user-facing documentation in `docs/`, public product tooling in
+   `tools/`, and private agent-facing documentation or tools in `.agents/`.
 
 ### Preserve the retained recovery path
 
 Unless the developer approves another architecture, every application must:
 
-1. Retain the compatible `factory` recovery partition, normal `ota_0`
-   partition, and recovery-image workflow from `projects/factory`.
+1. Retain the compatible recovery and normal-application workflow from
+   `projects/factory`.
 2. Set `CONFIG_ESP_IRIS_OTA_DEFAULT_VIA_RECOVERY=y` in normal builds, keep the
    OTA writer only in recovery, and call `iris_ota_support_start()` to expose
    the enter-recovery RPC.
-3. Provision recovery before the first application OTA on a blank or unverified
-   device, following `docs/recovery-first-workflow.md`.
-4. Install normal firmware through Gateway recovery-mode OTA. Never use the
-   normal application's `idf.py flash`, which can overwrite recovery.
+3. Run `python mosaico.py recover` before the first application install on a
+   blank or unverified device.
+4. Install normal firmware only with `python mosaico.py install --project ...`.
 
-Verify the same Device ID completes normal -> recovery -> normal with new Boot
-IDs, the recovery OTA writer, and a healthy application running from `ota_0`.
+Verify the same Device ID completes normal -> Recovery -> normal with new Boot
+IDs, a ready Recovery service, and a healthy application.
 
 ## Operate devices through ESP-Iris
 
-- Use the ESP-Iris Developer Gateway over USB High-Speed for routine logs,
-  device control, OTA, crash evidence, restart, and recovery.
-- Operate a device only through the CLI included in the ESP-Iris component
-  source. Read that component's agent instructions before using the CLI.
+- Use `python mosaico.py install`, `recover`, and `monitor` for routine device
+  operations. Use `python mosaico.py list` for supported model discovery.
+- Do not call ESP-Iris or ESP-IDF device-write commands directly; `mosaico.py`
+  owns Gateway lifecycle, evidence capture, device selection, and validation.
 - Do not open the device USB/serial session directly while the Gateway owns
   it. ESP-Mosaico has one High-Speed USB interface, and both normal and
   factory-recovery firmware assign it to ESP-Iris.
 - Tell the developer how to open the Gateway Web workbench when observation is
   useful. Confirm that the CLI and Web workbench show the same Device ID, Boot
   ID, and operation records.
-- Preserve structured evidence and raw logs. Save any valid core dump before
-  OTA, reflashing, partition changes, or another operation that could destroy
-  it.
+- Preserve structured evidence and raw logs. Let `mosaico.py` save any valid
+  core dump before an operation that could destroy it.
 - Do not treat an uploaded image, a reconnect, or a reachable recovery service
   as proof of successful recovery. Verify the intended firmware and product
   behavior.
 
 ## Provisioning and last-resort recovery
 
-Use `idf.py flash` only to provision recovery on a blank/unverified device or
-when neither normal nor recovery ESP-Iris is reachable. The agent handles the
-software procedure; the developer performs only required physical actions.
+Use `python mosaico.py recover` for blank/unverified devices and when neither
+normal nor Recovery ESP-Iris is reachable. Do not bypass the product command.
+The agent handles the software procedure; the developer performs only required
+physical actions.
 
 When the device is unrecoverable and both normal and recovery USB are
 unavailable, preserve any evidence that is still accessible, then instruct
@@ -110,9 +109,9 @@ the developer to:
    agent that the physical sequence is complete.
 
 After the developer completes those physical steps, the agent must detect and
-verify the ROM download connection, run the approved `idf.py flash` procedure,
-verify the intended firmware and product behavior, and return subsequent
-device operations to the ESP-Iris Gateway as soon as ESP-Iris is reachable.
+verify the recovery connection, continue `python mosaico.py recover`, verify
+the intended firmware and product behavior, and return subsequent device
+operations to the ESP-Iris Gateway as soon as ESP-Iris is reachable.
 
 Manual ROM entry is the last recovery option, not the normal development
 workflow. Never erase the whole flash merely to recover connectivity, and do

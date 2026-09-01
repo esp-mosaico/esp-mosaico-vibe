@@ -93,10 +93,10 @@ Agent-Led 的默认主导关系是：**Agent 持续推进，用户在关键节�
 
 ### 2.7 Recovery-first 固件交付
 
-- 保留 `factory` recovery 分区和正常应用 `ota_0` 分区。
+- 保留兼容的 Recovery 与正常应用交付路径。
 - 正常固件只提供“进入 recovery”的 RPC，不携带 OTA writer。
-- OTA writer 只存在于 factory recovery 固件中。
-- 正常应用更新必须先进入 recovery，再由 ESP-Iris Gateway 将新固件写入 `ota_0`。
+- 写入能力只在 Recovery 中提供。
+- 正常应用更新必须先进入 Recovery，再由 ESP-Iris Gateway 完成安装。
 - 空白或 recovery 状态未经验证的设备，必须先配置 recovery，再执行首次应用 OTA。
 
 ### 2.8 统一设备操作与证据链
@@ -108,8 +108,8 @@ Agent-Led 的默认主导关系是：**Agent 持续推进，用户在关键节�
 
 ### 2.9 最小化不可恢复操作
 
-- 正常开发不使用正常应用的 `idf.py flash`。
-- `idf.py flash` 仅用于空白/未验证设备的首次 recovery 配置，或 normal 与 recovery 均不可达时的最后恢复。
+- 普通应用只通过 `python mosaico.py install` 安装。
+- 空白/未验证设备和最后恢复只通过 `python mosaico.py recover` 处理，底层实现不作为用户接口。
 - 不以恢复连接为由擦除整片 Flash。
 - 未经明确授权，不覆盖凭据、设备身份、recovery 数据或相关分区。
 
@@ -171,10 +171,9 @@ ESP-Iris Developer Gateway
         ▼
 ESP-Mosaico 真实设备
  ├── 板级能力：显示 / 触摸 / 音频 / 传感 / 扩展
- ├── factory：保留 recovery + OTA writer
- ├── ota_0：正常 application / candidate
- ├── nvs / otadata / phy_init
- └── coredump：崩溃证据
+ ├── 正常应用
+ ├── 保留恢复能力
+ └── 崩溃证据
 ```
 
 ### 3.3 仓库组成
@@ -188,44 +187,33 @@ ESP-Mosaico 真实设备
 | 板级子模块 | `submodule/esp-mosaico-bsp` | 提供 BSP、扩展模块、交互/网络组件和示例 | 按任务初始化和检查 |
 | 任务指南 | `skills/` | 提供环境安装、构建等任务化说明 | 只加载相关指南 |
 | 用户文档 | `docs/` | 面向开发者说明工作流、规格和应用文档 | 不放 Agent 私有工具 |
+| 产品工具 | `mosaico.py`、`tools/mosaico_cli/` | 提供公开统一命令及其实现 | 不依赖 `.agents/` 私有资产 |
 | Agent 资产 | `.agents/` | Agent 专用文档与工具 | 不作为用户 API |
 
-### 3.4 固件与分区架构
+### 3.4 统一产品命令
 
-参考工程使用 16 MB Flash 分区布局：
+| 命令 | 用户语义 | 默认行为 |
+| --- | --- | --- |
+| `python mosaico.py list` | 查看适配型号 | 只读取仓库注册表，不依赖硬件或 ESP-IDF |
+| `python mosaico.py recover` | 初始化或恢复设备 | 使用评审基础包，完成后停留在 Recovery 就绪状态 |
+| `python mosaico.py install` | 安装普通应用 | 构建工程并通过 ESP-Iris 安装，不自动触发恢复 |
+| `python mosaico.py monitor` | 查看设备日志 | 先显示保留日志，再持续跟随至用户结束 |
 
-| 分区 | 类型 | 偏移 | 大小 | 职责 |
-| --- | --- | ---: | ---: | --- |
-| `nvs` | data/nvs | `0x9000` | `0x6000` | 配置及 OTA 流程元数据 |
-| `otadata` | data/ota | `0xf000` | `0x2000` | 启动分区选择与 OTA 状态 |
-| `phy_init` | data/phy | `0x11000` | `0x1000` | PHY 初始化数据 |
-| `factory` | app/factory | `0x20000` | `0x100000` | 保留 recovery 固件及 OTA writer |
-| `ota_0` | app/ota_0 | `0x120000` | `0xc00000` | 正常 application 或 candidate |
-| `coredump` | data/coredump | `0xd20000` | `0xd0000` | 崩溃转储证据 |
-
-构建 profile 相互使用独立 build 目录和 `sdkconfig`：
-
-| Profile | 用途 | 版本基线 | OTA writer | 默认更新方式 |
-| --- | --- | --- | --- | --- |
-| `application` | 正常开发固件 | `1.0.0` | 禁用 | 经 factory recovery OTA |
-| `candidate` | 候选验证固件 | `1.0.1` | 禁用 | 经 factory recovery OTA |
-| `recovery` | 保留恢复固件 | `1.0.0-recovery` | 启用 | 首次配置或最后恢复时烧写 |
+构建 profile、启动基础产物和设备布局均属于 `mosaico.py` 的内部实现，不作为
+用户参数或正常工作流的一部分。
 
 ### 3.5 设备更新状态流
 
 ```text
-normal@ota_0
-  │ 进入 recovery RPC（0x7fff/2）
-  ▼
-factory recovery + OTA writer
-  │ Gateway recovery-mode OTA
-  ▼
-new normal@ota_0
-  │ 启动、健康确认、记录新 Boot ID
-  └──────────────────────────────► 可再次进入 factory recovery
+设备未知或 Recovery 未验证 ── recover ──► Recovery 就绪
+                                              │
+                                              └── install ──► 正常应用健康运行
+                                                                     │
+                                                                     └── monitor
 ```
 
-闭环验收要求：同一 Device ID 依次完成 `normal → recovery → normal`，两次切换均产生新的 Boot ID；recovery 中可确认 OTA writer；最终固件健康运行于 `ota_0`。
+闭环验收要求：保持同一 Device ID，各次启动产生新的 Boot ID，Recovery 服务
+可用，最终固件身份匹配且产品行为健康。
 
 ## 4. 功能规格
 
@@ -236,7 +224,7 @@ new normal@ota_0
 | AL-001 | Agent 必须是正常流程的默认执行主体 | 用户连接设备并提出目标后，无需手工执行环境配置、构建、固件选择和 OTA 命令 |
 | AL-002 | Agent 必须持续推进任务 | 构建或设备操作失败后，Agent 收集证据、诊断原因，并在安全和任务范围内继续修正 |
 | AL-003 | Agent 必须按需编排能力 | 根据任务选择相关 Skill、组件和设备工具 |
-| AL-004 | Agent 必须感知真实设备状态 | 设备操作基于实时身份、固件和分区状态 |
+| AL-004 | Agent 必须感知真实设备状态 | 设备操作基于实时身份、固件和健康状态 |
 | AL-005 | Agent 必须以实物行为作为完成依据 | 任务完成需要真机功能通过验收 |
 | AL-006 | Agent 必须提供可审查证据 | 交付记录变更、部署结果和真机证据 |
 | AL-007 | Agent 必须正确处理人工接管 | 需要用户决策、授权或物理操作时暂停 |
@@ -251,7 +239,7 @@ new normal@ota_0
 | FR-001 | 仓库必须提供中英文入口说明 | 根目录存在 `README.md` 与 `README_CN.md`，且核心开发、调试、恢复规则一致 |
 | FR-002 | 仓库必须提供可复制的参考工程 | `projects/factory` 可作为新应用基线，具体应用位于独立 `projects/<project-name>` |
 | FR-003 | 仓库必须将板级实现作为子模块管理 | `submodule/esp-mosaico-bsp` 可解析到固定 Git revision，应用通过组件依赖使用 BSP |
-| FR-004 | 仓库必须分离用户文档与 Agent 资产 | 用户材料进入 `docs/`，Agent 专用材料或工具进入 `.agents/` |
+| FR-004 | 仓库必须分离产品工具与 Agent 资产 | 产品 CLI 进入 `tools/`，用户材料进入 `docs/`，Agent 私有资产进入 `.agents/` |
 | FR-005 | 开发任务必须按需加载指南和子模块 | 任务只初始化所需子模块，并先检查 `skills/README.md` 与相关 `SKILL.md` |
 | FR-006 | 正常开发流程必须由 Agent 主导 | 用户连接设备并描述目标后，Agent 持续推进到真机验收 |
 | FR-007 | 任务过程必须可审查 | 关键决策、部署方式和验证结果具有明确记录 |
@@ -262,10 +250,10 @@ new normal@ota_0
 | --- | --- | --- |
 | FR-101 | 项目必须约束 ESP-IDF 版本 | `idf_component.yml` 声明 `idf >= 6.1` |
 | FR-102 | 环境解析必须验证真实工具链 | 若根目录存在 `Environment`，仅作为不可信静态清单读取；同时验证 IDF 路径、版本、revision、Python 环境及 ESP32-S31 支持 |
-| FR-103 | 参考工程必须支持三种构建 profile | `BUILD_PROFILE` 仅接受 `application`、`candidate`、`recovery` |
-| FR-104 | 各 profile 配置必须隔离 | 每个 profile 使用独立 build 目录及生成的 `sdkconfig`，recovery 配置不得污染 normal 构建 |
-| FR-105 | normal 构建必须校验 recovery 产物 | 缺失、被修改、超出 factory 分区、目标不兼容或 manifest 不匹配时构建失败，不静默回退到现场编译 |
-| FR-106 | recovery 预构建更新必须显式执行 | 仅通过 `update-recovery-prebuilt` 目标发布新的 recovery image 与 manifest |
+| FR-103 | `install` 必须解析和构建用户工程 | 当前工程优先；无法唯一选择时列出候选并退出 |
+| FR-104 | `--skip-build` 必须显式标记复用 | 只复用完整 BIN/ELF/MAP，并在结果中返回 `reused_build=true` |
+| FR-105 | `recover` 必须校验评审基础包 | 文件缺失、哈希不匹配或目标不兼容时停止，不写设备 |
+| FR-106 | 当前源码恢复必须显式选择 | 仅 `recover --source current` 构建候选包，并显示未经评审警告 |
 
 ### 4.4 参考固件能力
 
@@ -274,8 +262,8 @@ new normal@ota_0
 | FR-201 | 参考固件必须初始化 NVS 和板载显示 | 启动后显示 normal 或 recovery 对应界面，并报告 480×480 显示启动状态 |
 | FR-202 | 参考固件必须接入 ESP-Iris | `esp_iris_start()` 成功，Gateway 能获取设备状态和启动记录 |
 | FR-203 | 参考固件必须提供屏幕镜像后端 | 将活动 LVGL RGB565 帧经 ESP-Iris screen backend 提供给工作台 |
-| FR-204 | normal 固件必须提供进入 recovery RPC | 注册 service `0x7fff` / method `2`，记录计划重启并将 factory 设为启动分区 |
-| FR-205 | 固件必须提供 OTA 状态与健康确认 RPC | service `0x1200` 提供状态方法 `1` 与接受方法 `2` |
+| FR-204 | normal 固件必须提供进入 Recovery 的能力 | Gateway 可以将同一设备切换到 Recovery，用户无需了解内部调用 |
+| FR-205 | 固件必须提供安装状态与健康确认 | Gateway 可以判定写入、重启、固件身份和健康结果 |
 | FR-206 | recovery 界面必须反映 Gateway 连接状态 | 至少区分启动中、等待连接、协商中、已就绪和失败 |
 | FR-207 | normal 固件不得包含 OTA writer | normal 配置启用 `CONFIG_ESP_IRIS_OTA_DEFAULT_VIA_RECOVERY`，同时禁用 `CONFIG_ESP_IRIS_OTA` |
 | FR-208 | recovery 固件必须包含 OTA writer | recovery profile 启用 `CONFIG_ESP_IRIS_OTA` 和 recovery 模式配置 |
@@ -310,23 +298,23 @@ new normal@ota_0
 | FR-301 | 日常设备操作必须经 Gateway | ESP-Iris CLI 执行设备操作，Web 工作台观察同一记录 |
 | FR-302 | 每次操作必须查询实时设备身份 | 不使用缓存 Device ID/Boot ID 作为当前证据，操作前查询 live device/status |
 | FR-303 | Gateway 拥有 USB High-Speed 会话时不得直连串口 | normal 与 recovery 均由 ESP-Iris 使用唯一 High-Speed USB，会话不可并发占用 |
-| FR-304 | 首次应用 OTA 前必须验证 recovery | 空白、缺失或状态未知设备先配置并验证 factory recovery |
-| FR-305 | normal 固件必须通过 recovery-mode OTA 安装 | 不运行正常应用的 `idf.py flash`；更新完成后确认 `ota_0`、版本、健康状态和新 Boot ID |
-| FR-306 | OTA 或分区变更前必须保存故障证据 | 若存在有效 core dump，先保存结构化证据与原始日志 |
-| FR-307 | 最后恢复必须限制破坏范围 | 仅在 normal/recovery 均不可达时进入 ROM 下载模式；使用确认过的端口；不执行整片擦除 |
-| FR-308 | 恢复必须以产品行为为终点 | 恢复完成需要目标固件运行于预期分区，并通过功能验证 |
+| FR-304 | 首次应用安装前必须验证 Recovery | 空白、缺失、版本不匹配或状态未知设备先运行 `recover` |
+| FR-305 | normal 固件必须通过 recovery-mode OTA 安装 | 运行 `python mosaico.py install`；更新完成后确认固件身份、健康状态和新 Boot ID |
+| FR-306 | 安装或恢复前必须保存故障证据 | 若存在有效 core dump，先保存结构化证据与原始日志 |
+| FR-307 | 最后恢复必须限制破坏范围 | 仅在 normal/Recovery 均不可达时进入恢复模式；锁定唯一目标设备；不执行整片擦除 |
+| FR-308 | 恢复必须以产品行为为终点 | 恢复完成需要目标固件身份匹配并通过功能验证 |
 
 ### 4.8 非功能规格
 
 | ID | 非功能要求 | 验收口径 |
 | --- | --- | --- |
-| NFR-001 | 可恢复性 | factory recovery 保留，任何 normal OTA 失败不得以覆盖 recovery 为代价 |
+| NFR-001 | 可恢复性 | 保留 Recovery 能力，任何普通应用安装失败不得破坏恢复路径 |
 | NFR-002 | 可追溯性 | 设备身份、固件版本和操作证据可关联 |
 | NFR-003 | 可复现性 | 构建配置、组件 revision 和 recovery manifest 可检查 |
 | NFR-004 | 资源安全 | 应用优先调用 BSP 与具体模块驱动，不直接抢占扩展槽共享引脚和总线 |
 | NFR-005 | 变更隔离 | 应用、BSP 和 Agent 资产保持目录边界 |
 | NFR-006 | 失败可见性 | recovery 产物不兼容、构建 profile 非法、设备状态异常等情况必须显式失败，不静默降级 |
-| NFR-007 | 安全变更 | 凭据、设备身份、recovery 数据、分区和整片 Flash 的破坏性变更需要明确授权 |
+| NFR-007 | 安全变更 | 凭据、设备身份、Recovery 数据和整片 Flash 的破坏性变更需要明确授权 |
 | NFR-008 | 最短路径 | Agent 优先使用仓库内已验证的 Skill、组件、示例与设备工具，避免不必要的云端检索和重复环境探索 |
 | NFR-009 | 人工负担最小化 | 正常链路仅要求用户连接设备并确认目标/结果；只有权限、产品决策或不可软件完成的物理操作才转交用户 |
 | NFR-010 | 闭环连续性 | Agent 在未满足完成定义且仍有安全可行路径时持续推进，不把中间产物作为最终结果交付 |
@@ -349,12 +337,12 @@ new normal@ota_0
 | 场景 | 本仓库提供的价值 |
 | --- | --- |
 | 从创意快速制作实物原型 | Agent 将自然语言目标转化为工程、UI 和设备功能，持续构建部署到真机并根据反馈迭代 |
-| 新建 ESP-Mosaico 应用 | 从统一参考工程派生，继承目标、依赖、分区和恢复契约 |
+| 新建 ESP-Mosaico 应用 | 从统一参考工程派生，继承目标、依赖和恢复契约 |
 | Agent 主导应用开发 | Agent 通过仓库规则、Skills、BSP 和设备证据持续推进实现与验证，用户在关键节点决策和验收 |
 | UI/交互快速迭代 | 基于 480×480 LVGL 与触摸能力实现界面，并通过 Gateway 屏幕观察完成真机视觉闭环 |
 | 固件候选版本验证 | 使用 candidate profile 与 recovery-mode OTA，在不覆盖保底镜像的情况下验证新版本 |
 | 远程/重复设备调试 | 通过 Gateway 获取日志、屏幕、Job、状态、重启与 core dump，并用 Device ID/Boot ID 关联 |
-| 更新失败恢复 | 从保留的 factory recovery 重装 `ota_0`；极端情况下再进入 ROM 下载模式 |
+| 更新失败恢复 | 运行 `python mosaico.py recover`，就绪后再运行 `install` |
 | BSP 与应用协同开发 | BSP 能力保留在子模块，应用工程保留在 `projects/`，分别演进和审查 |
 
 ### 6.2 BSP 示例证明的产品方向
@@ -389,7 +377,7 @@ new normal@ota_0
 - 第三方扩展模块需要匹配的驱动与资源仲裁。
 - 硬件合规和生产测试属于独立工作范围。
 - 云服务与配套客户端需要按产品需求另行建设。
-- 当前单 normal slot 架构在更新失败时回到 factory recovery，不保留第二份旧 normal 镜像供 A/B 回退。
+- 当前更新策略不承诺保留第二份旧应用镜像供 A/B 回退。
 
 ### 7.3 人工接管与授权边界
 
@@ -406,19 +394,19 @@ Agent 遇到以下情况必须暂停，并向用户说明风险及所需输入�
 ### 7.4 已知技术约束
 
 1. ESP-Mosaico 只有一个 USB High-Speed 接口；Gateway 占用时，其他工具不得并发打开同一会话。
-2. ESP32-S31 仍可能要求所选 ESP-IDF 版本使用 `idf.py --preview set-target esp32s31`。
-3. 摄像头模块只支持左侧扩展槽；部分摄像头信号与 USB Serial/JTAG 引脚冲突，相关示例可能需要 UART 烧写与监控。
+2. ESP32-S31 需要兼容的 ESP-IDF 预览目标支持，由统一命令解析和验证环境。
+3. 摄像头模块只支持左侧扩展槽，启用前必须核对扩展槽资源占用。
 4. 两个扩展槽共享 I2C 等资源；具体模块驱动持有插槽时要求独占，应用不得绕过模块管理器抢占引脚。
 5. 磁力交互校准与机械结构有关；磁铁、传感器朝向、外壳或装配公差变化后必须重新校准和验证。
-6. recovery manifest 当前记录的基线包含开发版 ESP-IDF 和 dirty source 标记；发布或量产基线应从干净、可复现 revision 重新生成并验证。
-7. recovery 首次配置可能需要通过编程口执行 `idf.py flash`。正常应用使用 Gateway OTA。
+6. Recovery manifest 记录完整基础包的来源、布局和哈希；发布或量产基线应从干净、可复现 revision 生成并验证。
+7. Recovery 首次配置由 `python mosaico.py recover` 完成；正常应用由 `python mosaico.py install` 安装。
 8. Skill 体系支持持续扩展。仓库能力以已经接入并通过验证的资源为准。
 
 ### 7.5 变更控制
 
 以下变更视为架构级变更，实施前应获得开发负责人确认，并同步更新本规格书、参考工程和恢复流程：
 
-- 删除或改变 `factory`、`ota_0`、`coredump` 分区及其容量。
+- 删除或改变保留 Recovery、正常应用或崩溃证据能力。
 - 将 OTA writer 移入 normal 固件，或取消默认经 recovery 更新。
 - 改变进入 recovery RPC、健康确认或 OTA 状态协议。
 - 更换目标芯片、最低 ESP-IDF 版本、USB 传输所有权或 Gateway 运维入口。
@@ -433,8 +421,8 @@ Agent 遇到以下情况必须暂停，并向用户说明风险及所需输入�
 1. Agent 已明确目标和完成条件。
 2. 应用位于独立的 `projects/<project-name>`，并只依赖已检查的板级或组件 API。
 3. 在兼容的 ESP-IDF/ESP32-S31 环境中完成对应 profile 构建，构建日志和产物可追溯。
-4. 设备已有经过验证的 factory recovery；若没有，已先完成 recovery-first 配置。
-5. normal 固件通过 Gateway recovery-mode OTA 安装到 `ota_0`，未使用 normal `idf.py flash`。
+4. 设备已有经过验证的 Recovery；若没有，已先运行 `python mosaico.py recover`。
+5. normal 固件已通过 `python mosaico.py install` 完成 Gateway recovery-mode OTA。
 6. 同一 Device ID 完成 `normal → recovery → normal`，Boot ID 按启动变化，recovery writer 与最终 normal 固件均已确认。
 7. 最终产品行为已在真机验证，必要证据已经保存。
 8. Agent 已提交可复核的变更摘要和验收证据。

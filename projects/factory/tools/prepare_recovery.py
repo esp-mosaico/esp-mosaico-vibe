@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate and stage a retained factory recovery image."""
+"""Validate and atomically stage a complete ESP-Mosaico recovery bundle."""
 
 from __future__ import annotations
 
@@ -13,22 +13,29 @@ import sys
 from typing import Any
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 PROJECT_NAME = "factory"
-PARTITION_NAME = "factory"
 ESP_IMAGE_MAGIC = 0xE9
+IMAGE_FILES = {
+    "bootloader": "bootloader.bin",
+    "partition_table": "partition-table.bin",
+    "ota_data": "ota_data_initial.bin",
+    "recovery": "factory.bin",
+}
 RECOVERY_SOURCE_PATHS = (
     "CMakeLists.txt",
     "bootloader_components",
+    "cmake",
     "main",
     "partitions.csv",
     "sdkconfig.defaults",
     "sdkconfig.recovery.defaults",
+    "tools",
 )
 
 
 class RecoveryImageError(RuntimeError):
-    """Raised when a recovery artifact is missing or incompatible."""
+    """Raised when a recovery bundle is missing or incompatible."""
 
 
 def parse_int(value: str | int) -> int:
@@ -84,15 +91,7 @@ def source_state(source_root: Path) -> tuple[str, bool]:
             text=True,
         ).stdout.strip()
         changes = subprocess.run(
-            [
-                "git",
-                "-C",
-                str(source_root),
-                "status",
-                "--porcelain",
-                "--",
-                *RECOVERY_SOURCE_PATHS,
-            ],
+            ["git", "-C", str(source_root), "status", "--porcelain", "--", *RECOVERY_SOURCE_PATHS],
             check=True,
             capture_output=True,
             text=True,
@@ -103,10 +102,11 @@ def source_state(source_root: Path) -> tuple[str, bool]:
 
 
 def build_manifest(
-    image: Path,
+    images: dict[str, Path],
     description_path: Path,
-    partition_offset: int,
+    offsets: dict[str, int],
     partition_size: int,
+    normal_offset: int,
     source_root: Path,
 ) -> dict[str, Any]:
     description = read_json(description_path)
@@ -117,14 +117,9 @@ def build_manifest(
         raise RecoveryImageError(
             f"cannot read sdkconfig referenced by {description_path}"
         ) from error
-
     if not enabled_config(config, "CONFIG_GET_STARTED_RECOVERY"):
-        raise RecoveryImageError(
-            f"{image} was not produced by BUILD_PROFILE=recovery"
-        )
-
+        raise RecoveryImageError("bundle was not produced by BUILD_PROFILE=recovery")
     source_commit, source_dirty = source_state(source_root)
-
     return {
         "schema_version": SCHEMA_VERSION,
         "project": description.get("project_name", ""),
@@ -132,189 +127,194 @@ def build_manifest(
         "version": description.get("project_version", ""),
         "target": description.get("target", ""),
         "idf_version": description.get("git_revision", ""),
-        "source": {
-            "commit": source_commit,
-            "dirty": source_dirty,
+        "source": {"commit": source_commit, "dirty": source_dirty},
+        "layout": {
+            "recovery_partition": {
+                "name": "factory",
+                "offset": f"0x{offsets['recovery']:x}",
+                "size": f"0x{partition_size:x}",
+            },
+            "application_partition": {
+                "name": "ota_0",
+                "offset": f"0x{normal_offset:x}",
+            },
         },
-        "partition": {
-            "name": PARTITION_NAME,
-            "offset": f"0x{partition_offset:x}",
-            "size": f"0x{partition_size:x}",
+        "initial_boot": {
+            "partition": "factory",
+            "ota_data_image": IMAGE_FILES["ota_data"],
+            "expected_mode": "recovery",
         },
         "security": {
             "secure_boot": enabled_config(config, "CONFIG_SECURE_BOOT"),
-            "flash_encryption": enabled_config(
-                config, "CONFIG_SECURE_FLASH_ENC_ENABLED"
-            ),
+            "flash_encryption": enabled_config(config, "CONFIG_SECURE_FLASH_ENC_ENABLED"),
         },
-        "image": {
-            "file": image.name,
-            "size": image.stat().st_size,
-            "sha256": sha256(image),
+        "images": {
+            name: {
+                "file": IMAGE_FILES[name],
+                "offset": f"0x{offsets[name]:x}",
+                "size": path.stat().st_size,
+                "sha256": sha256(path),
+            }
+            for name, path in images.items()
         },
     }
 
 
-def require_mapping(manifest: dict[str, Any], key: str) -> dict[str, Any]:
-    value = manifest.get(key)
-    if not isinstance(value, dict):
+def require_mapping(value: dict[str, Any], key: str) -> dict[str, Any]:
+    result = value.get(key)
+    if not isinstance(result, dict):
         raise RecoveryImageError(f"manifest field {key!r} must be an object")
-    return value
+    return result
 
 
 def validate(
-    image: Path,
+    images: dict[str, Path],
     manifest: dict[str, Any],
     target: str,
-    partition_offset: int,
+    offsets: dict[str, int],
     partition_size: int,
+    normal_offset: int,
     secure_boot: bool,
     flash_encryption: bool,
 ) -> None:
-    if not image.is_file():
-        raise RecoveryImageError(f"recovery image does not exist: {image}")
-
-    image_size = image.stat().st_size
-    if image_size == 0:
-        raise RecoveryImageError(f"recovery image is empty: {image}")
-    if image_size > partition_size:
-        raise RecoveryImageError(
-            f"recovery image is {image_size} bytes, larger than the "
-            f"factory partition ({partition_size} bytes)"
-        )
-    with image.open("rb") as stream:
-        if stream.read(1) != bytes([ESP_IMAGE_MAGIC]):
-            raise RecoveryImageError(f"invalid ESP application image magic: {image}")
-
     if manifest.get("schema_version") != SCHEMA_VERSION:
         raise RecoveryImageError(
             f"unsupported recovery manifest schema: {manifest.get('schema_version')!r}"
         )
-    if manifest.get("project") != PROJECT_NAME:
-        raise RecoveryImageError(
-            f"recovery project mismatch: expected {PROJECT_NAME!r}, "
-            f"got {manifest.get('project')!r}"
-        )
-    if manifest.get("profile") != "recovery":
-        raise RecoveryImageError("manifest does not describe a recovery build")
+    if manifest.get("project") != PROJECT_NAME or manifest.get("profile") != "recovery":
+        raise RecoveryImageError("manifest does not describe the factory recovery build")
     if manifest.get("target") != target:
         raise RecoveryImageError(
-            f"recovery target mismatch: expected {target!r}, "
-            f"got {manifest.get('target')!r}"
+            f"recovery target mismatch: expected {target!r}, got {manifest.get('target')!r}"
         )
-
-    partition = require_mapping(manifest, "partition")
-    if partition.get("name") != PARTITION_NAME:
-        raise RecoveryImageError(
-            f"recovery partition mismatch: expected {PARTITION_NAME!r}"
-        )
-    if parse_int(partition.get("offset", "")) != partition_offset:
-        raise RecoveryImageError(
-            f"factory partition offset changed; rebuild recovery for "
-            f"0x{partition_offset:x}"
-        )
-    if parse_int(partition.get("size", "")) != partition_size:
-        raise RecoveryImageError(
-            f"factory partition size changed; rebuild recovery for "
-            f"0x{partition_size:x} bytes"
-        )
-
+    layout = require_mapping(manifest, "layout")
+    recovery_partition = require_mapping(layout, "recovery_partition")
+    application_partition = require_mapping(layout, "application_partition")
+    if recovery_partition.get("name") != "factory":
+        raise RecoveryImageError("recovery partition must be named factory")
+    if parse_int(recovery_partition.get("offset", "")) != offsets["recovery"]:
+        raise RecoveryImageError("factory partition offset changed; rebuild recovery bundle")
+    if parse_int(recovery_partition.get("size", "")) != partition_size:
+        raise RecoveryImageError("factory partition size changed; rebuild recovery bundle")
+    if application_partition.get("name") != "ota_0" or parse_int(
+        application_partition.get("offset", "")
+    ) != normal_offset:
+        raise RecoveryImageError("normal application partition layout changed")
     security = require_mapping(manifest, "security")
     if security.get("secure_boot") is not secure_boot:
-        raise RecoveryImageError(
-            "recovery secure-boot configuration differs from the current build"
-        )
+        raise RecoveryImageError("recovery secure-boot configuration differs")
     if security.get("flash_encryption") is not flash_encryption:
-        raise RecoveryImageError(
-            "recovery flash-encryption configuration differs from the current build"
-        )
+        raise RecoveryImageError("recovery flash-encryption configuration differs")
 
-    image_info = require_mapping(manifest, "image")
-    if image_info.get("size") != image_size:
-        raise RecoveryImageError(
-            f"recovery image size mismatch: manifest={image_info.get('size')!r}, "
-            f"actual={image_size}"
-        )
-    actual_hash = sha256(image)
-    if image_info.get("sha256") != actual_hash:
-        raise RecoveryImageError(
-            f"recovery image SHA-256 mismatch: expected "
-            f"{image_info.get('sha256')!r}, got {actual_hash}"
-        )
+    entries = require_mapping(manifest, "images")
+    for name, path in images.items():
+        if not path.is_file() or path.stat().st_size == 0:
+            raise RecoveryImageError(f"missing or empty recovery bundle image: {path}")
+        item = require_mapping(entries, name)
+        if item.get("file") != IMAGE_FILES[name]:
+            raise RecoveryImageError(f"unexpected file name for {name}")
+        if parse_int(item.get("offset", "")) != offsets[name]:
+            raise RecoveryImageError(f"offset mismatch for {name}")
+        if item.get("size") != path.stat().st_size or item.get("sha256") != sha256(path):
+            raise RecoveryImageError(f"size or SHA-256 mismatch for {name}")
+    if images["recovery"].stat().st_size > partition_size:
+        raise RecoveryImageError("recovery application is larger than the factory partition")
+    for name in ("bootloader", "recovery"):
+        with images[name].open("rb") as stream:
+            if stream.read(1) != bytes([ESP_IMAGE_MAGIC]):
+                raise RecoveryImageError(f"invalid ESP image magic: {images[name]}")
+    initial = require_mapping(manifest, "initial_boot")
+    if initial.get("partition") != "factory" or initial.get("expected_mode") != "recovery":
+        raise RecoveryImageError("bundle does not initialize into Recovery")
 
 
-def atomic_copy(source: Path, destination: Path) -> None:
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    temporary = destination.with_name(destination.name + ".tmp")
-    shutil.copyfile(source, temporary)
-    temporary.replace(destination)
-
-
-def atomic_write_json(destination: Path, value: dict[str, Any]) -> None:
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    temporary = destination.with_name(destination.name + ".tmp")
-    temporary.write_text(
-        json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+def atomic_stage(output_dir: Path, images: dict[str, Path], manifest: dict[str, Any]) -> None:
+    output_dir.parent.mkdir(parents=True, exist_ok=True)
+    temporary = output_dir.with_name(output_dir.name + ".tmp")
+    previous = output_dir.with_name(output_dir.name + ".previous")
+    shutil.rmtree(temporary, ignore_errors=True)
+    shutil.rmtree(previous, ignore_errors=True)
+    temporary.mkdir()
+    for name, source in images.items():
+        shutil.copyfile(source, temporary / IMAGE_FILES[name])
+    (temporary / "manifest.json").write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
-    temporary.replace(destination)
+    if output_dir.exists():
+        output_dir.replace(previous)
+    temporary.replace(output_dir)
+    shutil.rmtree(previous, ignore_errors=True)
 
 
 def parser() -> argparse.ArgumentParser:
-    result = argparse.ArgumentParser(
-        description="Validate and stage a retained factory recovery image"
-    )
-    result.add_argument("--image", type=Path, required=True)
+    result = argparse.ArgumentParser(description=__doc__)
+    result.add_argument("--bootloader", type=Path, required=True)
+    result.add_argument("--partition-table", type=Path, required=True)
+    result.add_argument("--ota-data", type=Path, required=True)
+    result.add_argument("--recovery", type=Path, required=True)
     metadata = result.add_mutually_exclusive_group(required=True)
     metadata.add_argument("--manifest", type=Path)
     metadata.add_argument("--project-description", type=Path)
     result.add_argument("--source-root", type=Path, default=Path.cwd())
     result.add_argument("--target", required=True)
-    result.add_argument("--partition-offset", required=True)
-    result.add_argument("--partition-size", required=True)
+    result.add_argument("--bootloader-offset", required=True)
+    result.add_argument("--partition-table-offset", required=True)
+    result.add_argument("--ota-data-offset", required=True)
+    result.add_argument("--recovery-offset", required=True)
+    result.add_argument("--recovery-size", required=True)
+    result.add_argument("--normal-offset", required=True)
     result.add_argument("--secure-boot", required=True)
     result.add_argument("--flash-encryption", required=True)
-    result.add_argument("--output-image", type=Path, required=True)
-    result.add_argument("--output-manifest", type=Path, required=True)
+    result.add_argument("--output-dir", type=Path, required=True)
     return result
 
 
 def main() -> int:
     arguments = parser().parse_args()
     try:
-        partition_offset = parse_int(arguments.partition_offset)
-        partition_size = parse_int(arguments.partition_size)
+        images = {
+            "bootloader": arguments.bootloader,
+            "partition_table": arguments.partition_table,
+            "ota_data": arguments.ota_data,
+            "recovery": arguments.recovery,
+        }
+        offsets = {
+            "bootloader": parse_int(arguments.bootloader_offset),
+            "partition_table": parse_int(arguments.partition_table_offset),
+            "ota_data": parse_int(arguments.ota_data_offset),
+            "recovery": parse_int(arguments.recovery_offset),
+        }
+        partition_size = parse_int(arguments.recovery_size)
+        normal_offset = parse_int(arguments.normal_offset)
         secure_boot = parse_bool(arguments.secure_boot)
         flash_encryption = parse_bool(arguments.flash_encryption)
-        if arguments.manifest:
-            manifest = read_json(arguments.manifest)
-        else:
-            manifest = build_manifest(
-                arguments.image,
+        manifest = (
+            read_json(arguments.manifest)
+            if arguments.manifest
+            else build_manifest(
+                images,
                 arguments.project_description,
-                partition_offset,
+                offsets,
                 partition_size,
+                normal_offset,
                 arguments.source_root,
             )
-
+        )
         validate(
-            arguments.image,
+            images,
             manifest,
             arguments.target,
-            partition_offset,
+            offsets,
             partition_size,
+            normal_offset,
             secure_boot,
             flash_encryption,
         )
-        atomic_copy(arguments.image, arguments.output_image)
-        atomic_write_json(arguments.output_manifest, manifest)
+        atomic_stage(arguments.output_dir, images, manifest)
     except (OSError, RecoveryImageError) as error:
-        print(f"recovery image error: {error}", file=sys.stderr)
+        print(f"recovery bundle error: {error}", file=sys.stderr)
         return 1
-
-    print(
-        f"recovery image ready: {arguments.output_image} "
-        f"({arguments.image.stat().st_size} bytes)"
-    )
+    print(f"recovery bundle ready: {arguments.output_dir}")
     return 0
 
 

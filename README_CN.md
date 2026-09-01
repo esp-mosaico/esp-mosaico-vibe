@@ -18,37 +18,43 @@
 子模组。实现功能前，先查看 [`skills/README.md`](skills/README.md)，并按需读取
 相关的 `SKILL.md`，无需一次性加载全部资料。
 
-## 开发、调试与恢复
+## 统一设备命令
 
-日常日志、设备控制、OTA、崩溃证据和恢复默认通过 USB High-Speed 上的
-**ESP-Iris Developer Gateway** 完成。
+日常安装、日志和恢复统一通过仓库根目录的 `mosaico.py` 完成：
 
-- 编码 Agent 只能使用 ESP-Iris 组件源码内提供的 CLI 操作设备。
+```sh
+python mosaico.py list
+python mosaico.py recover
+python mosaico.py install --project projects/<project>
+python mosaico.py monitor
+```
+
+`install` 只通过 **ESP-Iris Developer Gateway** 更新普通应用；设备未完成初始化
+时会明确提示先运行 `recover`，不会自动切换成底层烧录。`recover` 默认使用仓库
+内经过评审的 Recovery 基础包，并在完成后停留于 Recovery 就绪状态。
+
+- 编码 Agent 只通过 `mosaico.py` 操作设备。
 - 开发者可以同时打开 Gateway Web 工作台，观察同一设备的日志、画面、Job、
   重启及 recovery 进度。
 - CLI 与 Web 工作台共享同一个稳定的 Device ID、Boot ID 和结构化操作记录。
 - Gateway 独占 USB 会话，并持久化结构化证据与原始日志；执行 OTA 前应先保存
   有效的 core dump。
 
-ESP-Mosaico 只有一个 High-Speed USB 接口。normal 固件和 factory recovery
-模板都会把该接口交给 ESP-Iris，因此 Gateway 在两种模式下都独占该会话。
+ESP-Mosaico 只有一个 High-Speed USB 接口。正常固件和 Recovery 都会把该接口
+交给 ESP-Iris，因此 Gateway 在两种模式下都独占该会话。
 
-### 保底重新烧录
+### 最后恢复
 
-`idf.py flash` 是保底初始烧录／恢复手段，仅在 normal 和 recovery
-模式下均没有可连接的 ESP-Iris 固件时使用。设备进入不可恢复的故障状态，且
-normal USB 与 recovery USB 均不可用时，Agent 应先保存仍可获取的崩溃证据，
-再提示开发者完成进入 ROM 下载模式所需的物理操作：
+当设备无法被正常固件或 Recovery 识别时，仍然只运行 `python mosaico.py recover`。
+命令会先保存可获取的故障证据，并在需要物理操作时提示开发者：
 
 1. 将设备关机。
 2. 按住位于 USB-C 接口左侧的 **Boot** 键。
 3. 保持按住 **Boot** 键并开机。
 4. 设备进入 ROM 下载模式后松开 **Boot** 键，并告知 Agent 物理操作已完成。
 
-开发者只需完成上述按键和上电操作。之后由 Agent 检测并确认 ROM 下载
-连接，执行经过确认的 `idf.py flash` 重新烧录流程，验证目标固件和产品
-功能。ESP-Iris 恢复可连接后，Agent 应立即将后续设备操作交回 ESP-Iris
-Gateway。
+开发者只需完成上述按键和上电操作。之后由 Agent 继续运行 `recover` 并验证
+设备身份、Recovery 版本和就绪状态；后续应用通过 `install` 安装。
 
 手动进入 ROM 下载模式仅用于最后恢复。不要仅为恢复连接而擦除整片 Flash，
 也不应在未经用户明确授权时覆盖凭据、设备身份、recovery 数据或相关分区。
@@ -59,7 +65,8 @@ Gateway。
 - `skills/`：面向 Agent 和开发者的任务集成指南，详见
   [`skills/README.md`](skills/README.md)。
 - `docs/`：面向用户的文档。
-- `.agents/`：面向 Agent 的文档和工具。
+- `tools/mosaico_cli/`：`mosaico.py` 的公共产品命令实现。
+- `.agents/`：面向 Agent 的私有文档和工具，不承载产品 CLI。
 - `AGENTS.md`：供编码 Agent 使用的简明路由与操作规则。
 
 仓库的目标、架构、功能契约和适用边界见

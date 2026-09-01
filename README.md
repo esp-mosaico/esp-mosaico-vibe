@@ -23,13 +23,23 @@ submodules. Load or initialize only the submodules required by the current
 task. Before implementing a feature, consult [`skills/README.md`](skills/README.md)
 and read only the relevant `SKILL.md` guides.
 
-## Development, debugging, and recovery
+## Unified device commands
 
-The default path for routine logs, device control, OTA, crash evidence, and
-recovery is the **ESP-Iris Developer Gateway** over USB High-Speed.
+Use the repository-level product commands for installation, logs, and recovery:
 
-- A coding agent operates the device only through the CLI shipped in the
-  ESP-Iris component source.
+```sh
+python mosaico.py list
+python mosaico.py recover
+python mosaico.py install --project projects/<project>
+python mosaico.py monitor
+```
+
+`install` updates normal applications only through the **ESP-Iris Developer
+Gateway**. An uninitialized device is told to run `recover`; the command never
+silently falls back to a lower-level write. `recover` uses the reviewed bundle
+by default and leaves the device Recovery-ready.
+
+- A coding agent operates the device only through `mosaico.py`.
 - A developer may keep the Gateway Web workbench open to watch the same logs,
   display output, jobs, restarts, and recovery progress.
 - The CLI and Web workbench share the same stable Device ID, Boot ID, and
@@ -37,18 +47,15 @@ recovery is the **ESP-Iris Developer Gateway** over USB High-Speed.
 - The Gateway owns the USB session and persists both structured evidence and
   raw logs. Before OTA, preserve any valid core dump.
 
-ESP-Mosaico has one High-Speed USB interface. Both the normal firmware and the
-factory-recovery template assign it to ESP-Iris, so the Gateway has exclusive
+ESP-Mosaico has one High-Speed USB interface. Both normal firmware and
+Recovery assign it to ESP-Iris, so the Gateway has exclusive
 ownership of the session in either mode.
 
-### Last-resort reflashing
+### Last-resort recovery
 
-`idf.py flash` is a last-resort provisioning and recovery path. Use it only
-when no normal or recovery ESP-Iris firmware can be reached. If the device is
-in an unrecoverable state and neither normal nor recovery USB is available,
-the agent first preserves any accessible crash evidence, then asks the
-developer to perform only the physical steps required to enter ROM download
-mode:
+When neither normal nor Recovery firmware can be reached, continue to use
+`python mosaico.py recover`. It preserves accessible evidence and asks the
+developer for the required physical steps when necessary:
 
 1. Power off the device.
 2. Press and hold the **Boot** button, located to the left of the USB-C port.
@@ -57,10 +64,8 @@ mode:
    agent that the physical sequence is complete.
 
 The developer is responsible only for those button and power operations. The
-agent then detects and verifies the ROM download connection, runs the approved
-`idf.py flash` procedure, and verifies the intended firmware and product
-behavior. As soon as ESP-Iris is reachable, the agent returns subsequent
-device operations to the ESP-Iris Gateway.
+agent then continues `recover` and verifies device identity, Recovery version,
+and readiness. The normal application is installed later with `install`.
 
 Manual ROM download mode is a last-resort recovery strategy, not the routine
 development path. Do not erase the whole flash merely to restore connectivity,
@@ -73,5 +78,6 @@ partitions without explicit user authorization.
 - `skills/` — task-oriented integration guides for agents and humans. See
   [`skills/README.md`](skills/README.md).
 - `docs/` — user-facing documentation.
-- `.agents/` — agent-facing documentation and tools.
+- `tools/mosaico_cli/` — public product-command implementation for `mosaico.py`.
+- `.agents/` — private agent-facing documentation and tools, not product CLI code.
 - `AGENTS.md` — concise routing and operating rules for coding agents.

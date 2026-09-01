@@ -10,7 +10,7 @@ CONFIG_FACTORY_RECOVERY_BOOT_GPIO=7
 CONFIG_FACTORY_RECOVERY_BOOT_DEBOUNCE_MS=50
 
 # USB High-Speed is the application TinyUSB CDC0 link owned by ESP-Iris.
-# USB Serial/JTAG remains the separate programming and console interface.
+# Device installation and logs are exposed through the Mosaico product tools.
 CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
 CONFIG_ESP_CONSOLE_SECONDARY_NONE=y
 CONFIG_ESP_IRIS_TRANSPORT_USB=y
