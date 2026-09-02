@@ -4,4 +4,6 @@ dependencies:
     version: "*"
     override_path: ../../../submodule/esp-mosaico-bsp/components/esp-mosaico-bsp
   esp_iris:
-    override_path: ../../../../../esp-clawgent-prj/esp-iris/components/esp_iris
+    git: https://github.com/lisir233/ESP-Iris.git
+    path: components/esp_iris
+    version: master
