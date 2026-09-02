@@ -4,6 +4,7 @@
 #include "esp_log.h"
 #include "factory_network.h"
 #include "factory_system_inventory.h"
+#include "factory_system_metadata.h"
 #include "factory_system_update.h"
 #include "factory_ui.h"
 #include "iris_ota_support.h"
@@ -16,6 +17,7 @@ static const char *TAG = "factory";
 void app_main(void)
 {
     ESP_ERROR_CHECK(nvs_flash_init());
+    ESP_ERROR_CHECK(factory_system_metadata_init());
 
 #if CONFIG_GET_STARTED_RECOVERY
     /* Make the retained USB OTA writer reachable before display and network

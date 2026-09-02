@@ -1,5 +1,5 @@
 CONFIG_APP_PROJECT_VER_FROM_CONFIG=y
-CONFIG_APP_PROJECT_VER="2.1.1-recovery"
+CONFIG_APP_PROJECT_VER="2.2.0-recovery"
 
 CONFIG_ESP_IRIS_OTA=y
 # Reduce OTA request and flash-write count while keeping each aligned data

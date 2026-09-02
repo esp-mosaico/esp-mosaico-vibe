@@ -10,11 +10,10 @@
 #include "esp_flash.h"
 #include "esp_iris_system_inventory.h"
 #include "esp_log.h"
-#include "esp_partition.h"
 #include "factory_system_metadata.h"
 #include "psa/crypto.h"
 
-#define FACTORY_LAYOUT_VERSION 3U
+#define FACTORY_LAYOUT_VERSION 4U
 #define FACTORY_HASH_CHUNK_BYTES 1024U
 
 static const char *TAG = "factory_inventory";
@@ -59,15 +58,8 @@ static esp_err_t hash_flash_region(uint32_t address, size_t size,
 
 static void load_last_result(esp_iris_system_inventory_t *inventory)
 {
-    const esp_partition_t *partition = esp_partition_find_first(
-        ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, "sysmeta");
-    if (partition == NULL || partition->size < sizeof(factory_sysmeta_record_t)) {
-        return;
-    }
     factory_sysmeta_record_t record;
-    if (esp_partition_read(partition, 0, &record, sizeof(record)) != ESP_OK ||
-        record.magic != FACTORY_SYSTEM_METADATA_MAGIC ||
-        record.version != FACTORY_SYSTEM_METADATA_VERSION) {
+    if (factory_system_metadata_load_last_result(&record) != ESP_OK) {
         return;
     }
     memcpy(inventory->last_operation_id, record.operation_id,

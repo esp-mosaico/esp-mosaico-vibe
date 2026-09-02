@@ -15,6 +15,7 @@
 #include "esp_partition.h"
 #include "esp_rom_sys.h"
 #include "esp_system.h"
+#include "factory_system_metadata.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "nvs.h"
@@ -24,8 +25,6 @@
 #define OTA_ACCEPT_METHOD_ID    2U
 #define RECOVERY_SERVICE_ID     0x7FFFU
 #define ENTER_RECOVERY_METHOD   2U
-#define OTA_NVS_NAMESPACE       "iris_ota_demo"
-
 static const char *TAG = "iris_ota";
 
 static bool is_ota_partition(const esp_partition_t *partition)
@@ -39,8 +38,11 @@ static esp_err_t recovery_write(uint32_t last_good, uint32_t target,
                                 bool planned)
 {
     nvs_handle_t handle;
-    ESP_RETURN_ON_ERROR(nvs_open(OTA_NVS_NAMESPACE, NVS_READWRITE, &handle),
-                        TAG, "open recovery metadata");
+    ESP_RETURN_ON_ERROR(
+        nvs_open_from_partition(FACTORY_SYSTEM_METADATA_PARTITION,
+                                FACTORY_SYSTEM_METADATA_OTA_NAMESPACE,
+                                NVS_READWRITE, &handle),
+        TAG, "open recovery metadata");
 
     esp_err_t err = nvs_set_u32(handle, "last_good", last_good);
     if (err == ESP_OK) {
@@ -60,7 +62,9 @@ static uint32_t recovery_read_u32(const char *key)
 {
     nvs_handle_t handle;
     uint32_t value = 0;
-    if (nvs_open(OTA_NVS_NAMESPACE, NVS_READONLY, &handle) == ESP_OK) {
+    if (nvs_open_from_partition(FACTORY_SYSTEM_METADATA_PARTITION,
+                                FACTORY_SYSTEM_METADATA_OTA_NAMESPACE,
+                                NVS_READONLY, &handle) == ESP_OK) {
         (void)nvs_get_u32(handle, key, &value);
         nvs_close(handle);
     }
@@ -71,7 +75,9 @@ static uint8_t recovery_read_u8(const char *key)
 {
     nvs_handle_t handle;
     uint8_t value = 0;
-    if (nvs_open(OTA_NVS_NAMESPACE, NVS_READONLY, &handle) == ESP_OK) {
+    if (nvs_open_from_partition(FACTORY_SYSTEM_METADATA_PARTITION,
+                                FACTORY_SYSTEM_METADATA_OTA_NAMESPACE,
+                                NVS_READONLY, &handle) == ESP_OK) {
         (void)nvs_get_u8(handle, key, &value);
         nvs_close(handle);
     }

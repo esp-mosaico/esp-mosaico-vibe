@@ -3,6 +3,7 @@ idf_component_register(
         "main.c"
         "factory_network.c"
         "factory_system_inventory.c"
+        "factory_system_metadata.c"
         "factory_system_update.c"
         "factory_ui.c"
         "iris_ota_support.c"

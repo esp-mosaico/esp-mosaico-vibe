@@ -71,9 +71,10 @@ config IRIS_FACTORY_SYSTEM_UPDATE_BACKEND
         manifest/component SHA-256, image validation and protected-partition
         policy still apply, but there is no release-key authentication.
 
-        The recovery, factory Wi-Fi NVS, OTA data and sysmeta regions must
-        retain their current offsets and sizes. Other partition-table entries
-        may change.
+        The recovery, sysmeta, OTA data, PHY data, core-dump and application
+        NVS regions must retain their current offsets and sizes. ota_0 must
+        retain its start address; its size may change only when the same plan
+        supplies an application image that fits the target layout.
 
         This first product backend intentionally rejects flash-encrypted
         builds. System Inventory remains available without a writer.

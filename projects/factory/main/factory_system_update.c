@@ -635,22 +635,29 @@ static esp_err_t validate_memory_image(const uint8_t *image, size_t size)
     return ESP_OK;
 }
 
+static const esp_partition_info_t *find_partition_entry(
+    const esp_partition_info_t *entries, int count, esp_partition_type_t type,
+    esp_partition_subtype_t subtype, const char *label)
+{
+    for (int i = 0; i < count; ++i) {
+        if (entries[i].magic == ESP_PARTITION_MAGIC &&
+            entries[i].type == type && entries[i].subtype == subtype &&
+            strncmp((const char *)entries[i].label, label,
+                    sizeof(entries[i].label)) == 0) {
+            return &entries[i];
+        }
+    }
+    return NULL;
+}
+
 static bool partition_entry_matches(const esp_partition_info_t *entries,
                                     int count,
                                     const esp_partition_t *required)
 {
-    for (int i = 0; i < count; ++i) {
-        if (entries[i].magic == ESP_PARTITION_MAGIC &&
-            entries[i].type == required->type &&
-            entries[i].subtype == required->subtype &&
-            entries[i].pos.offset == required->address &&
-            entries[i].pos.size == required->size &&
-            strncmp((const char *)entries[i].label, required->label,
-                    sizeof(entries[i].label)) == 0) {
-            return true;
-        }
-    }
-    return false;
+    const esp_partition_info_t *entry = find_partition_entry(
+        entries, count, required->type, required->subtype, required->label);
+    return entry != NULL && entry->pos.offset == required->address &&
+           entry->pos.size == required->size;
 }
 
 static esp_err_t require_preserved_partition(
@@ -664,6 +671,37 @@ static esp_err_t require_preserved_partition(
         : ESP_ERR_INVALID_VERSION;
 }
 
+static esp_err_t require_compatible_ota_partition(
+    const esp_partition_info_t *entries, int count)
+{
+    const esp_partition_t *current = esp_partition_find_first(
+        ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_OTA_0, "ota_0");
+    const esp_partition_info_t *target = find_partition_entry(
+        entries, count, ESP_PARTITION_TYPE_APP,
+        ESP_PARTITION_SUBTYPE_APP_OTA_0, "ota_0");
+    if (current == NULL || target == NULL ||
+        target->pos.offset != current->address) {
+        return ESP_ERR_INVALID_VERSION;
+    }
+
+    const factory_update_plan_component_t *application = NULL;
+    for (size_t i = 0; i < s_update.plan_count; ++i) {
+        if (s_update.plan[i].descriptor.kind ==
+            ESP_IRIS_SYSTEM_UPDATE_COMPONENT_APPLICATION) {
+            application = &s_update.plan[i];
+            break;
+        }
+    }
+    if (target->pos.size != current->size && application == NULL) {
+        return ESP_ERR_INVALID_VERSION;
+    }
+    if (application != NULL &&
+        application->descriptor.size > target->pos.size) {
+        return ESP_ERR_INVALID_SIZE;
+    }
+    return ESP_OK;
+}
+
 static esp_err_t validate_partition_table(const uint8_t *image)
 {
     int count = 0;
@@ -675,22 +713,28 @@ static esp_err_t validate_partition_table(const uint8_t *image)
                             entries, count, ESP_PARTITION_TYPE_APP,
                             ESP_PARTITION_SUBTYPE_APP_FACTORY, "factory"),
                         TAG, "factory partition must be preserved");
-    ESP_RETURN_ON_ERROR(require_preserved_partition(
-                            entries, count, ESP_PARTITION_TYPE_APP,
-                            ESP_PARTITION_SUBTYPE_APP_OTA_0, "ota_0"),
-                        TAG, "ota_0 partition must be preserved");
+    ESP_RETURN_ON_ERROR(require_compatible_ota_partition(entries, count), TAG,
+                        "ota_0 offset or target size is incompatible");
     ESP_RETURN_ON_ERROR(require_preserved_partition(
                             entries, count, ESP_PARTITION_TYPE_DATA,
                             ESP_PARTITION_SUBTYPE_DATA_OTA, "otadata"),
                         TAG, "OTA data partition must be preserved");
     ESP_RETURN_ON_ERROR(require_preserved_partition(
                             entries, count, ESP_PARTITION_TYPE_DATA,
-                            ESP_PARTITION_SUBTYPE_DATA_NVS, "factory_nvs"),
-                        TAG, "factory Wi-Fi partition must be preserved");
+                            ESP_PARTITION_SUBTYPE_DATA_PHY, "phy_init"),
+                        TAG, "PHY data partition must be preserved");
     ESP_RETURN_ON_ERROR(require_preserved_partition(
                             entries, count, ESP_PARTITION_TYPE_DATA,
-                            (esp_partition_subtype_t)0x40, "sysmeta"),
+                            ESP_PARTITION_SUBTYPE_DATA_NVS, "sysmeta"),
                         TAG, "system metadata partition must be preserved");
+    ESP_RETURN_ON_ERROR(require_preserved_partition(
+                            entries, count, ESP_PARTITION_TYPE_DATA,
+                            ESP_PARTITION_SUBTYPE_DATA_COREDUMP, "coredump"),
+                        TAG, "core-dump partition must be preserved");
+    ESP_RETURN_ON_ERROR(require_preserved_partition(
+                            entries, count, ESP_PARTITION_TYPE_DATA,
+                            ESP_PARTITION_SUBTYPE_DATA_NVS, "nvs"),
+                        TAG, "application NVS partition must be preserved");
     return ESP_OK;
 }
 
@@ -760,21 +804,7 @@ static esp_err_t persist_result(
     const uint8_t operation_id[ESP_IRIS_SYSTEM_OPERATION_ID_BYTES],
     esp_err_t result)
 {
-    const esp_partition_t *partition = esp_partition_find_first(
-        ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, "sysmeta");
-    ESP_RETURN_ON_FALSE(partition != NULL &&
-                            partition->size >= FACTORY_SYSTEM_FLASH_SECTOR_BYTES,
-                        ESP_ERR_NOT_FOUND, TAG, "sysmeta missing");
-    factory_sysmeta_record_t record = {
-        .magic = FACTORY_SYSTEM_METADATA_MAGIC,
-        .version = FACTORY_SYSTEM_METADATA_VERSION,
-        .result = result,
-    };
-    memcpy(record.operation_id, operation_id, sizeof(record.operation_id));
-    ESP_RETURN_ON_ERROR(esp_partition_erase_range(
-                            partition, 0, FACTORY_SYSTEM_FLASH_SECTOR_BYTES),
-                        TAG, "erase sysmeta");
-    return esp_partition_write(partition, 0, &record, sizeof(record));
+    return factory_system_metadata_store_last_result(operation_id, result);
 }
 
 static esp_err_t commit_protected_image(
@@ -844,7 +874,9 @@ static esp_err_t commit_update(
 
     /* This product deliberately accepts the ESP32-S31 single-copy commit
      * policy: bootloader first, partition table last, with mandatory readback.
-     * Recovery, ota_0 and metadata ranges cannot move in the target table. */
+     * Recovery and data ranges cannot move. ota_0 keeps its start address but
+     * may shrink from the Flash tail when the same plan installs a fitting
+     * application image. */
     ESP_RETURN_ON_ERROR(
         commit_protected_image(bootloader, s_update.bootloader_image), TAG,
         "commit bootloader");

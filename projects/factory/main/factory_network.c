@@ -15,13 +15,12 @@
 #include "esp_netif.h"
 #include "esp_timer.h"
 #include "esp_wifi.h"
+#include "factory_system_metadata.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "mdns.h"
 #include "nvs.h"
-#include "nvs_flash.h"
 
-#define FACTORY_NVS_PARTITION "factory_nvs"
 #define FACTORY_WIFI_NAMESPACE "wifi"
 #define FACTORY_WIFI_SSID_KEY "ssid"
 #define FACTORY_WIFI_PASSWORD_KEY "password"
@@ -64,7 +63,8 @@ static esp_err_t credentials_load(char ssid[FACTORY_NETWORK_SSID_BYTES],
 {
     nvs_handle_t handle;
     esp_err_t err = nvs_open_from_partition(
-        FACTORY_NVS_PARTITION, FACTORY_WIFI_NAMESPACE, NVS_READONLY, &handle);
+        FACTORY_SYSTEM_METADATA_PARTITION, FACTORY_WIFI_NAMESPACE,
+        NVS_READONLY, &handle);
     if (err != ESP_OK) {
         return err;
     }
@@ -83,9 +83,9 @@ static esp_err_t credentials_save(const char *ssid, const char *password)
 {
     nvs_handle_t handle;
     ESP_RETURN_ON_ERROR(nvs_open_from_partition(
-                            FACTORY_NVS_PARTITION, FACTORY_WIFI_NAMESPACE,
-                            NVS_READWRITE, &handle),
-                        TAG, "open factory Wi-Fi NVS");
+                            FACTORY_SYSTEM_METADATA_PARTITION,
+                            FACTORY_WIFI_NAMESPACE, NVS_READWRITE, &handle),
+                        TAG, "open system metadata Wi-Fi namespace");
     esp_err_t err = nvs_set_str(handle, FACTORY_WIFI_SSID_KEY, ssid);
     if (err == ESP_OK) {
         err = nvs_set_str(handle, FACTORY_WIFI_PASSWORD_KEY, password);
@@ -101,7 +101,8 @@ static esp_err_t credentials_erase(void)
 {
     nvs_handle_t handle;
     esp_err_t err = nvs_open_from_partition(
-        FACTORY_NVS_PARTITION, FACTORY_WIFI_NAMESPACE, NVS_READWRITE, &handle);
+        FACTORY_SYSTEM_METADATA_PARTITION, FACTORY_WIFI_NAMESPACE,
+        NVS_READWRITE, &handle);
     if (err == ESP_ERR_NVS_NOT_FOUND) {
         return ESP_OK;
     }
@@ -336,8 +337,6 @@ esp_err_t factory_network_start(void)
                         "create network mutex");
     s_network.snapshot.state = FACTORY_NETWORK_STOPPED;
 
-    ESP_RETURN_ON_ERROR(nvs_flash_init_partition(FACTORY_NVS_PARTITION), TAG,
-                        "initialize factory NVS");
     esp_err_t err = esp_netif_init();
     if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
         return err;

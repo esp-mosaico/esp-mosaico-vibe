@@ -1,7 +1,7 @@
 {
   "schema": "esp-iris-system-update/v1",
   "release": "1.0.0",
-  "minimum_recovery_version": "2.1.0-recovery",
+  "minimum_recovery_version": "2.2.0-recovery",
   "target": {
     "chip_id": 32,
     "flash_size": 16777216
@@ -14,7 +14,7 @@
     {
       "id": 1,
       "kind": "application",
-      "target_offset": 2228224,
+      "target_offset": 3145728,
       "file": "ota_0.bin"
     },
     {

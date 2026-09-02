@@ -4,26 +4,26 @@
     "bootloader": {
       "file": "bootloader.bin",
       "offset": "0x2000",
-      "sha256": "6135af0d0f0cdcba8e33c69543155a0463aeb4aaeea012a65344b5f252146ad8",
+      "sha256": "dda5e203a20d1798cd08679c6be32a863d402f465651214508da14b70321c19f",
       "size": 21488
     },
     "ota_data": {
       "file": "ota_data_initial.bin",
-      "offset": "0xf000",
+      "offset": "0x9000",
       "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f",
       "size": 8192
     },
     "partition_table": {
       "file": "partition-table.bin",
       "offset": "0x8000",
-      "sha256": "6ef6300d3a06be2d9893352fdc05d6e676f540d978536738d57cef997f10b422",
+      "sha256": "6851aec86c5f29df898359a394b49f9910545754c75ac35ef4576cc5193e3e4b",
       "size": 3072
     },
     "recovery": {
       "file": "factory.bin",
       "offset": "0x20000",
-      "sha256": "6858e10b61d11ff503e6f7969ef4740bd2e10b585458fe1157896886add520e0",
-      "size": 1701584
+      "sha256": "db3e1b33a1c6aa0fa1ce45ddf3b8e7d0ce6f38c5d56b70728310f45a13fd18b0",
+      "size": 1701696
     }
   },
   "initial_boot": {
@@ -34,7 +34,7 @@
   "layout": {
     "application_partition": {
       "name": "ota_0",
-      "offset": "0x220000"
+      "offset": "0x300000"
     },
     "recovery_partition": {
       "name": "factory",
@@ -50,9 +50,9 @@
     "secure_boot": false
   },
   "source": {
-    "commit": "1189116520d95555b29f2cb48eb2a72256991664",
+    "commit": "83be149d2bd80d88d339320f17f224a9b9dfe59a",
     "dirty": true
   },
   "target": "esp32s31",
-  "version": "2.1.1-recovery"
+  "version": "2.2.0-recovery"
 }
