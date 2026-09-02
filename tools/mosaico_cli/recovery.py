@@ -18,9 +18,21 @@ from .runtime import RunContext
 
 
 REQUIRED_IMAGES = ("bootloader", "partition_table", "ota_data", "recovery")
+_VERIFICATION_READ_ATTEMPTS = 3
+_VERIFICATION_READ_RETRY_SECONDS = 0.05
+
+
+def _verification_key(device_id: str) -> str:
+    return hashlib.sha256(device_id.encode("utf-8")).hexdigest()
 
 
 def _verification_path(device_id: str) -> Path:
+    """Return the repository-local state path shared with interactive shells."""
+    repository = Path(__file__).resolve().parents[2]
+    return repository / ".mosaico-state" / "devices" / f"{_verification_key(device_id)}.json"
+
+
+def _host_verification_path(device_id: str) -> Path:
     key = hashlib.sha256(device_id.encode("utf-8")).hexdigest()
     return state_root("esp-mosaico") / "devices" / f"{key}.json"
 
@@ -33,33 +45,116 @@ def _legacy_verification_path(device_id: str) -> Path:
     return legacy_root / "esp-mosaico" / "devices" / f"{key}.json"
 
 
-def recovery_is_verified(
+def _read_verification_record(
+    path: Path, diagnostics: list[dict[str, Any]] | None = None
+) -> dict[str, Any] | None:
+    """Read a host verification record despite brief Windows sharing races."""
+    for attempt in range(_VERIFICATION_READ_ATTEMPTS):
+        try:
+            value = json.loads(path.read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            if diagnostics is not None:
+                diagnostics.append({"path": str(path), "state": "not_found"})
+            return None
+        except (OSError, json.JSONDecodeError) as error:
+            if attempt + 1 == _VERIFICATION_READ_ATTEMPTS:
+                if diagnostics is not None:
+                    diagnostics.append(
+                        {
+                            "path": str(path),
+                            "state": "read_failed",
+                            "error": f"{type(error).__name__}: {error}",
+                        }
+                    )
+                return None
+            time.sleep(_VERIFICATION_READ_RETRY_SECONDS)
+            continue
+        if isinstance(value, dict):
+            if diagnostics is not None:
+                diagnostics.append(
+                    {
+                        "path": str(path),
+                        "state": "read",
+                        "device_id": value.get("device_id"),
+                        "recovery_version": value.get("recovery_version"),
+                    }
+                )
+            return value
+        if diagnostics is not None:
+            diagnostics.append({"path": str(path), "state": "invalid_value"})
+        return None
+    return None
+
+
+def recovery_verification_details(
     device_id: str, status: dict[str, Any], expected_version: str
-) -> bool:
+) -> tuple[bool, dict[str, Any]]:
     if status.get("firmware_mode") == "recovery":
         capabilities = status.get("capability_names", [])
-        return (
+        verified = (
             isinstance(capabilities, list)
             and "ota" in capabilities
             and status.get("app_version") == expected_version
         )
+        return verified, {
+            "source": "live_recovery",
+            "firmware_mode": "recovery",
+            "expected_version": expected_version,
+            "actual_version": status.get("app_version"),
+            "ota_ready": isinstance(capabilities, list) and "ota" in capabilities,
+        }
+    records: list[dict[str, Any]] = []
     for path in dict.fromkeys(
-        (_verification_path(device_id), _legacy_verification_path(device_id))
+        (
+            _verification_path(device_id),
+            _host_verification_path(device_id),
+            _legacy_verification_path(device_id),
+        )
     ):
-        try:
-            value = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
+        value = _read_verification_record(path, records)
+        if value is None:
             continue
         if (
             value.get("device_id") == device_id
             and value.get("recovery_version") == expected_version
         ):
-            return True
-    return False
+            if path != _verification_path(device_id):
+                try:
+                    record_recovery_verification(
+                        device_id,
+                        expected_version,
+                        value.get("recovery_boot_id"),
+                    )
+                except OSError:
+                    # The existing host record remains valid for this process;
+                    # installation diagnostics will expose a later shared-path
+                    # write failure if the other environment still cannot read it.
+                    pass
+            return True, {
+                "source": "host_record",
+                "firmware_mode": status.get("firmware_mode"),
+                "expected_device_id": device_id,
+                "expected_version": expected_version,
+                "records": records,
+            }
+    return False, {
+        "source": "host_record",
+        "firmware_mode": status.get("firmware_mode"),
+        "expected_device_id": device_id,
+        "expected_version": expected_version,
+        "records": records,
+    }
+
+
+def recovery_is_verified(
+    device_id: str, status: dict[str, Any], expected_version: str
+) -> bool:
+    verified, _ = recovery_verification_details(device_id, status, expected_version)
+    return verified
 
 
 def record_recovery_verification(
-    device_id: str, recovery_version: str, boot_id: str | None
+    device_id: str, recovery_version: str, boot_id: str | int | None
 ) -> None:
     path = _verification_path(device_id)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -150,18 +245,27 @@ def _registered_recovery_ports(model: DeviceModel) -> list[str]:
         from serial.tools import list_ports
     except ImportError:
         return []
-    expected = {
+    expected = [
         (
             int(item["vid"], 0),
             int(item["pid"], 0),
             item.get("product", ""),
         )
         for item in model.recovery_usb_ids
-    }
+    ]
     matches: list[str] = []
     for port in list_ports.comports():
-        identity = (port.vid, port.pid, port.product or "")
-        if identity in expected:
+        # Windows' generic USB serial driver commonly omits the USB product
+        # string even though the VID/PID and serial number are available.
+        # Require the registered VID/PID and validate the product only when
+        # the host actually reports one.
+        registered = any(
+            port.vid == vid
+            and port.pid == pid
+            and (not port.product or not product or port.product == product)
+            for vid, pid, product in expected
+        )
+        if registered:
             matches.append(_stable_port_path(port.device))
     return sorted(set(matches))
 

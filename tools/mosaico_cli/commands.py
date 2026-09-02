@@ -28,7 +28,7 @@ from .recovery import (
     preserve_evidence,
     provisioning_candidate,
     record_recovery_verification,
-    recovery_is_verified,
+    recovery_verification_details,
     wait_recovery_ready,
 )
 from .registry import DeviceModel, load_registry, select_model
@@ -42,6 +42,30 @@ _IDF_MONITOR_COLORS = {
     "E": "\033[1;31m",
 }
 _ANSI_NORMAL = "\033[0m"
+
+
+def _device_status(value: Any) -> dict[str, Any]:
+    """Normalize Gateway status responses without bypassing host verification."""
+    if not isinstance(value, dict):
+        return {}
+    status = value.get("device", value)
+    return status if isinstance(status, dict) else {}
+
+
+def _recovery_verification_status(
+    device: dict[str, Any], status_value: Any
+) -> dict[str, Any]:
+    """Reconcile the two Gateway snapshots used during install preflight."""
+    status = _device_status(status_value)
+    listed_mode = device.get("firmware_mode")
+    if listed_mode == "normal":
+        # The selected-device snapshot identifies the current application
+        # boot. A second status request may briefly return an incomplete or
+        # stale Recovery-shaped payload while Gateway reconciles reconnects.
+        status = {**status, "firmware_mode": "normal"}
+    elif listed_mode == "recovery" and not status.get("firmware_mode"):
+        status = {**status, "firmware_mode": "recovery"}
+    return status
 
 
 class _MonitorTextRenderer:
@@ -184,15 +208,32 @@ def install(repository: Path, arguments: Any, context: RunContext) -> dict[str, 
         f"device: {device_id} mode={device.get('firmware_mode', 'unknown')} "
         f"boot_id={device.get('boot_id', 'unknown')}"
     )
-    status_value = gateway_json(context, session, "status", device_id)
-    status = status_value.get("device", status_value) if isinstance(status_value, dict) else {}
-    if not isinstance(status, dict) or not recovery_is_verified(
-        device_id, status, str(recovery_manifest.get("version") or "")
-    ):
+    status = _recovery_verification_status(
+        device, gateway_json(context, session, "status", device_id)
+    )
+    recovery_version = str(recovery_manifest.get("version") or "")
+    recovery_verified, verification = recovery_verification_details(
+        device_id, status, recovery_version
+    )
+    context.note(
+        "recovery verification: "
+        + json.dumps(verification, ensure_ascii=False, sort_keys=True)
+    )
+    if not recovery_verified:
         raise RecoveryRequiredError(
             "The device has not completed Recovery initialization or verification. "
-            "Run 'python mosaico.py recover' first."
+            "Run 'python mosaico.py recover' first. "
+            f"Verification details: {json.dumps(verification, ensure_ascii=False)}"
         )
+    if status.get("firmware_mode") == "recovery":
+        try:
+            record_recovery_verification(
+                device_id, recovery_version, status.get("boot_id")
+            )
+        except OSError as error:
+            # Live Recovery is authoritative for this install. Do not discard
+            # that proof merely because Windows briefly blocks the state file.
+            context.note(f"warning: could not refresh Recovery verification: {error}")
     context.status("recovery: verified retained Recovery service")
 
     context.status(f"ota: starting recovery-first installation ({arguments.validation})")

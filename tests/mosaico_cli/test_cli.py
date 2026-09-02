@@ -20,7 +20,15 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
 
 from mosaico_cli.cli import REPOSITORY, _emit_error, build_parser, main, _normalize_globals
-from mosaico_cli.commands import _MonitorTextRenderer, list_models, monitor, recover
+from mosaico_cli.commands import (
+    _device_status,
+    _MonitorTextRenderer,
+    _recovery_verification_status,
+    install,
+    list_models,
+    monitor,
+    recover,
+)
 from mosaico_cli.errors import (
     BuildError,
     DeviceError,
@@ -33,6 +41,7 @@ from mosaico_cli.gateway import (
     GatewaySession,
     _terminate_managed_gateway,
     ensure_gateway,
+    locate_iris_tools,
     pause_managed_local_gateway,
     run_ota,
     select_device,
@@ -46,9 +55,13 @@ from mosaico_cli.host import (
 )
 from mosaico_cli.project import resolve_project
 from mosaico_cli.recovery import (
+    _host_verification_path,
+    _read_verification_record,
     _registered_recovery_ports,
+    _verification_path,
     load_bundle,
     recovery_is_verified,
+    recovery_verification_details,
 )
 from mosaico_cli.registry import load_registry, select_model
 from mosaico_cli.runtime import RunContext, build_application, run_idf_target
@@ -165,7 +178,7 @@ class BuildDiagnosticsTests(unittest.TestCase):
         output = stderr.getvalue()
         self.assertIn("mosaico: Application build failed.", output)
         self.assertIn("main/main.c:7:5: error: expected ';'", output)
-        self.assertIn("Build logs: /runs/build", output)
+        self.assertIn(f"Build logs: {Path('/runs/build')}", output)
 
 
 class RegistryAndSelectionTests(unittest.TestCase):
@@ -188,6 +201,31 @@ class RegistryAndSelectionTests(unittest.TestCase):
 
 
 class GatewayTests(unittest.TestCase):
+    def test_iris_tools_are_found_in_a_built_project(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repository = Path(temporary)
+            factory_main = repository / "projects" / "factory" / "main"
+            factory_main.mkdir(parents=True)
+            (factory_main / "idf_component.yml").write_text(
+                "dependencies:\n  esp_iris:\n    git: https://example.invalid/ESP-Iris.git\n",
+                encoding="utf-8",
+            )
+            component = (
+                repository
+                / "projects"
+                / "hello_world"
+                / "managed_components"
+                / "esp_iris"
+            )
+            (component / "tools").mkdir(parents=True)
+            script = component / "tools" / "esp_iris.py"
+            script.write_text("# test\n", encoding="utf-8")
+
+            python, discovered = locate_iris_tools(repository)
+
+            self.assertEqual(python, Path(sys.executable))
+            self.assertEqual(discovered, script)
+
     def test_unreachable_explicit_profile_never_starts_local_gateway(self) -> None:
         context = mock.Mock(repository=REPOSITORY)
         with (
@@ -269,7 +307,7 @@ class GatewayTests(unittest.TestCase):
     def test_posix_gateway_uses_dedicated_process_group(self) -> None:
         with (
             mock.patch("mosaico_cli.gateway.os.name", "posix"),
-            mock.patch("mosaico_cli.gateway.os.killpg") as terminate,
+            mock.patch("mosaico_cli.gateway.os.killpg", create=True) as terminate,
             mock.patch("mosaico_cli.gateway._health_instance", return_value=None),
         ):
             self.assertTrue(_terminate_managed_gateway(1234, "mosaico-test"))
@@ -360,6 +398,9 @@ class GatewayTests(unittest.TestCase):
                 timeout=600,
             )
         self.assertEqual(result["operation"]["status"], "succeeded")
+        ota_argv = context.run.call_args.args[0]
+        self.assertIn("--execution-mode", ota_argv)
+        self.assertNotIn("--validation-mode", ota_argv)
         poll.assert_called_once_with(context, session, "ota-status", "operation-1")
         messages = [call.args[0] for call in context.status.call_args_list]
         self.assertTrue(any("waiting_recovery" in message for message in messages))
@@ -526,7 +567,7 @@ class HostCompatibilityTests(unittest.TestCase):
             (idf / "tools" / "idf.py").touch()
             (idf / "tools" / "idf_tools.py").touch()
             python_env = Path(temporary) / "Python Env"
-            python = python_env / "bin" / "python"
+            python = virtual_environment_python(python_env)
             python.parent.mkdir(parents=True)
             python.touch()
             exported = (
@@ -543,7 +584,7 @@ class HostCompatibilityTests(unittest.TestCase):
             self.assertEqual(prepared.python, python)
             self.assertEqual(prepared.values["PATH"], f"{idf / 'tools'}:/usr/bin")
             argv = run.call_args.args[0]
-            self.assertEqual(argv[0], "/bootstrap/python")
+            self.assertEqual(argv[0], str(Path("/bootstrap/python")))
             self.assertNotIn("bash", argv)
 
 
@@ -579,6 +620,11 @@ class ProjectTests(unittest.TestCase):
 
 
 class RecoveryBundleTests(unittest.TestCase):
+    def test_primary_verification_record_is_repository_local(self) -> None:
+        path = _verification_path("device")
+        self.assertEqual(path.parents[1], REPOSITORY / ".mosaico-state")
+        self.assertNotEqual(path, _host_verification_path("device"))
+
     def test_reviewed_bundle_hashes(self) -> None:
         model = select_model(None)
         value = load_bundle(REPOSITORY / model.recovery_dir, model.target)
@@ -616,8 +662,131 @@ class RecoveryBundleTests(unittest.TestCase):
             recovery_is_verified("device", status, "2.1.0-recovery")
         )
 
+    def test_verification_record_read_retries_a_windows_sharing_error(self) -> None:
+        record = {
+            "device_id": "device",
+            "recovery_version": "2.1.1-recovery",
+        }
+        with mock.patch.object(
+            Path,
+            "read_text",
+            side_effect=[PermissionError("sharing violation"), json.dumps(record)],
+        ) as read_text, mock.patch("mosaico_cli.recovery.time.sleep") as sleep:
+            self.assertEqual(_read_verification_record(Path("record.json")), record)
+        self.assertEqual(read_text.call_count, 2)
+        sleep.assert_called_once()
+
+    def test_verification_details_report_a_persistent_read_error(self) -> None:
+        diagnostics: list[dict[str, object]] = []
+        with mock.patch.object(
+            Path, "read_text", side_effect=PermissionError("access denied")
+        ), mock.patch("mosaico_cli.recovery.time.sleep"):
+            self.assertIsNone(
+                _read_verification_record(Path("record.json"), diagnostics)
+            )
+        self.assertEqual(diagnostics[0]["state"], "read_failed")
+        self.assertIn("PermissionError", str(diagnostics[0]["error"]))
+
+    def test_verification_details_report_live_recovery_mismatch(self) -> None:
+        verified, details = recovery_verification_details(
+            "device",
+            {
+                "firmware_mode": "recovery",
+                "app_version": "old-recovery",
+                "capability_names": [],
+            },
+            "2.1.1-recovery",
+        )
+        self.assertFalse(verified)
+        self.assertEqual(details["source"], "live_recovery")
+        self.assertEqual(details["actual_version"], "old-recovery")
+
 
 class RecoveryCommandTests(unittest.TestCase):
+    def test_non_mapping_gateway_status_normalizes_for_host_verification(self) -> None:
+        self.assertEqual(_device_status(None), {})
+        self.assertEqual(_device_status([]), {})
+        self.assertEqual(_device_status({"device": None}), {})
+        self.assertEqual(_device_status({"firmware_mode": "normal"}), {
+            "firmware_mode": "normal"
+        })
+
+    def test_normal_device_snapshot_overrides_stale_recovery_status(self) -> None:
+        value = _recovery_verification_status(
+            {"firmware_mode": "normal", "boot_id": 2},
+            {
+                "firmware_mode": "recovery",
+                "app_version": "old-recovery",
+                "capability_names": [],
+                "boot_id": 1,
+            },
+        )
+        self.assertEqual(value["firmware_mode"], "normal")
+
+    def test_recovery_device_snapshot_keeps_detailed_live_status(self) -> None:
+        status = {
+            "firmware_mode": "recovery",
+            "app_version": "2.1.1-recovery",
+            "capability_names": ["ota"],
+        }
+        self.assertEqual(
+            _recovery_verification_status({"firmware_mode": "recovery"}, status),
+            status,
+        )
+
+    def test_install_refreshes_record_from_verified_live_recovery(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            project = root / "project"
+            project.mkdir()
+            image = project / "app.bin"
+            image.write_bytes(b"firmware")
+            artifacts = SimpleNamespace(
+                image=image,
+                elf=project / "app.elf",
+                map_file=project / "app.map",
+                project_name="app",
+                project_version="1.0.0",
+                target="esp32s31",
+            )
+            arguments = SimpleNamespace(
+                project=str(project),
+                skip_build=True,
+                gateway_profile=None,
+                device_id=None,
+                validation="elf-sha256",
+                timeout=30,
+            )
+            context = RunContext(root, "install-test", json_output=True)
+            session = SimpleNamespace(started_local=False)
+            status = {
+                "device_id": "device",
+                "firmware_mode": "recovery",
+                "app_version": "2.1.1-recovery",
+                "capability_names": ["ota"],
+                "boot_id": 123,
+            }
+            with (
+                mock.patch("mosaico_cli.commands.resolve_project", return_value=project),
+                mock.patch("mosaico_cli.commands.discover_artifacts", return_value=artifacts),
+                mock.patch(
+                    "mosaico_cli.commands.load_bundle",
+                    return_value={"version": "2.1.1-recovery"},
+                ),
+                mock.patch("mosaico_cli.commands.ensure_gateway", return_value=session),
+                mock.patch(
+                    "mosaico_cli.commands.connected_devices", return_value=[status]
+                ),
+                mock.patch("mosaico_cli.commands.gateway_json", return_value=status),
+                mock.patch("mosaico_cli.commands.run_ota", return_value={}),
+                mock.patch(
+                    "mosaico_cli.commands.record_recovery_verification"
+                ) as record,
+            ):
+                result = install(root, arguments, context)
+            self.assertEqual(result["status"], "succeeded")
+            record.assert_called_once_with("device", "2.1.1-recovery", 123)
+
     def test_registered_esp32s31_recovery_device_is_detected(self) -> None:
         port = SimpleNamespace(
             device="/dev/ttyACM-test",
@@ -628,6 +797,18 @@ class RecoveryCommandTests(unittest.TestCase):
         with mock.patch("serial.tools.list_ports.comports", return_value=[port]):
             self.assertEqual(
                 _registered_recovery_ports(select_model(None)), ["/dev/ttyACM-test"]
+            )
+
+    def test_registered_recovery_device_without_product_is_detected(self) -> None:
+        port = SimpleNamespace(
+            device="COM16",
+            vid=0x303A,
+            pid=0x0020,
+            product=None,
+        )
+        with mock.patch("serial.tools.list_ports.comports", return_value=[port]):
+            self.assertEqual(
+                _registered_recovery_ports(select_model(None)), ["COM16"]
             )
 
     def test_unregistered_serial_device_is_rejected(self) -> None:

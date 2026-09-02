@@ -45,9 +45,22 @@ def locate_iris_tools(repository: Path) -> tuple[Path, Path]:
     candidates: list[Path] = []
     if match:
         candidates.append((manifest.parent / match.group(1).strip()).resolve())
+    projects = repository / "projects"
+    project_directories = (
+        sorted(path for path in projects.iterdir() if path.is_dir())
+        if projects.is_dir()
+        else []
+    )
+    candidates.extend(
+        component
+        for project in project_directories
+        for component in (
+            project / "managed_components" / "esp_iris",
+            project / "managed_components" / "espressif__esp_iris",
+        )
+    )
     candidates.extend(
         [
-            repository / "projects" / "factory" / "managed_components" / "espressif__esp_iris",
             repository / "components" / "esp_iris",
         ]
     )
@@ -410,7 +423,6 @@ def run_ota(
     validation: str,
     timeout: float,
 ) -> dict[str, Any]:
-    validation_mode = validation.replace("-", "_")
     started = time.monotonic()
     try:
         result = context.run(
@@ -424,8 +436,6 @@ def run_ota(
                 str(map_file),
                 "--execution-mode",
                 "recovery",
-                "--validation-mode",
-                validation_mode,
             ),
             timeout=timeout,
         )
