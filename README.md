@@ -35,10 +35,16 @@ python mosaico.py install --project projects/<project>
 python mosaico.py monitor
 ```
 
+`list` connects to the Gateway and prints Device IDs, online state, connection
+type, firmware identity, mode, and Boot ID. It includes cached offline devices;
+use `list --details` for endpoint, ESP-IDF version, Session ID, and capabilities,
+or `list --json` for the complete Gateway record.
+
 The CLI supports native Linux and macOS shells plus Windows PowerShell and
 Command Prompt; WSL and Git Bash are not required. Use Python 3.11 or newer,
 an ESP-IDF checkout satisfying the factory project's version constraint, and
-an ESP-Iris environment installed from its `tools/requirements.txt`. Run
+the pinned `submodule/esp-iris` checkout, and its automatically prepared
+host environment from `tools/requirements.lock`. Run
 `doctor` first to verify Python, ESP-IDF, ESP32-S31 target support, ESP-Iris,
 the host state directory, and current USB discovery. It does not build or
 write firmware.
@@ -61,6 +67,14 @@ python mosaico.py monitor --timeout 1 --grep __mosaico_host_smoke__
 Gateway**. An uninitialized device is told to run `recover`; the command never
 silently falls back to a lower-level write. `recover` uses the reviewed bundle
 by default and leaves the device Recovery-ready.
+
+Recovery is local-only. It prepares the complete bundle first, then asks the
+local Gateway for a maintenance lease on the target device or physical USB
+endpoint. This also covers a ROM or pre-HELLO endpoint already held by Gateway.
+Only that endpoint is detached; other devices, logs, and operations remain
+active. A remote `--gateway-profile` is intentionally not accepted for `recover`. A
+running local Gateway must report the same ESP-Iris revision as the pinned
+submodule; a mismatch fails without terminating that Gateway.
 
 - A coding agent operates the device only through `mosaico.py`.
 - A developer may keep the Gateway Web workbench open to watch the same logs,
@@ -98,6 +112,7 @@ partitions without explicit user authorization.
 ## Repository layout
 
 - `projects/` — developer applications; start from `projects/factory`.
+- `submodule/esp-iris/` — pinned ESP-Iris firmware component and host runtime.
 - `skills/` — task-oriented integration guides for agents and humans. See
   [`skills/README.md`](skills/README.md).
 - `docs/` — user-facing documentation.

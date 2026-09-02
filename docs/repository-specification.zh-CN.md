@@ -8,7 +8,7 @@
 | 软件基线 | ESP-IDF 6.1 或更高版本，并具备 ESP32-S31 目标支持 |
 | 参考工程 | `projects/factory` |
 | 板级能力来源 | `submodule/esp-mosaico-bsp` Git 子模块 |
-| 设备运维入口 | ESP-Iris Developer Gateway 及其随组件提供的 CLI |
+| 设备运维入口 | `submodule/esp-iris` 固定版本的 Developer Gateway 及 CLI |
 | 文档状态 | 产品定义与当前工程基线 |
 
 **仓库定义：ESP-Mosaico 定制的 Agent 主导（Agent-Led）人机协同开发统一入口。**
@@ -195,7 +195,7 @@ ESP-Mosaico 真实设备
 | 命令 | 用户语义 | 默认行为 |
 | --- | --- | --- |
 | `python mosaico.py doctor` | 检查主机开发环境 | 只检查 Python、ESP-IDF、ESP-Iris、状态目录和 USB 枚举，不构建或写设备 |
-| `python mosaico.py list` | 查看适配型号 | 只读取仓库注册表，不依赖硬件或 ESP-IDF |
+| `python mosaico.py list` | 查看设备清单 | 连接 Gateway 并列出在线及缓存离线设备的 Device ID、在线状态、固件身份、模式、连接方式和 Boot ID；`--details` 展开端点及能力信息 |
 | `python mosaico.py recover` | 初始化或恢复设备 | 使用评审基础包，完成后停留在 Recovery 就绪状态 |
 | `python mosaico.py install` | 安装普通应用 | 构建工程并通过 ESP-Iris 安装，不自动触发恢复 |
 | `python mosaico.py monitor` | 查看设备日志 | 先显示保留日志，再持续跟随至用户结束 |
@@ -304,6 +304,9 @@ ESP-Mosaico 真实设备
 | FR-306 | 安装或恢复前必须保存故障证据 | 若存在有效 core dump，先保存结构化证据与原始日志 |
 | FR-307 | 最后恢复必须限制破坏范围 | 仅在 normal/Recovery 均不可达时进入恢复模式；锁定唯一目标设备；不执行整片擦除 |
 | FR-308 | 恢复必须以产品行为为终点 | 恢复完成需要目标固件身份匹配并通过功能验证 |
+| FR-309 | Recovery 必须使用设备/物理 endpoint 级维护租约 | 即使目标尚未完成 HELLO，也只 detach 该 endpoint；Gateway 进程及其他设备操作保持运行 |
+| FR-310 | Recovery 仅允许 Gateway 本机执行 | 远程 profile 在获取租约或写入前明确失败 |
+| FR-311 | 本地 Gateway 必须匹配固定 ESP-Iris revision | revision 不一致时拒绝操作且不得终止现有 Gateway |
 
 ### 4.8 非功能规格
 

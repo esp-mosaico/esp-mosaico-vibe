@@ -1,3 +1,6 @@
 [submodule "bsp"]
 	path = submodule/esp-mosaico-bsp
 	url = git@github.com:esp-mosaico/esp-mosaico-bsp.git
+[submodule "submodule/esp-iris"]
+	path = submodule/esp-iris
+	url = https://github.com/lisir233/ESP-Iris.git

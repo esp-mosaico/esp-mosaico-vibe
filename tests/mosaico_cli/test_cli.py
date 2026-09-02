@@ -8,7 +8,6 @@ import io
 import json
 from pathlib import Path
 import re
-import signal
 import shutil
 import subprocess
 import sys
@@ -30,7 +29,7 @@ from mosaico_cli.commands import (
     _MonitorTextRenderer,
     _recovery_verification_status,
     install,
-    list_models,
+    list_devices,
     monitor,
     recover,
 )
@@ -44,10 +43,10 @@ from mosaico_cli.errors import (
 )
 from mosaico_cli.gateway import (
     GatewaySession,
-    _terminate_managed_gateway,
+    acquire_endpoint_maintenance_lease,
+    acquire_maintenance_lease,
     ensure_gateway,
     locate_iris_tools,
-    pause_managed_local_gateway,
     run_ota,
     select_device,
 )
@@ -101,10 +100,29 @@ class ParserTests(unittest.TestCase):
         self.assertFalse(value.disable_auto_color)
 
     def test_global_flags_work_after_command(self) -> None:
-        value = self.parse("list", "--details", "--json", "--verbose")
+        value = self.parse(
+            "list", "--gateway-profile", "bench", "--json", "--verbose"
+        )
         self.assertTrue(value.json)
         self.assertTrue(value.verbose)
-        self.assertTrue(value.details)
+        self.assertEqual(value.gateway_profile, "bench")
+
+    def test_list_json_returns_live_devices(self) -> None:
+        result = {
+            "command": "list",
+            "status": "succeeded",
+            "gateway_started": False,
+            "gateway_profile": None,
+            "devices": [{"device_id": "device-a"}],
+        }
+        output = io.StringIO()
+        with (
+            mock.patch("mosaico_cli.cli.MosaicoArgumentParser.json_errors", False),
+            mock.patch("mosaico_cli.cli.list_devices", return_value=result),
+            redirect_stdout(output),
+        ):
+            self.assertEqual(main(["list", "--json"]), 0)
+        self.assertEqual(json.loads(output.getvalue())["devices"][0]["device_id"], "device-a")
 
     def test_doctor_is_public_and_has_no_device_options(self) -> None:
         value = self.parse("doctor", "--json")
@@ -143,6 +161,11 @@ class ParserTests(unittest.TestCase):
     def test_recover_has_no_confirmation_option(self) -> None:
         with self.assertRaises(SystemExit) as caught:
             self.parse("recover", "--yes")
+        self.assertEqual(caught.exception.code, 2)
+
+    def test_recover_has_no_remote_gateway_option(self) -> None:
+        with self.assertRaises(SystemExit) as caught:
+            self.parse("recover", "--gateway-profile", "remote")
         self.assertEqual(caught.exception.code, 2)
 
     def test_user_visible_literals_are_english_only(self) -> None:
@@ -261,10 +284,6 @@ class RegistryAndSelectionTests(unittest.TestCase):
         self.assertEqual(len(models), 1)
         self.assertEqual(select_model(None).target, "esp32s31")
 
-    def test_list_has_no_runtime_dependency(self) -> None:
-        result = list_models(REPOSITORY, False)
-        self.assertEqual(result["models"][0]["id"], "esp-mosaico")
-
     def test_device_selection(self) -> None:
         item = {"device_id": "one"}
         self.assertIs(select_device([item], None), item)
@@ -273,37 +292,84 @@ class RegistryAndSelectionTests(unittest.TestCase):
         with self.assertRaises(DeviceError):
             select_device([], None)
 
+    def test_selection_error_prints_available_device_ids(self) -> None:
+        error = SelectionError(
+            "choose a device", details={"candidates": ["device-a", "device-b"]}
+        )
+        output = io.StringIO()
+        with redirect_stderr(output):
+            _emit_error(error, json_output=False, verbose=False)
+        self.assertIn("device-a", output.getvalue())
+        self.assertIn("device-b", output.getvalue())
+
 
 class GatewayTests(unittest.TestCase):
-    def test_iris_tools_are_found_in_a_built_project(self) -> None:
+    def test_list_devices_reads_the_selected_gateway(self) -> None:
+        context = mock.Mock()
+        session = GatewaySession(
+            Path("python"), Path("iris"), ("--profile", "bench"), "bench", False
+        )
+        with (
+            mock.patch("mosaico_cli.commands.ensure_gateway", return_value=session),
+            mock.patch(
+                "mosaico_cli.commands.gateway_devices",
+                return_value=[
+                    {
+                        "device_id": "device-b",
+                        "connected": False,
+                        "transport_name": "TCP",
+                    },
+                    {
+                        "device_id": "device-a",
+                        "connected": True,
+                        "transport_name": "USB Highspeed",
+                    },
+                ],
+            ),
+        ):
+            result = list_devices(context, "bench")
+        self.assertEqual(
+            [item["device_id"] for item in result["devices"]],
+            ["device-a", "device-b"],
+        )
+        self.assertEqual(result["gateway_profile"], "bench")
+        self.assertTrue(result["devices"][0]["online"])
+        self.assertEqual(result["devices"][0]["connection"], "USB Highspeed")
+        self.assertFalse(result["devices"][1]["online"])
+
+    def test_iris_tools_are_found_only_in_the_pinned_submodule(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             repository = Path(temporary)
-            factory_main = repository / "projects" / "factory" / "main"
-            factory_main.mkdir(parents=True)
-            (factory_main / "idf_component.yml").write_text(
-                "dependencies:\n  esp_iris:\n    git: https://example.invalid/ESP-Iris.git\n",
-                encoding="utf-8",
-            )
             component = (
                 repository
-                / "projects"
-                / "hello_world"
-                / "managed_components"
+                / "submodule"
+                / "esp-iris"
+                / "components"
                 / "esp_iris"
             )
             (component / "tools").mkdir(parents=True)
             script = component / "tools" / "esp_iris.py"
             script.write_text("# test\n", encoding="utf-8")
+            python = virtual_environment_python(
+                repository / "submodule" / "esp-iris" / ".venv"
+            )
+            python.parent.mkdir(parents=True)
+            python.write_text("", encoding="utf-8")
+            competing = (
+                repository / "projects" / "aaa" / "managed_components" / "esp_iris" / "tools"
+            )
+            competing.mkdir(parents=True)
+            (competing / "esp_iris.py").write_text("# wrong\n", encoding="utf-8")
 
-            python, discovered = locate_iris_tools(repository)
+            discovered_python, discovered = locate_iris_tools(repository)
 
-            self.assertEqual(python, Path(sys.executable))
+            self.assertEqual(discovered_python, python)
             self.assertEqual(discovered, script)
 
     def test_unreachable_explicit_profile_never_starts_local_gateway(self) -> None:
         context = mock.Mock(repository=REPOSITORY)
         with (
-            mock.patch("mosaico_cli.gateway.locate_iris_tools", return_value=(Path("python"), Path("iris"))),
+            mock.patch("mosaico_cli.gateway.ensure_iris_tools", return_value=(Path("python"), Path("iris"))),
             mock.patch("mosaico_cli.gateway._probe", return_value=False),
             mock.patch("mosaico_cli.gateway.subprocess.Popen") as start,
         ):
@@ -311,81 +377,158 @@ class GatewayTests(unittest.TestCase):
                 ensure_gateway(context, "remote")
         start.assert_not_called()
 
-    def test_recovery_pauses_only_owned_local_gateway(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            state = Path(temporary)
-            (state / "gateway-owner.json").write_text(
+    def test_maintenance_lease_requires_local_gateway_and_suppresses_token_log(self) -> None:
+        context = mock.Mock()
+        context.run.side_effect = [
+            subprocess.CompletedProcess(
+                [],
+                0,
                 json.dumps(
                     {
-                        "schema_version": 1,
-                        "pid": 1234,
-                        "instance_id": "mosaico-test",
-                        "script": str(Path("iris").resolve()),
+                        "gateway_api": {"major": 1, "minor": 1},
+                        "capabilities": ["device-maintenance-lease/v1"],
                     }
                 ),
-                encoding="utf-8",
-            )
-            context = mock.Mock(repository=REPOSITORY)
-            with (
-                mock.patch("mosaico_cli.gateway._state_home", return_value=state),
-                mock.patch(
-                    "mosaico_cli.gateway.locate_iris_tools",
-                    return_value=(Path("python"), Path("iris")),
-                ),
-                mock.patch("mosaico_cli.gateway._owner_is_current", return_value=True),
-                mock.patch(
-                    "mosaico_cli.gateway._terminate_managed_gateway", return_value=True
-                ) as terminate,
-            ):
-                self.assertTrue(pause_managed_local_gateway(context))
-            terminate.assert_called_once_with(1234, "mosaico-test")
-            self.assertFalse((state / "gateway-owner.json").exists())
-
-    def test_stale_gateway_owner_is_never_terminated(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            state = Path(temporary)
-            (state / "gateway-owner.json").write_text(
+                "",
+            ),
+            subprocess.CompletedProcess(
+                [],
+                0,
                 json.dumps(
                     {
-                        "schema_version": 1,
-                        "pid": 1234,
-                        "instance_id": "stale",
-                        "script": str(Path("iris").resolve()),
+                        "lease": {
+                            "lease_id": "lease-1",
+                            "token": "secret-token",
+                            "endpoint": {"path": "/dev/serial/by-path/device"},
+                        }
                     }
                 ),
-                encoding="utf-8",
+                "",
+            ),
+        ]
+        local = GatewaySession(
+            Path("python"), Path("iris"), ("--url", "http://127.0.0.1:8443"), None, False
+        )
+        lease = acquire_maintenance_lease(
+            context,
+            local,
+            device_id="device-a",
+            expected_version="1.0.0-recovery",
+            timeout=180,
+        )
+        self.assertEqual(lease["lease_id"], "lease-1")
+        self.assertTrue(context.run.call_args.kwargs["sensitive_output"])
+        remote = GatewaySession(Path("python"), Path("iris"), (), "remote", False)
+        with self.assertRaises(DeviceError):
+            acquire_maintenance_lease(
+                context,
+                remote,
+                device_id="device-a",
+                expected_version="1.0.0-recovery",
+                timeout=180,
             )
-            context = mock.Mock(repository=REPOSITORY)
-            with (
-                mock.patch("mosaico_cli.gateway._state_home", return_value=state),
-                mock.patch(
-                    "mosaico_cli.gateway.locate_iris_tools",
-                    return_value=(Path("python"), Path("iris")),
+
+    def test_endpoint_maintenance_lease_uses_local_gateway_and_suppresses_token(self) -> None:
+        context = mock.Mock()
+        context.run.side_effect = [
+            subprocess.CompletedProcess(
+                [],
+                0,
+                json.dumps(
+                    {
+                        "capabilities": [
+                            "device-maintenance-lease/v1",
+                            "physical-endpoint-maintenance-lease/v1",
+                        ]
+                    }
                 ),
-                mock.patch("mosaico_cli.gateway._owner_is_current", return_value=False),
-                mock.patch("mosaico_cli.gateway._terminate_managed_gateway") as terminate,
-            ):
-                self.assertFalse(pause_managed_local_gateway(context))
-            terminate.assert_not_called()
+                "",
+            ),
+            subprocess.CompletedProcess(
+                [],
+                0,
+                json.dumps(
+                    {
+                        "lease": {
+                            "lease_id": "endpoint-lease",
+                            "token": "secret-token",
+                            "endpoint": {
+                                "endpoint": "usb:location=1-1:1.0",
+                                "path": "/dev/serial/by-path/device",
+                            },
+                        }
+                    }
+                ),
+                "",
+            ),
+        ]
+        local = GatewaySession(
+            Path("python"),
+            Path("iris"),
+            ("--url", "http://127.0.0.1:8443"),
+            None,
+            False,
+        )
+        lease = acquire_endpoint_maintenance_lease(
+            context,
+            local,
+            endpoint="/dev/serial/by-path/device",
+            expected_version="2.1.1-recovery",
+            timeout=180,
+        )
+        self.assertEqual(lease["lease_id"], "endpoint-lease")
+        acquire_call = context.run.call_args_list[1]
+        self.assertIn("maintenance-acquire-endpoint", acquire_call.args[0])
+        self.assertTrue(acquire_call.kwargs["sensitive_output"])
 
-    def test_windows_gateway_uses_process_group_break(self) -> None:
+    def test_wrong_revision_local_gateway_is_not_stopped_or_replaced(self) -> None:
+        context = mock.Mock(repository=REPOSITORY)
         with (
-            mock.patch("mosaico_cli.gateway.os.name", "nt"),
-            mock.patch("mosaico_cli.gateway.signal.CTRL_BREAK_EVENT", 21, create=True),
-            mock.patch("mosaico_cli.gateway.os.kill") as terminate,
-            mock.patch("mosaico_cli.gateway._health_instance", return_value=None),
+            mock.patch(
+                "mosaico_cli.gateway.ensure_iris_tools",
+                return_value=(Path("python"), Path("iris")),
+            ),
+            mock.patch("mosaico_cli.gateway._probe", return_value=True),
+            mock.patch(
+                "mosaico_cli.gateway._gateway_health",
+                return_value={
+                    "status": "ok",
+                    "instance_id": "older",
+                    "gateway_api": {"major": 1, "minor": 1},
+                    "capabilities": ["device-maintenance-lease/v1"],
+                    "esp_iris_revision": "wrong-revision",
+                },
+            ),
+            mock.patch(
+                "mosaico_cli.gateway._pinned_source_revision",
+                return_value="pinned-revision",
+            ),
+            mock.patch("mosaico_cli.gateway.subprocess.Popen") as start,
+            self.assertRaises(EnvironmentError),
         ):
-            self.assertTrue(_terminate_managed_gateway(1234, "mosaico-test"))
-        terminate.assert_called_once_with(1234, 21)
+            ensure_gateway(context, None)
+        start.assert_not_called()
 
-    def test_posix_gateway_uses_dedicated_process_group(self) -> None:
+    def test_unusable_running_local_gateway_is_not_replaced(self) -> None:
+        context = mock.Mock(repository=REPOSITORY)
         with (
-            mock.patch("mosaico_cli.gateway.os.name", "posix"),
-            mock.patch("mosaico_cli.gateway.os.killpg", create=True) as terminate,
-            mock.patch("mosaico_cli.gateway._health_instance", return_value=None),
+            mock.patch(
+                "mosaico_cli.gateway.ensure_iris_tools",
+                return_value=(Path("python"), Path("iris")),
+            ),
+            mock.patch("mosaico_cli.gateway._probe", return_value=False),
+            mock.patch(
+                "mosaico_cli.gateway._pinned_source_revision",
+                return_value="pinned-revision",
+            ),
+            mock.patch(
+                "mosaico_cli.gateway._health_instance", return_value="existing"
+            ),
+            mock.patch("mosaico_cli.gateway.subprocess.Popen") as start,
+            self.assertRaises(DeviceError),
         ):
-            self.assertTrue(_terminate_managed_gateway(1234, "mosaico-test"))
-        terminate.assert_called_once_with(1234, signal.SIGTERM)
+            ensure_gateway(context, None)
+        start.assert_not_called()
 
     def test_unknown_ota_result_is_not_replayed(self) -> None:
         context = mock.Mock()
@@ -921,6 +1064,203 @@ class RecoveryCommandTests(unittest.TestCase):
         self.assertTrue(any(message.startswith("recovery: model=") for message in messages))
         self.assertTrue(any(message.startswith("device: recovery interface") for message in messages))
         self.assertTrue(any(message.startswith("validation:") for message in messages))
+
+    def test_managed_recovery_uses_device_lease_without_stopping_gateway(self) -> None:
+        arguments = SimpleNamespace(
+            model=None,
+            source="reviewed",
+            device_id="device-a",
+            gateway_profile=None,
+            timeout=180,
+            dry_run=False,
+        )
+        context = mock.Mock(repository=REPOSITORY)
+        context.log_path = REPOSITORY / ".codex-runs" / "test.log"
+        session = GatewaySession(
+            Path("python"),
+            Path("iris"),
+            ("--url", "http://127.0.0.1:8443"),
+            None,
+            False,
+        )
+        manifest = {"version": "2.1.1-recovery", "images": {"recovery": {}}}
+        verification = {
+            "device_id": "device-a",
+            "boot_id": "boot-new",
+            "firmware_mode": "recovery",
+            "app_version": "2.1.1-recovery",
+            "capability_names": ["ota"],
+        }
+        lease = {
+            "lease_id": "lease-1",
+            "token": "secret",
+            "endpoint": {"path": "/dev/serial/by-path/device-a"},
+        }
+        with (
+            mock.patch("mosaico_cli.commands.load_bundle", return_value=manifest),
+            mock.patch("mosaico_cli.commands.ensure_gateway", return_value=session),
+            mock.patch(
+                "mosaico_cli.commands.connected_devices",
+                return_value=[{"device_id": "device-a", "boot_id": "boot-old"}],
+            ),
+            mock.patch("mosaico_cli.commands.resolve_idf_path", return_value=Path("/idf")),
+            mock.patch("mosaico_cli.commands.run_idf_target") as target,
+            mock.patch(
+                "mosaico_cli.commands.acquire_maintenance_lease", return_value=lease
+            ) as acquire,
+            mock.patch("mosaico_cli.commands.renew_maintenance_lease"),
+            mock.patch(
+                "mosaico_cli.commands.finish_maintenance_lease",
+                return_value={"state": "released", "evidence": {"verification": verification}},
+            ) as finish,
+            mock.patch("mosaico_cli.commands.record_recovery_verification") as record,
+        ):
+            result = recover(REPOSITORY, arguments, context)
+        self.assertEqual(result["status"], "succeeded")
+        self.assertEqual(result["maintenance_lease_id"], "lease-1")
+        self.assertEqual(
+            [call.kwargs["target"] for call in target.call_args_list],
+            ["mosaico-recover-prepare", "mosaico-recover-flash"],
+        )
+        self.assertEqual(
+            target.call_args_list[1].kwargs["port"], "/dev/serial/by-path/device-a"
+        )
+        acquire.assert_called_once()
+        finish.assert_called_once_with(
+            context, session, lease, abort=False, timeout=180
+        )
+        record.assert_called_once_with("device-a", "2.1.1-recovery", "boot-new")
+
+    def test_unmanaged_recovery_leases_physical_endpoint_before_flash(self) -> None:
+        arguments = SimpleNamespace(
+            model=None,
+            source="reviewed",
+            device_id=None,
+            gateway_profile=None,
+            timeout=180,
+            dry_run=False,
+        )
+        context = mock.Mock(repository=REPOSITORY)
+        context.log_path = REPOSITORY / ".codex-runs" / "test.log"
+        session = GatewaySession(
+            Path("python"),
+            Path("iris"),
+            ("--url", "http://127.0.0.1:8443"),
+            None,
+            False,
+        )
+        manifest = {"version": "2.1.1-recovery", "images": {"recovery": {}}}
+        lease = {
+            "lease_id": "endpoint-lease",
+            "token": "secret",
+            "endpoint": {"path": "/dev/serial/by-path/recovery"},
+        }
+        verification = {
+            "device_id": "device-after-recovery",
+            "boot_id": "boot-new",
+            "firmware_mode": "recovery",
+            "app_version": "2.1.1-recovery",
+            "capability_names": ["ota"],
+        }
+        with (
+            mock.patch("mosaico_cli.commands.load_bundle", return_value=manifest),
+            mock.patch("mosaico_cli.commands.ensure_gateway", return_value=session),
+            mock.patch("mosaico_cli.commands.connected_devices", return_value=[]),
+            mock.patch(
+                "mosaico_cli.commands.provisioning_candidate",
+                return_value="/dev/serial/by-path/recovery",
+            ),
+            mock.patch("mosaico_cli.commands.resolve_idf_path", return_value=Path("/idf")),
+            mock.patch("mosaico_cli.commands.run_idf_target") as target,
+            mock.patch(
+                "mosaico_cli.commands.acquire_endpoint_maintenance_lease",
+                return_value=lease,
+            ) as acquire,
+            mock.patch("mosaico_cli.commands.renew_maintenance_lease"),
+            mock.patch(
+                "mosaico_cli.commands.finish_maintenance_lease",
+                return_value={
+                    "state": "released",
+                    "evidence": {"verification": verification},
+                },
+            ),
+            mock.patch("mosaico_cli.commands.record_recovery_verification") as record,
+        ):
+            result = recover(REPOSITORY, arguments, context)
+        acquire.assert_called_once_with(
+            context,
+            session,
+            endpoint="/dev/serial/by-path/recovery",
+            expected_version="2.1.1-recovery",
+            timeout=180,
+        )
+        self.assertEqual(
+            target.call_args_list[1].kwargs["port"], lease["endpoint"]["path"]
+        )
+        self.assertEqual(result["device_id"], "device-after-recovery")
+        record.assert_called_once_with(
+            "device-after-recovery", "2.1.1-recovery", "boot-new"
+        )
+
+    def test_remote_recovery_is_rejected_before_gateway_or_flash(self) -> None:
+        arguments = SimpleNamespace(gateway_profile="remote")
+        context = mock.Mock(repository=REPOSITORY)
+        with (
+            mock.patch("mosaico_cli.commands.ensure_gateway") as gateway,
+            mock.patch("mosaico_cli.commands.run_idf_target") as target,
+            self.assertRaises(DeviceError),
+        ):
+            recover(REPOSITORY, arguments, context)
+        gateway.assert_not_called()
+        target.assert_not_called()
+
+    def test_failed_flash_aborts_device_maintenance_lease(self) -> None:
+        arguments = SimpleNamespace(
+            model=None,
+            source="reviewed",
+            device_id="device-a",
+            gateway_profile=None,
+            timeout=180,
+            dry_run=False,
+        )
+        context = mock.Mock(repository=REPOSITORY)
+        context.log_path = REPOSITORY / ".codex-runs" / "test.log"
+        session = GatewaySession(
+            Path("python"),
+            Path("iris"),
+            ("--url", "http://127.0.0.1:8443"),
+            None,
+            False,
+        )
+        manifest = {"version": "2.1.1-recovery", "images": {"recovery": {}}}
+        lease = {
+            "lease_id": "lease-1",
+            "token": "secret",
+            "endpoint": {"path": "/dev/serial/by-path/device-a"},
+        }
+        with (
+            mock.patch("mosaico_cli.commands.load_bundle", return_value=manifest),
+            mock.patch("mosaico_cli.commands.ensure_gateway", return_value=session),
+            mock.patch(
+                "mosaico_cli.commands.connected_devices",
+                return_value=[{"device_id": "device-a", "boot_id": "boot-old"}],
+            ),
+            mock.patch("mosaico_cli.commands.resolve_idf_path", return_value=Path("/idf")),
+            mock.patch(
+                "mosaico_cli.commands.run_idf_target",
+                side_effect=[None, BuildError("flash failed")],
+            ),
+            mock.patch(
+                "mosaico_cli.commands.acquire_maintenance_lease", return_value=lease
+            ),
+            mock.patch("mosaico_cli.commands.renew_maintenance_lease"),
+            mock.patch("mosaico_cli.commands.finish_maintenance_lease") as finish,
+            self.assertRaises(BuildError),
+        ):
+            recover(REPOSITORY, arguments, context)
+        finish.assert_called_once_with(
+            context, session, lease, abort=True, timeout=30
+        )
 
     def test_idf_wrapper_invokes_only_named_target(self) -> None:
         context = mock.Mock()

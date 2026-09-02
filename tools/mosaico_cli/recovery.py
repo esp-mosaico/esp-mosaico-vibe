@@ -324,6 +324,7 @@ def preserve_evidence(
             if isinstance(crashes, dict)
             else []
         )
+        items = items if isinstance(items, list) else []
         has_core = any(
             item.get("core_dump_present") and item.get("core_dump_valid")
             for item in items

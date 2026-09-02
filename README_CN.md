@@ -30,9 +30,14 @@ python mosaico.py install --project projects/<project>
 python mosaico.py monitor
 ```
 
+`list` 会连接 Gateway，列出 Device ID、在线状态、连接方式、固件身份、运行模式和
+Boot ID，并保留 Gateway 缓存中的离线设备。使用 `list --details` 查看 endpoint、
+ESP-IDF 版本、Session ID 和能力列表，或使用 `list --json` 查看完整 Gateway 记录。
+
 CLI 支持 Linux、macOS 原生终端，以及 Windows PowerShell 和 CMD，不依赖 WSL
 或 Git Bash。主机需使用 Python 3.11 或更新版本、满足 factory 工程约束的
-ESP-IDF，以及按 ESP-Iris `tools/requirements.txt` 安装的运行环境。首次操作前运行
+ESP-IDF、固定版本的 `submodule/esp-iris`，以及按其中
+`tools/requirements.lock` 自动准备的独立运行环境。首次操作前运行
 `doctor`，可检查 Python、ESP-IDF、ESP32-S31 target、ESP-Iris、主机状态目录和
 实时 USB 枚举；该命令不会构建或写入固件。
 
@@ -54,6 +59,12 @@ python mosaico.py monitor --timeout 1 --grep __mosaico_host_smoke__
 `install` 只通过 **ESP-Iris Developer Gateway** 更新普通应用；设备未完成初始化
 时会明确提示先运行 `recover`，不会自动切换成底层烧录。`recover` 默认使用仓库
 内经过评审的 Recovery 基础包，并在完成后停留于 Recovery 就绪状态。
+
+Recovery 仅支持 Gateway 本机执行。命令先准备完整基础包，再向本地 Gateway
+申请目标设备或物理 USB endpoint 的维护租约；ROM 模式或尚未完成 HELLO、但已被
+Gateway 打开的 endpoint 也包含在内。只 detach 该 endpoint，其他设备、日志和操作
+保持运行。`recover` 不提供远程 `--gateway-profile`。已运行的本地 Gateway 必须报告与
+固定子模块一致的 ESP-Iris revision；不一致时只报错，不会终止该 Gateway。
 
 - 编码 Agent 只通过 `mosaico.py` 操作设备。
 - 开发者可以同时打开 Gateway Web 工作台，观察同一设备的日志、画面、Job、
@@ -84,6 +95,7 @@ ESP-Mosaico 只有一个 High-Speed USB 接口。正常固件和 Recovery 都会
 ## 仓库结构
 
 - `projects/`：开发者工程目录，新工程从 `projects/factory` 开始。
+- `submodule/esp-iris/`：固定版本的 ESP-Iris 固件组件与主机运行时。
 - `skills/`：面向 Agent 和开发者的任务集成指南，详见
   [`skills/README.md`](skills/README.md)。
 - `docs/`：面向用户的文档。

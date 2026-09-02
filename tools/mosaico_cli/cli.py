@@ -6,10 +6,10 @@ import argparse
 import json
 from pathlib import Path
 import sys
-from typing import Any, Sequence
+from typing import Any, Never, Sequence
 
 from . import __version__
-from .commands import install, list_models, monitor, recover
+from .commands import install, list_devices, monitor, recover
 from .doctor import diagnose_host, print_diagnosis
 from .errors import MosaicoError
 from .runtime import RunContext
@@ -21,7 +21,7 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 class MosaicoArgumentParser(argparse.ArgumentParser):
     json_errors = False
 
-    def error(self, message: str) -> None:
+    def error(self, message: str) -> Never:
         if self.json_errors:
             print(
                 json.dumps(
@@ -126,9 +126,6 @@ def build_parser() -> argparse.ArgumentParser:
         "--device-id", help="Device ID used to correlate identity before and after recovery"
     )
     recover_parser.add_argument(
-        "--gateway-profile", help="ESP-Iris profile; use the current profile by default"
-    )
-    recover_parser.add_argument(
         "--timeout", type=positive_timeout, default=180.0,
         help="Recovery and validation timeout in seconds",
     )
@@ -167,12 +164,16 @@ def build_parser() -> argparse.ArgumentParser:
 
     list_parser = commands.add_parser(
         "list",
-        help="List device models supported by this repository",
+        help="List devices visible through ESP-Iris",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     list_parser.add_argument(
-        "--details", action="store_true",
-        help="Show the reference project, BSP, and Recovery baseline",
+        "--gateway-profile", help="ESP-Iris profile; use the local Gateway by default"
+    )
+    list_parser.add_argument(
+        "--details",
+        action="store_true",
+        help="Show endpoint, ESP-IDF version, session, and capabilities",
     )
     return parser
 
@@ -188,21 +189,34 @@ def _normalize_globals(argv: Sequence[str]) -> list[str]:
     return [*globals_found, *rest]
 
 
-def _print_table(result: dict[str, Any], details: bool) -> None:
-    fields = ["id", "name", "target", "status", "default"]
+def _print_device_table(result: dict[str, Any], details: bool) -> None:
+    fields = [
+        "device_id",
+        "online",
+        "connection",
+        "alias",
+        "project_name",
+        "app_version",
+        "firmware_mode",
+        "boot_id",
+    ]
     if details:
-        fields.extend(["reference_project", "bsp_revision", "recovery_version"])
+        fields.extend(["endpoint", "idf_version", "session_id", "capability_names"])
     headers = [field.upper() for field in fields]
+
+    def cell(item: dict[str, Any], field: str) -> str:
+        if field == "online":
+            return "yes" if item.get(field) else "no"
+        if field == "alias":
+            return str(item.get("alias") or item.get("suggested_alias") or "")
+        if field == "capability_names":
+            values = item.get(field, [])
+            return ",".join(str(value) for value in values) if isinstance(values, list) else ""
+        return str(item.get(field, ""))
+
     rows = [
-        [
-            "yes"
-            if item.get(field) is True
-            else ""
-            if item.get(field) is False
-            else str(item.get(field, ""))
-            for field in fields
-        ]
-        for item in result["models"]
+        [cell(item, field) for field in fields]
+        for item in result["devices"]
     ]
     widths = [
         max(len(headers[index]), *(len(row[index]) for row in rows))
@@ -231,6 +245,11 @@ def _emit_error(error: MosaicoError, json_output: bool, verbose: bool) -> None:
         )
     else:
         print(f"mosaico: {error}", file=sys.stderr)
+        candidates = error.details.get("candidates")
+        if isinstance(candidates, list) and candidates:
+            print("Available Device IDs:", file=sys.stderr)
+            for candidate in candidates:
+                print(f"  {candidate}", file=sys.stderr)
         diagnostic = error.details.get("diagnostic")
         if diagnostic:
             print(diagnostic, file=sys.stderr)
@@ -264,15 +283,22 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"mosaico: {message}", file=sys.stderr)
         return 3
     if arguments.command == "list":
+        context = RunContext(
+            REPOSITORY,
+            arguments.command,
+            arguments.verbose,
+            arguments.json,
+        )
         try:
-            result = list_models(REPOSITORY, arguments.details)
+            result = list_devices(context, arguments.gateway_profile)
         except MosaicoError as error:
+            error.details.setdefault("log", str(context.log_path))
             _emit_error(error, arguments.json, arguments.verbose)
             return error.exit_code
         if arguments.json:
             print(json.dumps({"ok": True, **result}, ensure_ascii=False, sort_keys=True))
         else:
-            _print_table(result, arguments.details)
+            _print_device_table(result, arguments.details)
         return 0
 
     if arguments.command == "doctor":

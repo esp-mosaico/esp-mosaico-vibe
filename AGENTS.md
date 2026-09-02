@@ -76,7 +76,7 @@ IDs, a ready Recovery service, and a healthy application.
 ## Operate devices through ESP-Iris
 
 - Use `python mosaico.py install`, `recover`, and `monitor` for routine device
-  operations. Use `python mosaico.py list` for supported model discovery.
+  operations. Use `python mosaico.py list` for live Device ID discovery.
 - Do not call ESP-Iris or ESP-IDF device-write commands directly; `mosaico.py`
   owns Gateway lifecycle, evidence capture, device selection, and validation.
 - Do not open the device USB/serial session directly while the Gateway owns

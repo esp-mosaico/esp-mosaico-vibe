@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import hashlib
 import json
 import os
 from pathlib import Path
-import re
-import signal
 import subprocess
+import sys
 import time
 from typing import Any
 from urllib.error import URLError
@@ -27,6 +27,9 @@ from .runtime import RunContext
 
 
 LOCAL_URL = "http://127.0.0.1:8443"
+REQUIRED_GATEWAY_API_MAJOR = 1
+MAINTENANCE_CAPABILITY = "device-maintenance-lease/v1"
+ENDPOINT_MAINTENANCE_CAPABILITY = "physical-endpoint-maintenance-lease/v1"
 
 
 def _state_home() -> Path:
@@ -34,44 +37,61 @@ def _state_home() -> Path:
 
 
 def locate_iris_tools(repository: Path) -> tuple[Path, Path]:
-    manifest = repository / "projects" / "factory" / "main" / "idf_component.yml"
-    try:
-        text = manifest.read_text(encoding="utf-8")
-    except OSError as error:
+    source = repository / "submodule" / "esp-iris"
+    script = source / "components" / "esp_iris" / "tools" / "esp_iris.py"
+    python = virtual_environment_python(source / ".venv")
+    if not script.is_file():
         raise EnvironmentError(
-            f"Could not read the ESP-Iris component manifest: {manifest}"
-        ) from error
-    match = re.search(r"(?ms)^\s*esp_iris:\s*\n\s*override_path:\s*([^\n#]+)", text)
-    candidates: list[Path] = []
-    if match:
-        candidates.append((manifest.parent / match.group(1).strip()).resolve())
-    projects = repository / "projects"
-    project_directories = (
-        sorted(path for path in projects.iterdir() if path.is_dir())
-        if projects.is_dir()
-        else []
-    )
-    candidates.extend(
-        component
-        for project in project_directories
-        for component in (
-            project / "managed_components" / "esp_iris",
-            project / "managed_components" / "espressif__esp_iris",
+            "The pinned ESP-Iris submodule is unavailable. Run "
+            "'git submodule update --init submodule/esp-iris'."
         )
+    if not python.is_file():
+        raise EnvironmentError(
+            f"The pinned ESP-Iris host environment is unavailable: {python}"
+        )
+    return python, script
+
+
+def ensure_iris_tools(context: RunContext) -> tuple[Path, Path]:
+    repository = context.repository
+    source = repository / "submodule" / "esp-iris"
+    tools = source / "components" / "esp_iris" / "tools"
+    script = tools / "esp_iris.py"
+    lock = tools / "requirements.lock"
+    if not script.is_file() or not lock.is_file():
+        raise EnvironmentError(
+            "The pinned ESP-Iris submodule or its host dependency lock is unavailable."
+        )
+    python = virtual_environment_python(source / ".venv")
+    marker = source / ".venv" / ".mosaico-requirements"
+    fingerprint = (
+        f"python={sys.version_info.major}.{sys.version_info.minor}\n"
+        f"requirements={hashlib.sha256(lock.read_bytes()).hexdigest()}\n"
     )
-    candidates.extend(
-        [
-            repository / "components" / "esp_iris",
-        ]
-    )
-    for component in candidates:
-        script = component / "tools" / "esp_iris.py"
-        if not script.is_file():
-            continue
-        component_repo = component.parent.parent
-        python = virtual_environment_python(component_repo / ".venv")
-        return (python if python.is_file() else Path(os.sys.executable), script)
-    raise EnvironmentError("The ESP-Iris CLI declared by this repository was not found.")
+    current = marker.read_text(encoding="utf-8") if marker.is_file() else ""
+    if not python.is_file():
+        if sys.version_info < (3, 11):
+            raise EnvironmentError("ESP-Iris host runtime requires Python 3.11 or newer.")
+        result = context.run([sys.executable, "-m", "venv", source / ".venv"], timeout=120)
+        if result.returncode:
+            raise EnvironmentError("Could not create the pinned ESP-Iris host environment.")
+    if current != fingerprint:
+        result = context.run(
+            [
+                python,
+                "-m",
+                "pip",
+                "install",
+                "--disable-pip-version-check",
+                "--requirement",
+                lock,
+            ],
+            timeout=600,
+        )
+        if result.returncode:
+            raise EnvironmentError("Could not install the pinned ESP-Iris host dependencies.")
+        marker.write_text(fingerprint, encoding="utf-8")
+    return python, script
 
 
 @dataclass(frozen=True)
@@ -118,6 +138,70 @@ def _probe(
     return isinstance(value, dict) and isinstance(value.get("devices"), list)
 
 
+def _gateway_health(
+    context: RunContext,
+    python: Path,
+    script: Path,
+    connection: tuple[str, ...],
+) -> dict[str, Any] | None:
+    try:
+        result = context.run(
+            [python, script, "ctl", *connection, "--json", "health"], timeout=4
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode:
+        return None
+    try:
+        value = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return None
+    return value if isinstance(value, dict) else None
+
+
+def _require_compatible_gateway(
+    health: dict[str, Any] | None,
+    *,
+    expected_revision: str | None = None,
+) -> dict[str, Any]:
+    api = health.get("gateway_api") if isinstance(health, dict) else None
+    capabilities = health.get("capabilities") if isinstance(health, dict) else None
+    if not isinstance(api, dict) or api.get("major") != REQUIRED_GATEWAY_API_MAJOR:
+        raise EnvironmentError(
+            "The reachable ESP-Iris Gateway does not implement the required API version."
+        )
+    if not isinstance(capabilities, list):
+        raise EnvironmentError("The reachable ESP-Iris Gateway did not report capabilities.")
+    assert isinstance(health, dict)
+    if (
+        expected_revision is not None
+        and health.get("esp_iris_revision") != expected_revision
+    ):
+        raise EnvironmentError(
+            "The local ESP-Iris Gateway does not match the pinned submodule revision; "
+            "it was not stopped."
+        )
+    return health
+
+
+def _pinned_source_revision(repository: Path) -> str:
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repository / "submodule" / "esp-iris"), "rev-parse", "HEAD"],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            timeout=5,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise EnvironmentError("Could not resolve the pinned ESP-Iris revision.") from error
+    revision = result.stdout.strip()
+    if result.returncode or not revision:
+        raise EnvironmentError("Could not resolve the pinned ESP-Iris revision.")
+    return revision
+
+
 def _health_instance(url: str = LOCAL_URL) -> str | None:
     try:
         with urlopen(f"{url}/v1/health", timeout=2) as response:
@@ -128,176 +212,34 @@ def _health_instance(url: str = LOCAL_URL) -> str | None:
     return str(instance) if instance else None
 
 
-def _ownership_path(state: Path) -> Path:
-    return state / "gateway-owner.json"
-
-
-def _load_owner(state: Path) -> dict[str, Any] | None:
-    try:
-        value = json.loads(_ownership_path(state).read_text(encoding="utf-8"))
-        if (
-            value.get("schema_version") == 1
-            and isinstance(value.get("pid"), int)
-            and isinstance(value.get("instance_id"), str)
-            and isinstance(value.get("script"), str)
-        ):
-            return value
-    except (OSError, TypeError, ValueError, json.JSONDecodeError):
-        pass
-    return None
-
-
-def _write_owner(state: Path, *, pid: int, instance_id: str, script: Path) -> None:
-    path = _ownership_path(state)
-    temporary = path.with_suffix(".tmp")
-    temporary.write_text(
-        json.dumps(
-            {
-                "schema_version": 1,
-                "pid": pid,
-                "instance_id": instance_id,
-                "script": str(script.resolve()),
-                "state_dir": str((state / "state").resolve()),
-            },
-            sort_keys=True,
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-    temporary.replace(path)
-
-
-def _owner_is_current(owner: dict[str, Any], script: Path) -> bool:
-    try:
-        recorded_script = Path(owner["script"]).resolve()
-    except (KeyError, OSError, TypeError, ValueError):
-        return False
-    return (
-        recorded_script == script.resolve()
-        and _health_instance() == owner["instance_id"]
-    )
-
-
-def _owned_local_gateway(pid: int, script: Path, state: Path) -> bool:
-    """Validate a legacy Linux PID record during one-way state migration."""
-
-    if not Path("/proc").is_dir():
-        return False
-    try:
-        command_line = Path(f"/proc/{pid}/cmdline").read_bytes()
-    except OSError:
-        return False
-    return (
-        str(script).encode() in command_line
-        and str(state / "state").encode() in command_line
-    )
-
-
-def _terminate_managed_gateway(pid: int, instance_id: str) -> bool:
-    """Terminate the complete, dedicated process group created by this CLI."""
-
-    try:
-        if os.name == "nt":
-            break_event = getattr(signal, "CTRL_BREAK_EVENT", None)
-            if break_event is None:
-                raise OSError("CTRL_BREAK_EVENT is unavailable")
-            os.kill(pid, break_event)
-        else:
-            os.killpg(pid, signal.SIGTERM)
-    except (OSError, ProcessLookupError):
-        pass
-    deadline = time.monotonic() + 3
-    while _health_instance() == instance_id and time.monotonic() < deadline:
-        time.sleep(0.1)
-    if _health_instance() != instance_id:
-        return True
-
-    if os.name == "nt":
-        try:
-            result = subprocess.run(
-                ["taskkill", "/PID", str(pid), "/T", "/F"],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                timeout=5,
-                check=False,
-            )
-            if result.returncode and _health_instance() == instance_id:
-                return False
-        except (OSError, subprocess.TimeoutExpired):
-            return False
-    else:
-        try:
-            os.killpg(pid, signal.SIGKILL)
-        except ProcessLookupError:
-            return True
-        except OSError:
-            return False
-    deadline = time.monotonic() + 2
-    while _health_instance() == instance_id and time.monotonic() < deadline:
-        time.sleep(0.1)
-    return _health_instance() != instance_id
-
-
-def pause_managed_local_gateway(context: RunContext) -> bool:
-    """Stop only the local Gateway instance created by mosaico.py.
-
-    Recovery flashing needs exclusive ownership of the same USB device.  An
-    unrelated or remotely managed Gateway is deliberately never terminated.
-    """
-
-    _, script = locate_iris_tools(context.repository)
-    state = _state_home()
-    owner = _load_owner(state)
-    if owner is not None and _owner_is_current(owner, script):
-        pid = int(owner["pid"])
-        instance_id = str(owner["instance_id"])
-    else:
-        _ownership_path(state).unlink(missing_ok=True)
-        pid_path = state / "gateway.pid"
-        try:
-            pid = int(pid_path.read_text(encoding="ascii").strip())
-        except (OSError, ValueError):
-            return False
-        if not _owned_local_gateway(pid, script, state):
-            pid_path.unlink(missing_ok=True)
-            return False
-        instance_id = _health_instance() or "mosaico"
-
-    if not _terminate_managed_gateway(pid, instance_id):
-        raise DeviceError(
-            "The local ESP-Iris Gateway could not release the device configuration channel."
-        )
-    _ownership_path(state).unlink(missing_ok=True)
-    (state / "gateway.pid").unlink(missing_ok=True)
-    context.note(f"paused managed local Gateway pid={pid} for recovery")
-    return True
-
-
 def ensure_gateway(context: RunContext, profile: str | None) -> GatewaySession:
-    python, script = locate_iris_tools(context.repository)
+    python, script = ensure_iris_tools(context)
     if profile:
         connection = ("--profile", profile)
         if not _probe(context, python, script, connection):
             raise DeviceError(f"Gateway profile is unreachable: {profile}")
+        _require_compatible_gateway(_gateway_health(context, python, script, connection))
         return GatewaySession(python, script, connection, profile, False)
 
-    if _probe(context, python, script, ()):
-        return GatewaySession(python, script, (), None, False)
+    expected_revision = _pinned_source_revision(context.repository)
     local = ("--url", LOCAL_URL)
     if _probe(context, python, script, local):
+        _require_compatible_gateway(
+            _gateway_health(context, python, script, local),
+            expected_revision=expected_revision,
+        )
         return GatewaySession(python, script, local, None, False)
+
+    # A reachable process is shared host infrastructure.  Never replace it
+    # merely because this CLI cannot probe it: doing so would interrupt every
+    # device attached to that Gateway.
+    if _health_instance() is not None:
+        raise DeviceError(
+            "A local ESP-Iris Gateway is running but could not be used; it was not stopped."
+        )
 
     state = _state_home()
     state.mkdir(parents=True, exist_ok=True)
-    pid_path = state / "gateway.pid"
-    owner = _load_owner(state)
-    if owner is not None and _owner_is_current(owner, script):
-        if not _terminate_managed_gateway(
-            int(owner["pid"]), str(owner["instance_id"])
-        ):
-            raise DeviceError("Could not stop the stale local ESP-Iris Gateway.")
-    _ownership_path(state).unlink(missing_ok=True)
-    pid_path.unlink(missing_ok=True)
 
     log_path = state / "gateway.log"
     instance_id = f"mosaico-{uuid.uuid4().hex}"
@@ -310,6 +252,8 @@ def ensure_gateway(context: RunContext, profile: str | None) -> GatewaySession:
             )
         else:
             popen_options["start_new_session"] = True
+        gateway_environment = os.environ.copy()
+        gateway_environment["ESP_IRIS_SOURCE_REVISION"] = expected_revision
         process = subprocess.Popen(
             [
                 str(python),
@@ -328,10 +272,10 @@ def ensure_gateway(context: RunContext, profile: str | None) -> GatewaySession:
             stdin=subprocess.DEVNULL,
             stdout=log_stream,
             stderr=subprocess.STDOUT,
+            env=gateway_environment,
             **popen_options,
         )
         log_stream.close()
-        _write_owner(state, pid=process.pid, instance_id=instance_id, script=script)
     except OSError as error:
         raise DeviceError(
             "Could not start the local ESP-Iris Gateway.",
@@ -340,10 +284,19 @@ def ensure_gateway(context: RunContext, profile: str | None) -> GatewaySession:
 
     deadline = time.monotonic() + 20
     while time.monotonic() < deadline:
+        health = _gateway_health(context, python, script, local)
+        if _probe(context, python, script, local) and health is not None:
+            _require_compatible_gateway(
+                health, expected_revision=expected_revision
+            )
+            started_local = health.get("instance_id") == instance_id
+            if not started_local and process.poll() is None:
+                # Another workspace won the startup race.  Stop only the
+                # process created above and share the compatible winner.
+                process.terminate()
+            return GatewaySession(python, script, local, None, started_local)
         if process.poll() is not None:
             break
-        if _probe(context, python, script, local) and _health_instance() == instance_id:
-            return GatewaySession(python, script, local, None, True)
         time.sleep(0.25)
     if process.poll() is None:
         process.terminate()
@@ -351,7 +304,6 @@ def ensure_gateway(context: RunContext, profile: str | None) -> GatewaySession:
             process.wait(timeout=3)
         except subprocess.TimeoutExpired:
             process.kill()
-    _ownership_path(state).unlink(missing_ok=True)
     raise DeviceError(
         "The local ESP-Iris Gateway failed to start.",
         details={"gateway_log": str(log_path)},
@@ -363,9 +315,16 @@ def gateway_json(
     session: GatewaySession,
     *arguments: str,
     timeout: float = 15,
+    environment: dict[str, str] | None = None,
+    sensitive_output: bool = False,
 ) -> Any:
     try:
-        result = context.run(session.ctl_argv(*arguments), timeout=timeout)
+        result = context.run(
+            session.ctl_argv(*arguments),
+            timeout=timeout,
+            env=environment,
+            sensitive_output=sensitive_output,
+        )
     except subprocess.TimeoutExpired as error:
         raise DeviceError("The ESP-Iris Gateway request timed out.") from error
     if result.returncode:
@@ -376,24 +335,197 @@ def gateway_json(
     return _decode_json(result.stdout)
 
 
-def connected_devices(
+def acquire_maintenance_lease(
+    context: RunContext,
+    session: GatewaySession,
+    *,
+    device_id: str,
+    expected_version: str,
+    timeout: float,
+) -> dict[str, Any]:
+    if session.profile is not None or session.connection_args != ("--url", LOCAL_URL):
+        raise DeviceError("Remote Recovery is not supported; use the local Gateway.")
+    health = gateway_json(context, session, "health")
+    capabilities = health.get("capabilities", []) if isinstance(health, dict) else []
+    if MAINTENANCE_CAPABILITY not in capabilities:
+        raise EnvironmentError(
+            "The local ESP-Iris Gateway does not support device maintenance leases."
+        )
+    value = gateway_json(
+        context,
+        session,
+        "maintenance-acquire",
+        device_id,
+        "--expected-version",
+        expected_version,
+        "--wait-timeout",
+        str(min(timeout, 60)),
+        "--ttl-seconds",
+        str(timeout + 60),
+        timeout=min(timeout, 75),
+        sensitive_output=True,
+    )
+    lease = value.get("lease") if isinstance(value, dict) else None
+    if not isinstance(lease, dict) or not lease.get("lease_id") or not lease.get("token"):
+        raise DeviceError("ESP-Iris returned an invalid maintenance lease.")
+    endpoint = lease.get("endpoint")
+    if not isinstance(endpoint, dict) or not (
+        endpoint.get("path") or str(endpoint.get("endpoint") or "").startswith("usb:")
+    ):
+        try:
+            finish_maintenance_lease(
+                context, session, lease, abort=True, timeout=min(timeout, 30)
+            )
+        except DeviceError:
+            pass
+        raise DeviceError("The maintenance lease did not include a writable local port.")
+    return lease
+
+
+def acquire_endpoint_maintenance_lease(
+    context: RunContext,
+    session: GatewaySession,
+    *,
+    endpoint: str,
+    expected_version: str,
+    timeout: float,
+) -> dict[str, Any]:
+    if session.profile is not None or session.connection_args != ("--url", LOCAL_URL):
+        raise DeviceError("Remote Recovery is not supported; use the local Gateway.")
+    health = gateway_json(context, session, "health")
+    capabilities = health.get("capabilities", []) if isinstance(health, dict) else []
+    if ENDPOINT_MAINTENANCE_CAPABILITY not in capabilities:
+        raise EnvironmentError(
+            "The local ESP-Iris Gateway does not support physical endpoint maintenance leases."
+        )
+    value = gateway_json(
+        context,
+        session,
+        "maintenance-acquire-endpoint",
+        endpoint,
+        "--expected-version",
+        expected_version,
+        "--wait-timeout",
+        str(min(timeout, 60)),
+        "--ttl-seconds",
+        str(timeout + 60),
+        timeout=min(timeout, 75),
+        sensitive_output=True,
+    )
+    lease = value.get("lease") if isinstance(value, dict) else None
+    if not isinstance(lease, dict) or not lease.get("lease_id") or not lease.get("token"):
+        raise DeviceError("ESP-Iris returned an invalid maintenance lease.")
+    leased_endpoint = lease.get("endpoint")
+    if not isinstance(leased_endpoint, dict) or not (
+        leased_endpoint.get("path")
+        or str(leased_endpoint.get("endpoint") or "").startswith("usb:")
+    ):
+        try:
+            finish_maintenance_lease(
+                context, session, lease, abort=True, timeout=min(timeout, 30)
+            )
+        except DeviceError:
+            pass
+        raise DeviceError("The maintenance lease did not include a writable local port.")
+    return lease
+
+
+def finish_maintenance_lease(
+    context: RunContext,
+    session: GatewaySession,
+    lease: dict[str, Any],
+    *,
+    abort: bool,
+    timeout: float,
+) -> dict[str, Any]:
+    token = str(lease.get("token") or "")
+    lease_id = str(lease.get("lease_id") or "")
+    if not token or not lease_id:
+        raise DeviceError("The maintenance lease credentials are unavailable.")
+    environment = os.environ.copy()
+    environment["ESP_IRIS_MAINTENANCE_TOKEN"] = token
+    arguments = [
+        "maintenance-abort" if abort else "maintenance-complete",
+        lease_id,
+    ]
+    if not abort:
+        arguments.extend(["--timeout", str(timeout)])
+    value = gateway_json(
+        context,
+        session,
+        *arguments,
+        timeout=timeout + 15,
+        environment=environment,
+    )
+    result = value.get("lease") if isinstance(value, dict) else None
+    if not isinstance(result, dict):
+        raise DeviceError("ESP-Iris returned an invalid maintenance completion result.")
+    return result
+
+
+def renew_maintenance_lease(
+    context: RunContext,
+    session: GatewaySession,
+    lease: dict[str, Any],
+    *,
+    ttl_seconds: float,
+) -> dict[str, Any]:
+    token = str(lease.get("token") or "")
+    lease_id = str(lease.get("lease_id") or "")
+    if not token or not lease_id:
+        raise DeviceError("The maintenance lease credentials are unavailable.")
+    environment = os.environ.copy()
+    environment["ESP_IRIS_MAINTENANCE_TOKEN"] = token
+    value = gateway_json(
+        context,
+        session,
+        "maintenance-renew",
+        lease_id,
+        "--ttl-seconds",
+        str(ttl_seconds),
+        environment=environment,
+    )
+    result = value.get("lease") if isinstance(value, dict) else None
+    if not isinstance(result, dict):
+        raise DeviceError("ESP-Iris returned an invalid maintenance renewal result.")
+    return result
+
+
+def gateway_devices(
     context: RunContext,
     session: GatewaySession,
     *,
     wait_seconds: float = 5,
 ) -> list[dict[str, Any]]:
+    """Return connected and cached devices, waiting briefly for live discovery."""
+
     deadline = time.monotonic() + wait_seconds
     while True:
         value = gateway_json(context, session, "devices")
         if not isinstance(value, dict):
             raise DeviceError("ESP-Iris returned an invalid device list.")
         devices = [
-            item for item in value.get("devices", [])
-            if isinstance(item, dict) and item.get("connected") is not False
+            item for item in value.get("devices", []) if isinstance(item, dict)
         ]
-        if devices or time.monotonic() >= deadline:
+        if (
+            any(item.get("connected") is not False for item in devices)
+            or time.monotonic() >= deadline
+        ):
             return devices
         time.sleep(0.25)
+
+
+def connected_devices(
+    context: RunContext,
+    session: GatewaySession,
+    *,
+    wait_seconds: float = 5,
+) -> list[dict[str, Any]]:
+    return [
+        item
+        for item in gateway_devices(context, session, wait_seconds=wait_seconds)
+        if item.get("connected") is not False
+    ]
 
 
 def select_device(devices: list[dict[str, Any]], requested: str | None) -> dict[str, Any]:

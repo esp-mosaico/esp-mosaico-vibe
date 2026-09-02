@@ -154,6 +154,12 @@ else()
     message(FATAL_ERROR "MOSAICO_RECOVERY_SOURCE must be reviewed or current")
 endif()
 
+# Prepare and verify every build artifact before a device maintenance lease is
+# acquired. The flash target below depends on the same target and therefore
+# performs no long-running compilation while the USB endpoint is detached.
+add_custom_target(mosaico-recover-prepare
+    DEPENDS ${mosaico_recovery_bundle_target})
+
 # This is the only low-level write target used by mosaico.py. ESP-IDF owns the
 # flasher arguments; the Python product CLI never assembles an esptool command.
 esptool_py_custom_target(

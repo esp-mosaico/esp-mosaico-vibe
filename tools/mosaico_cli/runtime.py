@@ -60,6 +60,7 @@ class RunContext:
         check: bool = False,
         env: dict[str, str] | None = None,
         output_status: Callable[[str], str | None] | None = None,
+        sensitive_output: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         command = [os.fspath(item) for item in argv]
         self.note("$ " + " ".join(command))
@@ -75,7 +76,7 @@ class RunContext:
                     timeout=timeout,
                     check=False,
                 )
-                self.note(result.stdout or "")
+                self.note("[sensitive output omitted]" if sensitive_output else result.stdout or "")
             else:
                 result = self._run_streaming(
                     command,
@@ -112,12 +113,13 @@ class RunContext:
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
         )
-        assert process.stdout is not None
+        stdout = process.stdout
+        assert stdout is not None
         sentinel = object()
         events: Queue[str | object] = Queue()
 
         def read_output() -> None:
-            for line in process.stdout:
+            for line in stdout:
                 events.put(line)
             events.put(sentinel)
 
@@ -131,7 +133,8 @@ class RunContext:
                 process.kill()
                 process.wait()
                 reader.join(timeout=1)
-                process.stdout.close()
+                stdout.close()
+                assert timeout is not None
                 raise subprocess.TimeoutExpired(
                     command, timeout, output="".join(output)
                 )
@@ -150,7 +153,7 @@ class RunContext:
             if message:
                 self.status(message)
         reader.join(timeout=1)
-        process.stdout.close()
+        stdout.close()
         return subprocess.CompletedProcess(
             command, process.wait(), "".join(output), None
         )

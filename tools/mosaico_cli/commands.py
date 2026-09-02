@@ -15,23 +15,25 @@ from typing import Any, TextIO
 
 from .errors import BuildError, DeviceError, OperationError, RecoveryRequiredError, SelectionError
 from .gateway import (
+    acquire_endpoint_maintenance_lease,
+    acquire_maintenance_lease,
     connected_devices,
     ensure_gateway,
+    finish_maintenance_lease,
+    gateway_devices,
     gateway_json,
-    pause_managed_local_gateway,
+    renew_maintenance_lease,
     run_ota,
     select_device,
 )
 from .project import discover_artifacts, resolve_project
 from .recovery import (
     load_bundle,
-    preserve_evidence,
     provisioning_candidate,
     record_recovery_verification,
     recovery_verification_details,
-    wait_recovery_ready,
 )
-from .registry import DeviceModel, load_registry, select_model
+from .registry import select_model
 from .runtime import RunContext, build_application, resolve_idf_path, run_idf_target
 
 
@@ -130,7 +132,8 @@ def _monitor_color_enabled(arguments: Any, json_output: bool) -> bool:
     try:
         import ctypes
 
-        kernel = ctypes.windll.kernel32
+        ctypes_module: Any = ctypes
+        kernel = ctypes_module.windll.kernel32
         handle = kernel.GetStdHandle(-11)
         mode = ctypes.c_uint32()
         if not kernel.GetConsoleMode(handle, ctypes.byref(mode)):
@@ -140,43 +143,24 @@ def _monitor_color_enabled(arguments: Any, json_output: bool) -> bool:
         return False
 
 
-def list_models(repository: Path, details: bool) -> dict[str, Any]:
-    rows: list[dict[str, Any]] = []
-    for model in load_registry():
-        row: dict[str, Any] = {
-            "id": model.id,
-            "name": model.name,
-            "target": model.target,
-            "status": model.status,
-            "default": model.default,
-        }
-        if details:
-            manifest_path = repository / model.recovery_dir / "manifest.json"
-            try:
-                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-                recovery_version = manifest.get("version", "unknown")
-            except (OSError, json.JSONDecodeError):
-                recovery_version = "unavailable"
-            bsp = repository / model.bsp_path
-            try:
-                revision = subprocess.run(
-                    ["git", "-C", str(bsp), "rev-parse", "--short", "HEAD"],
-                    text=True,
-                    capture_output=True,
-                    timeout=3,
-                    check=True,
-                ).stdout.strip()
-            except (OSError, subprocess.SubprocessError):
-                revision = "unavailable"
-            row.update(
-                {
-                    "reference_project": model.reference_project,
-                    "bsp_revision": revision,
-                    "recovery_version": recovery_version,
-                }
-            )
-        rows.append(row)
-    return {"models": rows}
+def list_devices(context: RunContext, gateway_profile: str | None) -> dict[str, Any]:
+    """List live devices visible through the selected Gateway."""
+
+    session = ensure_gateway(context, gateway_profile)
+    devices = sorted(
+        gateway_devices(context, session),
+        key=lambda item: str(item.get("device_id") or ""),
+    )
+    for device in devices:
+        device["online"] = device.get("connected") is not False
+        device["connection"] = device.get("transport_name") or device.get("transport")
+    return {
+        "command": "list",
+        "status": "succeeded",
+        "gateway_started": session.started_local,
+        "gateway_profile": session.profile,
+        "devices": devices,
+    }
 
 
 def install(repository: Path, arguments: Any, context: RunContext) -> dict[str, Any]:
@@ -267,6 +251,10 @@ def install(repository: Path, arguments: Any, context: RunContext) -> dict[str, 
 
 
 def recover(repository: Path, arguments: Any, context: RunContext) -> dict[str, Any]:
+    if getattr(arguments, "gateway_profile", None):
+        raise DeviceError(
+            "Remote Recovery is not supported; run recovery on the Gateway host."
+        )
     model = select_model(arguments.model)
     context.status(
         f"recovery: model={model.id} target={model.target} source={arguments.source}"
@@ -293,10 +281,27 @@ def recover(repository: Path, arguments: Any, context: RunContext) -> dict[str, 
     prior_session = None
     context.status("gateway: checking the currently connected device")
     try:
-        prior_session = ensure_gateway(context, arguments.gateway_profile)
-        prior_device = select_device(
-            connected_devices(context, prior_session), arguments.device_id
+        prior_session = ensure_gateway(context, None)
+        devices = connected_devices(context, prior_session)
+    except DeviceError:
+        if not arguments.dry_run:
+            raise
+        devices = []
+        context.note("warning: local Gateway was unavailable during dry-run")
+    prior_device = None
+    if arguments.device_id:
+        matches = [item for item in devices if item.get("device_id") == arguments.device_id]
+        if len(matches) == 1:
+            prior_device = matches[0]
+        else:
+            context.note("warning: requested device was not reachable through Gateway")
+    elif len(devices) == 1:
+        prior_device = devices[0]
+    elif len(devices) > 1:
+        raise SelectionError(
+            "Multiple managed devices were found; specify the recovery target with --device-id."
         )
+    if prior_device is not None:
         prior_device_id = str(prior_device.get("device_id"))
         prior_boot_id = str(prior_device.get("boot_id") or "") or None
         context.status(
@@ -304,18 +309,20 @@ def recover(repository: Path, arguments: Any, context: RunContext) -> dict[str, 
             f"{prior_device.get('firmware_mode', 'unknown')} "
             f"boot_id={prior_boot_id or 'unknown'}"
         )
-    except (DeviceError, SelectionError):
+    else:
         context.status(
             "gateway: managed device unavailable; checking the recovery interface"
         )
-        if arguments.device_id:
-            context.note("warning: requested device was not reachable through Gateway")
 
-    context.status("device: detecting a unique ROM/recovery configuration interface")
-    port = provisioning_candidate(context, model)
-    context.status(f"device: recovery interface ready at {port}")
+    unowned_port: str | None = None
+    if prior_device is None:
+        context.status("device: detecting a unique unowned ROM configuration interface")
+        unowned_port = provisioning_candidate(context, model)
+        context.status(f"device: recovery interface ready at {unowned_port}")
+
     idf_path = resolve_idf_path(repository, factory)
     context.status(f"idf: environment ready at {idf_path}")
+    build_dir = factory / "build-mosaico-recover"
     plan = {
         "command": "recover",
         "status": "dry_run" if arguments.dry_run else "planned",
@@ -327,7 +334,8 @@ def recover(repository: Path, arguments: Any, context: RunContext) -> dict[str, 
         "checks": {
             "idf": str(idf_path),
             "bundle_verified": manifest is not None,
-            "device_unique": True,
+            "device_unique": prior_device is not None or unowned_port is not None,
+            "gateway_local": True,
         },
         "log": str(context.log_path),
     }
@@ -335,53 +343,131 @@ def recover(repository: Path, arguments: Any, context: RunContext) -> dict[str, 
         context.status("validation: recovery preflight checks passed; no write performed")
         return plan
 
-    if prior_session and prior_device_id:
-        context.status("evidence: preserving crash index and any valid core dump")
-        preserve_evidence(context, prior_session, prior_device_id)
-        context.status("evidence: preservation attempt complete")
+    if prior_session is None:
+        raise DeviceError("The local Gateway is required to verify Recovery.")
 
-    # ESP-Iris and the ESP-IDF recovery target use the same USB device.  Stop
-    # only the local process managed by this CLI after evidence collection and
-    # immediately before handing exclusive ownership to ESP-IDF.
-    context.status("gateway: releasing the USB interface for ESP-IDF")
-    pause_managed_local_gateway(context)
-
-    context.status("flash: building and writing the complete Recovery bundle")
+    context.status("bundle: preparing all Recovery artifacts before device maintenance")
     run_idf_target(
         context,
         idf_path=idf_path,
         project=factory,
-        build_dir=factory / "build-mosaico-recover",
-        target="mosaico-recover-flash",
+        build_dir=build_dir,
+        target="mosaico-recover-prepare",
         definitions={
             "BUILD_PROFILE": "application",
             "MOSAICO_RECOVERY_SOURCE": arguments.source,
         },
-        port=port,
         timeout=arguments.timeout,
     )
-    context.status("flash: ESP-IDF write completed successfully")
-    context.status("gateway: reconnecting after device reset")
-    session = ensure_gateway(context, arguments.gateway_profile)
-    context.status("validation: waiting for the new Recovery service")
-    status = wait_recovery_ready(
-        context,
-        session,
-        expected_device_id=prior_device_id,
-        previous_boot_id=prior_boot_id,
-        expected_version=str(manifest.get("version") if manifest else ""),
-        timeout=arguments.timeout,
+    prepared_dir = build_dir / (
+        "recovery" if arguments.source == "reviewed" else "recovery-current"
     )
+    prepared_manifest = load_bundle(prepared_dir, model.target)
+    expected_version = str(prepared_manifest.get("version") or "")
+
+    lease: dict[str, Any] | None = None
+    lease_finished = False
+    if prior_device is not None and prior_device_id:
+        context.status(f"gateway: acquiring maintenance lease for {prior_device_id}")
+        lease = acquire_maintenance_lease(
+            context,
+            prior_session,
+            device_id=prior_device_id,
+            expected_version=expected_version,
+            timeout=arguments.timeout,
+        )
+        endpoint = lease.get("endpoint", {})
+        if not isinstance(endpoint, dict):
+            raise DeviceError("The maintenance lease did not include a physical endpoint.")
+        port = str(endpoint.get("path") or "")
+        if not port:
+            raw_endpoint = str(endpoint.get("endpoint") or "")
+            port = raw_endpoint.removeprefix("usb:") if raw_endpoint.startswith("usb:") else ""
+        if not port:
+            raise DeviceError("The maintenance lease did not include a writable local port.")
+        context.status(f"device: leased recovery interface ready at {port}")
+    else:
+        assert unowned_port is not None
+        context.status(f"gateway: acquiring maintenance lease for endpoint {unowned_port}")
+        lease = acquire_endpoint_maintenance_lease(
+            context,
+            prior_session,
+            endpoint=unowned_port,
+            expected_version=expected_version,
+            timeout=arguments.timeout,
+        )
+        endpoint = lease.get("endpoint", {})
+        if not isinstance(endpoint, dict):
+            raise DeviceError("The maintenance lease did not include a physical endpoint.")
+        port = str(endpoint.get("path") or "")
+        if not port:
+            raw_endpoint = str(endpoint.get("endpoint") or "")
+            port = (
+                raw_endpoint.removeprefix("usb:")
+                if raw_endpoint.startswith("usb:")
+                else ""
+            )
+        if not port:
+            raise DeviceError("The maintenance lease did not include a writable local port.")
+        context.status(f"device: leased recovery interface ready at {port}")
+
+    try:
+        if lease is not None:
+            renew_maintenance_lease(
+                context,
+                prior_session,
+                lease,
+                ttl_seconds=arguments.timeout + 60,
+            )
+        context.status("flash: writing the prepared complete Recovery bundle")
+        run_idf_target(
+            context,
+            idf_path=idf_path,
+            project=factory,
+            build_dir=build_dir,
+            target="mosaico-recover-flash",
+            definitions={
+                "BUILD_PROFILE": "application",
+                "MOSAICO_RECOVERY_SOURCE": arguments.source,
+            },
+            port=port,
+            timeout=arguments.timeout,
+        )
+        context.status("flash: ESP-IDF write completed successfully")
+        context.status("gateway: reattaching and verifying the leased device")
+        completed = finish_maintenance_lease(
+            context,
+            prior_session,
+            lease,
+            abort=False,
+            timeout=arguments.timeout,
+        )
+        lease_finished = True
+        evidence = completed.get("evidence", {})
+        status = evidence.get("verification", {}) if isinstance(evidence, dict) else {}
+    except BaseException:
+        if lease is not None and not lease_finished:
+            context.status("gateway: aborting maintenance lease and reattaching the device")
+            try:
+                finish_maintenance_lease(
+                    context,
+                    prior_session,
+                    lease,
+                    abort=True,
+                    timeout=min(arguments.timeout, 30),
+                )
+            except (DeviceError, OperationError):
+                context.note(
+                    "warning: maintenance lease remains quarantined; inspect the local Gateway"
+                )
+        raise
+
     verified_device_id = str(status.get("device_id") or prior_device_id or "")
     if not verified_device_id:
         raise OperationError(
             "Recovery is ready, but the Device ID could not be confirmed."
         )
-    recovery_version = str(
-        manifest.get("version")
-        if manifest
-        else status.get("app_version") or "current-source"
-    )
+    recovery_version = expected_version or str(status.get("app_version") or "current-source")
     record_recovery_verification(
         verified_device_id, recovery_version, status.get("boot_id")
     )
@@ -394,7 +480,8 @@ def recover(repository: Path, arguments: Any, context: RunContext) -> dict[str, 
         "status": "succeeded",
         "device_id": verified_device_id,
         "boot_id": status.get("boot_id"),
-        "gateway_started": session.started_local,
+        "gateway_started": prior_session.started_local,
+        "maintenance_lease_id": lease.get("lease_id") if lease else None,
     }
 
 
@@ -426,13 +513,14 @@ def monitor(repository: Path, arguments: Any, context: RunContext, json_output: 
     )
     deadline = time.monotonic() + arguments.timeout if arguments.timeout else None
     try:
-        assert process.stdout is not None
+        stdout = process.stdout
+        assert stdout is not None
         sentinel = object()
         records: Queue[str | object] = Queue()
 
         def read_records() -> None:
             try:
-                for record in process.stdout:
+                for record in stdout:
                     records.put(record)
             finally:
                 records.put(sentinel)
@@ -493,7 +581,7 @@ def monitor(repository: Path, arguments: Any, context: RunContext, json_output: 
             process.kill()
             return_code = process.wait(timeout=5)
         reader.join(timeout=1)
-        process.stdout.close()
+        stdout.close()
         if not stopped_by_us and return_code != 0:
             raise DeviceError(
                 "The log connection ended unexpectedly.",
