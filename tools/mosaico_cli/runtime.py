@@ -15,6 +15,7 @@ from threading import Thread
 import time
 from typing import Callable, Sequence
 
+from .build_progress import decode_progress
 from .errors import BuildError, DeviceError, EnvironmentError
 from .host import HostEnvironmentError, prepare_idf_environment, valid_idf_path
 
@@ -189,7 +190,7 @@ def build_application(context: RunContext, project: Path) -> None:
         / "idf_low_noise_build.py"
     )
     idf_path = resolve_idf_path(context.repository, project)
-    context.status(f"build: compiling {project}")
+    context.status(f"build: preparing {project}")
     result = context.run(
         [
             sys.executable,
@@ -201,12 +202,18 @@ def build_application(context: RunContext, project: Path) -> None:
             "--log-dir",
             context.directory / "build",
             "build",
+            "--progress",
         ],
         timeout=3600,
         cwd=context.repository,
+        output_status=_build_progress_parser(),
     )
     if result.returncode:
-        diagnostic = (result.stdout or "").strip()
+        diagnostic = "\n".join(
+            line
+            for line in (result.stdout or "").splitlines()
+            if decode_progress(line) is None
+        ).strip()
         raise BuildError(
             "Application build failed.",
             details={
@@ -215,9 +222,14 @@ def build_application(context: RunContext, project: Path) -> None:
                 "build_log_dir": str(context.directory / "build"),
             },
         )
-    for line in (result.stdout or "").splitlines():
-        if line.strip():
-            context.status(f"build: {line.strip()}")
+
+
+def _build_progress_parser() -> Callable[[str], str | None]:
+    def parse(raw_line: str) -> str | None:
+        message = decode_progress(raw_line)
+        return f"build: {message}" if message else None
+
+    return parse
 
 
 def _idf_progress_parser() -> Callable[[str], str | None]:

@@ -9,10 +9,12 @@ import datetime as dt
 import json
 import os
 from pathlib import Path
+from queue import Empty, Queue
 import re
 import shutil
 import subprocess
 import sys
+from threading import Thread
 import time
 from typing import Any, Sequence
 
@@ -24,6 +26,10 @@ from mosaico_cli.host import (  # noqa: E402
     HostEnvironmentError,
     prepare_idf_environment,
     valid_idf_path,
+)
+from mosaico_cli.build_progress import (  # noqa: E402
+    BuildProgressReporter,
+    encode_progress,
 )
 
 
@@ -339,8 +345,61 @@ def print_summary(result: dict[str, Any]) -> None:
     print(f"result: {result['result_file']}")
 
 
+def run_streaming_build(
+    command: Sequence[str],
+    *,
+    project: Path,
+    environment: dict[str, str],
+    raw_path: Path,
+    reporter: BuildProgressReporter,
+) -> int:
+    """Preserve raw output while emitting only bounded progress events."""
+
+    process = subprocess.Popen(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        cwd=project,
+        env=environment,
+    )
+    assert process.stdout is not None
+    sentinel = object()
+    events: Queue[bytes | object] = Queue()
+
+    def read_output() -> None:
+        try:
+            for line in process.stdout:
+                events.put(line)
+        finally:
+            events.put(sentinel)
+
+    reader = Thread(target=read_output, daemon=True)
+    reader.start()
+    with raw_path.open("wb") as output:
+        while True:
+            try:
+                event = events.get(timeout=0.25)
+            except Empty:
+                reporter.heartbeat()
+                continue
+            if event is sentinel:
+                break
+            line = bytes(event)
+            output.write(line)
+            reporter.consume(line.decode("utf-8", errors="replace"))
+    reader.join(timeout=1)
+    process.stdout.close()
+    return process.wait()
+
+
 def run_build_step(
-    *, action: str, project: Path, idf_path: Path, arguments: Sequence[str], log_root: Path
+    *,
+    action: str,
+    project: Path,
+    idf_path: Path,
+    arguments: Sequence[str],
+    log_root: Path,
+    progress: bool = False,
 ) -> int:
     run_id, run_dir = create_run_dir(log_root, action)
     raw_path = run_dir / "raw.log"
@@ -357,19 +416,33 @@ def run_build_step(
         },
     )
 
+    reporter = (
+        BuildProgressReporter(lambda message: print(encode_progress(message), flush=True))
+        if progress
+        else None
+    )
     started = time.monotonic()
     try:
         command, environment, _ = idf_command(idf_path, arguments)
-        with raw_path.open("wb") as output:
-            completed = subprocess.run(
+        if reporter is not None:
+            exit_code = run_streaming_build(
                 command,
-                stdout=output,
-                stderr=subprocess.STDOUT,
-                check=False,
-                cwd=project,
-                env=environment,
+                project=project,
+                environment=environment,
+                raw_path=raw_path,
+                reporter=reporter,
             )
-        exit_code = completed.returncode
+        else:
+            with raw_path.open("wb") as output:
+                completed = subprocess.run(
+                    command,
+                    stdout=output,
+                    stderr=subprocess.STDOUT,
+                    check=False,
+                    cwd=project,
+                    env=environment,
+                )
+            exit_code = completed.returncode
     except OSError as exc:
         raw_path.write_text(f"Runner failed to start command: {exc}\n", encoding="utf-8")
         exit_code = 127
@@ -394,6 +467,20 @@ def run_build_step(
     }
     write_json(result_path, result)
     (log_root / "latest.txt").write_text(run_id + "\n", encoding="utf-8")
+    if reporter is not None:
+        if exit_code == 0:
+            artifact_size = (
+                int(result["artifacts"][0]["size_bytes"])
+                if result["artifacts"]
+                else None
+            )
+            reporter.complete(
+                duration_seconds=float(result["duration_seconds"]),
+                warnings=int(result["warnings"]),
+                artifact_size=artifact_size,
+            )
+        else:
+            reporter.failed(duration_seconds=float(result["duration_seconds"]))
     print_summary(result)
     return exit_code if 0 <= exit_code <= 125 else 1
 
@@ -603,6 +690,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Run idf.py fullclean first; requires explicit user approval",
     )
+    build.add_argument(
+        "--progress",
+        action="store_true",
+        help=argparse.SUPPRESS,
+    )
 
     inspect = subparsers.add_parser("inspect", help="Inspect a bounded part of a stored log")
     inspect.add_argument("--run", default="latest", help="Run id, run directory, or 'latest'")
@@ -659,6 +751,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     idf_path=idf_path,
                     arguments=["fullclean"],
                     log_root=log_root,
+                    progress=args.progress,
                 )
                 if clean_code:
                     return clean_code
@@ -668,6 +761,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 idf_path=idf_path,
                 arguments=["build"],
                 log_root=log_root,
+                progress=args.progress,
             )
     except (RunnerError, OSError, json.JSONDecodeError) as exc:
         print(f"IDF LOW-NOISE BUILD: CONFIGURATION ERROR\nerror: {exc}", file=sys.stderr)

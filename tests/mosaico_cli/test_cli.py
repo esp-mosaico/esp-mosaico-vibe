@@ -20,6 +20,11 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
 
 from mosaico_cli.cli import REPOSITORY, _emit_error, build_parser, main, _normalize_globals
+from mosaico_cli.build_progress import (
+    BuildProgressReporter,
+    decode_progress,
+    encode_progress,
+)
 from mosaico_cli.commands import (
     _device_status,
     _MonitorTextRenderer,
@@ -64,7 +69,12 @@ from mosaico_cli.recovery import (
     recovery_verification_details,
 )
 from mosaico_cli.registry import load_registry, select_model
-from mosaico_cli.runtime import RunContext, build_application, run_idf_target
+from mosaico_cli.runtime import (
+    RunContext,
+    _build_progress_parser,
+    build_application,
+    run_idf_target,
+)
 
 
 class ParserTests(unittest.TestCase):
@@ -153,12 +163,13 @@ class ParserTests(unittest.TestCase):
 
 class BuildDiagnosticsTests(unittest.TestCase):
     def test_build_failure_prints_bounded_diagnostic_without_verbose(self) -> None:
-        summary = (
+        expected_summary = (
             "IDF LOW-NOISE BUILD: FAILED\n"
             "category: compiler\n"
             "error: main/main.c:7:5: error: expected ';' before '}'\n"
             "log: /runs/build/raw.log"
         )
+        summary = encode_progress("building 10% (10/100)") + "\n" + expected_summary
         context = mock.Mock(
             repository=REPOSITORY,
             directory=Path("/runs"),
@@ -171,7 +182,14 @@ class BuildDiagnosticsTests(unittest.TestCase):
         ):
             build_application(context, Path("/project"))
 
-        self.assertEqual(caught.exception.details["diagnostic"], summary)
+        self.assertEqual(caught.exception.details["diagnostic"], expected_summary)
+        invocation = context.run.call_args
+        self.assertIn("--progress", invocation.args[0])
+        progress = invocation.kwargs["output_status"]
+        self.assertEqual(
+            progress(encode_progress("configuring (CMake)")),
+            "build: configuring (CMake)",
+        )
         stderr = io.StringIO()
         with redirect_stderr(stderr):
             _emit_error(caught.exception, json_output=False, verbose=False)
@@ -179,6 +197,62 @@ class BuildDiagnosticsTests(unittest.TestCase):
         self.assertIn("mosaico: Application build failed.", output)
         self.assertIn("main/main.c:7:5: error: expected ';'", output)
         self.assertIn(f"Build logs: {Path('/runs/build')}", output)
+
+
+class BuildProgressTests(unittest.TestCase):
+    def test_protocol_ignores_regular_and_malformed_output(self) -> None:
+        encoded = encode_progress("building 20% (2/10)")
+        self.assertEqual(decode_progress(encoded), "building 20% (2/10)")
+        self.assertIsNone(decode_progress("[2/10] Building C object"))
+        self.assertIsNone(decode_progress("@@MOSAICO_BUILD_PROGRESS@@{"))
+        self.assertEqual(
+            _build_progress_parser()(encoded), "build: building 20% (2/10)"
+        )
+
+    def test_reports_phases_coarse_progress_and_heartbeats(self) -> None:
+        now = [0.0]
+        events: list[str] = []
+        reporter = BuildProgressReporter(events.append, clock=lambda: now[0])
+
+        reporter.consume("[0/1] Re-running CMake...\n")
+        now[0] = 9.9
+        reporter.heartbeat()
+        now[0] = 10.0
+        reporter.heartbeat()
+        now[0] = 24.0
+        reporter.consume("NOTE: Processing 30 dependencies:\n")
+        reporter.consume("-- Configuring done (24.0s)\n")
+        reporter.consume("[1/27] Building C object main.c.obj\n")
+        reporter.consume("[2/27] Building C object support.c.obj\n")
+        reporter.consume("[3/27] Building C object transport.c.obj\n")
+        reporter.consume("[1/1] Checking bootloader image size\n")
+        reporter.consume("[25/27] Linking CXX executable hello_world.elf\n")
+        reporter.consume("[26/27] Generating binary image from built executable\n")
+        reporter.consume("[27/27] check_sizes.py partition application.bin\n")
+        reporter.complete(
+            duration_seconds=30.2,
+            warnings=0,
+            artifact_size=1_147_936,
+        )
+
+        self.assertEqual(
+            events,
+            [
+                "configuring (CMake)",
+                "configuring (10s elapsed)",
+                "resolving 30 dependencies",
+                "configuration complete (24.0s)",
+                "building 3% (1/27)",
+                "building 11% (3/27)",
+                "linking application",
+                "building 92% (25/27)",
+                "generating firmware image",
+                "checking firmware size",
+                "building 100% (27/27)",
+                "complete in 30.2s, warnings: 0, firmware: 1.09 MiB",
+            ],
+        )
+        self.assertNotIn("building 100% (1/1)", events)
 
 
 class RegistryAndSelectionTests(unittest.TestCase):
