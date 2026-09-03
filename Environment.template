@@ -31,8 +31,8 @@ esp_idf:
   tools_path: null              # IDF_TOOLS_PATH; null means IDF default
   export_script: /absolute/path/to/esp-idf/export.sh # export.sh | export.ps1 | export.bat
   python_env_path: null         # IDF_PYTHON_ENV_PATH, if known
-  python_executable: null       # Absolute interpreter path after IDF export
-  python_version: null
+  python_executable: null       # ESP-IDF interpreter (Python >=3.10), not necessarily the host CLI Python
+  python_version: null          # mosaico.py itself supports Python >=3.8
 
 # If no compatible ESP-IDF installation can be found, do not guess installation
 # commands or a release tag from this file. Follow skills/espressif-env-setup/

@@ -197,7 +197,8 @@ static esp_err_t download_component(
         return ESP_ERR_INVALID_SIZE;
     }
 
-    esp_err_t err = factory_system_update_local_begin_component(component);
+    esp_err_t err = factory_system_update_source_begin_component(
+        FACTORY_SYSTEM_UPDATE_OWNER_HTTP, component);
     psa_hash_operation_t hash = PSA_HASH_OPERATION_INIT;
     bool hash_active = false;
     if (err == ESP_OK) {
@@ -229,8 +230,9 @@ static esp_err_t download_component(
             err = ESP_FAIL;
             break;
         }
-        err = factory_system_update_local_write_component(
-            component, received, buffer, (size_t)read_size);
+        err = factory_system_update_source_write_component(
+            FACTORY_SYSTEM_UPDATE_OWNER_HTTP, component, received, buffer,
+            (size_t)read_size);
         if (err == ESP_OK) {
             received += (uint32_t)read_size;
         }
@@ -264,7 +266,8 @@ static esp_err_t download_component(
         }
     }
     if (err == ESP_OK) {
-        err = factory_system_update_local_end_component(component, digest);
+        err = factory_system_update_source_end_component(
+            FACTORY_SYSTEM_UPDATE_OWNER_HTTP, component, digest);
     }
     if (hash_active) {
         (void)psa_hash_abort(&hash);
@@ -306,19 +309,23 @@ static void http_update_task(void *argument)
                                 &manifest_size);
     }
     if (err == ESP_OK) {
-        err = factory_system_update_local_prepare(
-            manifest, manifest_size, operation_id);
+        err = factory_system_update_source_prepare(
+            FACTORY_SYSTEM_UPDATE_OWNER_HTTP, manifest, manifest_size,
+            operation_id);
         prepared = err == ESP_OK;
     }
     free(manifest);
 
     const size_t component_count = prepared
-        ? factory_system_update_local_component_count() : 0;
+        ? factory_system_update_source_component_count(
+              FACTORY_SYSTEM_UPDATE_OWNER_HTTP)
+        : 0;
     for (size_t i = 0; err == ESP_OK && i < component_count; ++i) {
         esp_iris_system_update_component_t component;
         char filename[FACTORY_SYSTEM_UPDATE_FILENAME_BYTES];
         char url[FACTORY_SYSTEM_UPDATE_URL_BYTES];
-        err = factory_system_update_local_component(i, &component, filename);
+        err = factory_system_update_source_component(
+            FACTORY_SYSTEM_UPDATE_OWNER_HTTP, i, &component, filename);
         if (err == ESP_OK) {
             err = component_url(context->manifest_url, filename, url);
         }
@@ -329,11 +336,13 @@ static void http_update_task(void *argument)
         }
     }
     if (err == ESP_OK) {
-        err = factory_system_update_local_commit(operation_id);
+        err = factory_system_update_source_commit(
+            FACTORY_SYSTEM_UPDATE_OWNER_HTTP, operation_id);
     }
     if (err != ESP_OK) {
         if (prepared) {
-            factory_system_update_local_abort(operation_id, err);
+            factory_system_update_source_abort(
+                FACTORY_SYSTEM_UPDATE_OWNER_HTTP, operation_id, err);
         }
         ESP_LOGE(TAG, "HTTP system update failed: %s", esp_err_to_name(err));
     }

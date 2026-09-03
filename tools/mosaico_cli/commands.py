@@ -163,10 +163,8 @@ def list_devices(context: RunContext, gateway_profile: str | None) -> dict[str, 
     }
 
 
-def start_http_system_update(
-    arguments: Any, context: RunContext
-) -> dict[str, Any]:
-    """Ask a live Recovery instance to pull and apply an HTTP(S) bundle."""
+def start_system_update(arguments: Any, context: RunContext) -> dict[str, Any]:
+    """Ask a live Recovery instance to apply an external system bundle."""
 
     context.status("gateway: connecting")
     session = ensure_gateway(context, arguments.gateway_profile)
@@ -182,31 +180,43 @@ def start_http_system_update(
     )
     if firmware_mode != "recovery":
         raise RecoveryRequiredError(
-            "HTTP system update requires a live Recovery service. "
+            "System update requires a live Recovery service. "
             "Run 'python mosaico.py recover' first."
         )
 
-    context.status("system update: requesting Recovery HTTP(S) pull")
+    manifest_url = getattr(arguments, "manifest_url", None)
+    if manifest_url:
+        method_id = "1"
+        payload = manifest_url
+        source = "http"
+        action = "HTTP(S) pull"
+    else:
+        method_id = "2"
+        payload = arguments.manifest_path
+        source = "nand"
+        action = "NAND LittleFS read"
+    context.status(f"system update: requesting Recovery {action}")
     response = gateway_json(
         context,
         session,
         "rpc-raw",
         device_id,
         "0x1201",
-        "1",
+        method_id,
         "--payload",
-        arguments.manifest_url,
+        payload,
         "--deadline-ms",
         "5000",
         timeout=10,
         sensitive_output=True,
     )
-    context.status("system update: accepted by Recovery; download is running")
+    context.status("system update: accepted by Recovery; update is running")
     return {
         "command": "system-update",
         "status": "accepted",
         "device_id": device_id,
         "firmware_mode": firmware_mode,
+        "source": source,
         "gateway_started": session.started_local,
         "response": response,
         "log": str(context.log_path),
@@ -432,7 +442,7 @@ def recover(repository: Path, arguments: Any, context: RunContext) -> dict[str, 
         port = str(endpoint.get("path") or "")
         if not port:
             raw_endpoint = str(endpoint.get("endpoint") or "")
-            port = raw_endpoint.removeprefix("usb:") if raw_endpoint.startswith("usb:") else ""
+            port = raw_endpoint[len("usb:") :] if raw_endpoint.startswith("usb:") else ""
         if not port:
             raise DeviceError("The maintenance lease did not include a writable local port.")
         context.status(f"device: leased recovery interface ready at {port}")
@@ -453,7 +463,7 @@ def recover(repository: Path, arguments: Any, context: RunContext) -> dict[str, 
         if not port:
             raw_endpoint = str(endpoint.get("endpoint") or "")
             port = (
-                raw_endpoint.removeprefix("usb:")
+                raw_endpoint[len("usb:") :]
                 if raw_endpoint.startswith("usb:")
                 else ""
             )

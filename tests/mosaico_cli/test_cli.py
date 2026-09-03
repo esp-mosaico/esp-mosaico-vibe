@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 import ast
-from contextlib import redirect_stderr, redirect_stdout
+from contextlib import ExitStack, redirect_stderr, redirect_stdout
 import hashlib
 import io
 import json
@@ -18,7 +18,13 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
 
-from mosaico_cli.cli import REPOSITORY, _emit_error, build_parser, main, _normalize_globals
+from mosaico_cli.cli import (
+    REPOSITORY,
+    _emit_error,
+    build_parser,
+    main,
+    _normalize_globals,
+)
 from mosaico_cli.build_progress import (
     BuildProgressReporter,
     decode_progress,
@@ -32,7 +38,7 @@ from mosaico_cli.commands import (
     list_devices,
     monitor,
     recover,
-    start_http_system_update,
+    start_system_update,
 )
 from mosaico_cli.errors import (
     BuildError,
@@ -48,14 +54,18 @@ from mosaico_cli.gateway import (
     acquire_endpoint_maintenance_lease,
     acquire_maintenance_lease,
     ensure_gateway,
+    ensure_iris_tools,
+    iris_environment_root,
     locate_iris_tools,
     run_ota,
     select_device,
 )
 from mosaico_cli.host import (
+    HostEnvironmentError,
     IdfEnvironment,
     _parse_idf_exports,
     prepare_idf_environment,
+    resolve_idf_bootstrap_python,
     state_root,
     virtual_environment_python,
 )
@@ -109,14 +119,30 @@ class ParserTests(unittest.TestCase):
         )
         self.assertEqual(value.command, "system-update")
         self.assertIsNone(value.device_id)
-        with self.assertRaises(SystemExit) as caught:
+        with ExitStack() as _contexts:
+            caught = _contexts.enter_context(self.assertRaises(SystemExit))
             self.parse("system-update", "--manifest-url", "file:///manifest.json")
         self.assertEqual(caught.exception.code, 2)
 
-    def test_global_flags_work_after_command(self) -> None:
+    def test_system_update_accepts_nand_manifest_path(self) -> None:
         value = self.parse(
-            "list", "--gateway-profile", "bench", "--json", "--verbose"
+            "system-update",
+            "--manifest-path",
+            "/nand/system-update/manifest.json",
         )
+        self.assertEqual(value.manifest_path, "/nand/system-update/manifest.json")
+        self.assertIsNone(value.manifest_url)
+        with ExitStack() as _contexts:
+            caught = _contexts.enter_context(self.assertRaises(SystemExit))
+            self.parse(
+                "system-update",
+                "--manifest-path",
+                "/nand/system-update/../manifest.json",
+            )
+        self.assertEqual(caught.exception.code, 2)
+
+    def test_global_flags_work_after_command(self) -> None:
+        value = self.parse("list", "--gateway-profile", "bench", "--json", "--verbose")
         self.assertTrue(value.json)
         self.assertTrue(value.verbose)
         self.assertEqual(value.gateway_profile, "bench")
@@ -130,13 +156,18 @@ class ParserTests(unittest.TestCase):
             "devices": [{"device_id": "device-a"}],
         }
         output = io.StringIO()
-        with (
-            mock.patch("mosaico_cli.cli.MosaicoArgumentParser.json_errors", False),
-            mock.patch("mosaico_cli.cli.list_devices", return_value=result),
-            redirect_stdout(output),
-        ):
+        with ExitStack() as _contexts:
+            _contexts.enter_context(
+                mock.patch("mosaico_cli.cli.MosaicoArgumentParser.json_errors", False)
+            )
+            _contexts.enter_context(
+                mock.patch("mosaico_cli.cli.list_devices", return_value=result)
+            )
+            _contexts.enter_context(redirect_stdout(output))
             self.assertEqual(main(["list", "--json"]), 0)
-        self.assertEqual(json.loads(output.getvalue())["devices"][0]["device_id"], "device-a")
+        self.assertEqual(
+            json.loads(output.getvalue())["devices"][0]["device_id"], "device-a"
+        )
 
     def test_doctor_is_public_and_has_no_device_options(self) -> None:
         value = self.parse("doctor", "--json")
@@ -154,13 +185,31 @@ class ParserTests(unittest.TestCase):
             "exit_code": 0,
         }
         output = io.StringIO()
-        with (
-            mock.patch("mosaico_cli.cli.MosaicoArgumentParser.json_errors", False),
-            mock.patch("mosaico_cli.cli.diagnose_host", return_value=diagnosis),
-            redirect_stdout(output),
-        ):
+        with ExitStack() as _contexts:
+            _contexts.enter_context(
+                mock.patch("mosaico_cli.cli.MosaicoArgumentParser.json_errors", False)
+            )
+            _contexts.enter_context(
+                mock.patch("mosaico_cli.cli.diagnose_host", return_value=diagnosis)
+            )
+            _contexts.enter_context(redirect_stdout(output))
             self.assertEqual(main(["doctor", "--json"]), 0)
         self.assertEqual(json.loads(output.getvalue())["status"], "ready")
+
+    def test_python_below_38_is_rejected(self) -> None:
+        output = io.StringIO()
+        with ExitStack() as _contexts:
+            _contexts.enter_context(
+                mock.patch("mosaico_cli.cli.MosaicoArgumentParser.json_errors", False)
+            )
+            _contexts.enter_context(
+                mock.patch("mosaico_cli.cli.sys.version_info", (3, 7, 17))
+            )
+            _contexts.enter_context(redirect_stderr(output))
+            self.assertEqual(main(["doctor", "--json"]), 3)
+        report = json.loads(output.getvalue())
+        self.assertEqual(report["error"], "environment_error")
+        self.assertIn("Python 3.8", report["message"])
 
     def test_no_public_recovery_port(self) -> None:
         options = build_parser().format_help()
@@ -173,12 +222,14 @@ class ParserTests(unittest.TestCase):
         self.assertNotIn("--port", options + recover_help)
 
     def test_recover_has_no_confirmation_option(self) -> None:
-        with self.assertRaises(SystemExit) as caught:
+        with ExitStack() as _contexts:
+            caught = _contexts.enter_context(self.assertRaises(SystemExit))
             self.parse("recover", "--yes")
         self.assertEqual(caught.exception.code, 2)
 
     def test_recover_has_no_remote_gateway_option(self) -> None:
-        with self.assertRaises(SystemExit) as caught:
+        with ExitStack() as _contexts:
+            caught = _contexts.enter_context(self.assertRaises(SystemExit))
             self.parse("recover", "--gateway-profile", "remote")
         self.assertEqual(caught.exception.code, 2)
 
@@ -213,10 +264,13 @@ class BuildDiagnosticsTests(unittest.TestCase):
             log_path=Path("/runs/raw.log"),
         )
         context.run.return_value = subprocess.CompletedProcess([], 1, summary, None)
-        with (
-            mock.patch("mosaico_cli.runtime.resolve_idf_path", return_value=Path("/idf")),
-            self.assertRaises(BuildError) as caught,
-        ):
+        with ExitStack() as _contexts:
+            _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.runtime.resolve_idf_path", return_value=Path("/idf")
+                )
+            )
+            caught = _contexts.enter_context(self.assertRaises(BuildError))
             build_application(context, Path("/project"))
 
         self.assertEqual(caught.exception.details["diagnostic"], expected_summary)
@@ -228,7 +282,8 @@ class BuildDiagnosticsTests(unittest.TestCase):
             "build: configuring (CMake)",
         )
         stderr = io.StringIO()
-        with redirect_stderr(stderr):
+        with ExitStack() as _contexts:
+            _contexts.enter_context(redirect_stderr(stderr))
             _emit_error(caught.exception, json_output=False, verbose=False)
         output = stderr.getvalue()
         self.assertIn("mosaico: Application build failed.", output)
@@ -301,9 +356,11 @@ class RegistryAndSelectionTests(unittest.TestCase):
     def test_device_selection(self) -> None:
         item = {"device_id": "one"}
         self.assertIs(select_device([item], None), item)
-        with self.assertRaises(SelectionError):
+        with ExitStack() as _contexts:
+            _contexts.enter_context(self.assertRaises(SelectionError))
             select_device([item, {"device_id": "two"}], None)
-        with self.assertRaises(DeviceError):
+        with ExitStack() as _contexts:
+            _contexts.enter_context(self.assertRaises(DeviceError))
             select_device([], None)
 
     def test_selection_error_prints_available_device_ids(self) -> None:
@@ -311,7 +368,8 @@ class RegistryAndSelectionTests(unittest.TestCase):
             "choose a device", details={"candidates": ["device-a", "device-b"]}
         )
         output = io.StringIO()
-        with redirect_stderr(output):
+        with ExitStack() as _contexts:
+            _contexts.enter_context(redirect_stderr(output))
             _emit_error(error, json_output=False, verbose=False)
         self.assertIn("device-a", output.getvalue())
         self.assertIn("device-b", output.getvalue())
@@ -323,24 +381,27 @@ class GatewayTests(unittest.TestCase):
         session = GatewaySession(
             Path("python"), Path("iris"), ("--profile", "bench"), "bench", False
         )
-        with (
-            mock.patch("mosaico_cli.commands.ensure_gateway", return_value=session),
-            mock.patch(
-                "mosaico_cli.commands.gateway_devices",
-                return_value=[
-                    {
-                        "device_id": "device-b",
-                        "connected": False,
-                        "transport_name": "TCP",
-                    },
-                    {
-                        "device_id": "device-a",
-                        "connected": True,
-                        "transport_name": "USB Highspeed",
-                    },
-                ],
-            ),
-        ):
+        with ExitStack() as _contexts:
+            _contexts.enter_context(
+                mock.patch("mosaico_cli.commands.ensure_gateway", return_value=session)
+            )
+            _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.commands.gateway_devices",
+                    return_value=[
+                        {
+                            "device_id": "device-b",
+                            "connected": False,
+                            "transport_name": "TCP",
+                        },
+                        {
+                            "device_id": "device-a",
+                            "connected": True,
+                            "transport_name": "USB Highspeed",
+                        },
+                    ],
+                )
+            )
             result = list_devices(context, "bench")
         self.assertEqual(
             [item["device_id"] for item in result["devices"]],
@@ -360,27 +421,74 @@ class GatewayTests(unittest.TestCase):
             gateway_profile="bench",
             device_id="device-a",
             manifest_url="https://updates.example.test/release/manifest.json?token=secret",
+            manifest_path=None,
         )
-        with (
-            mock.patch("mosaico_cli.commands.ensure_gateway", return_value=session),
-            mock.patch(
-                "mosaico_cli.commands.connected_devices",
-                return_value=[{"device_id": "device-a", "firmware_mode": "recovery"}],
-            ),
-            mock.patch(
-                "mosaico_cli.commands.gateway_json",
-                side_effect=[
-                    {"device": {"firmware_mode": "recovery", "boot_id": "boot-a"}},
-                    {"response": {"payload_hex": ""}},
-                ],
-            ) as gateway,
-        ):
-            result = start_http_system_update(arguments, context)
+        with ExitStack() as _contexts:
+            _contexts.enter_context(
+                mock.patch("mosaico_cli.commands.ensure_gateway", return_value=session)
+            )
+            _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.commands.connected_devices",
+                    return_value=[
+                        {"device_id": "device-a", "firmware_mode": "recovery"}
+                    ],
+                )
+            )
+            gateway = _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.commands.gateway_json",
+                    side_effect=[
+                        {"device": {"firmware_mode": "recovery", "boot_id": "boot-a"}},
+                        {"response": {"payload_hex": ""}},
+                    ],
+                )
+            )
+            result = start_system_update(arguments, context)
 
         self.assertEqual(result["status"], "accepted")
         rpc_call = gateway.call_args_list[1]
-        self.assertEqual(rpc_call.args[2:7], ("rpc-raw", "device-a", "0x1201", "1", "--payload"))
+        self.assertEqual(
+            rpc_call.args[2:7], ("rpc-raw", "device-a", "0x1201", "1", "--payload")
+        )
         self.assertTrue(rpc_call.kwargs["sensitive_output"])
+
+    def test_nand_system_update_uses_recovery_rpc_method_two(self) -> None:
+        context = mock.Mock(log_path=Path("run.log"))
+        session = GatewaySession(Path("python"), Path("iris"), (), None, False)
+        arguments = argparse.Namespace(
+            gateway_profile=None,
+            device_id="device-a",
+            manifest_url=None,
+            manifest_path="/nand/system-update/manifest.json",
+        )
+        with ExitStack() as _contexts:
+            _contexts.enter_context(
+                mock.patch("mosaico_cli.commands.ensure_gateway", return_value=session)
+            )
+            _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.commands.connected_devices",
+                    return_value=[
+                        {"device_id": "device-a", "firmware_mode": "recovery"}
+                    ],
+                )
+            )
+            gateway = _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.commands.gateway_json",
+                    side_effect=[
+                        {"device": {"firmware_mode": "recovery", "boot_id": "boot-a"}},
+                        {"response": {"payload_hex": ""}},
+                    ],
+                )
+            )
+            result = start_system_update(arguments, context)
+
+        self.assertEqual(result["source"], "nand")
+        rpc_call = gateway.call_args_list[1]
+        self.assertEqual(rpc_call.args[5], "2")
+        self.assertEqual(rpc_call.args[7], "/nand/system-update/manifest.json")
 
     def test_http_system_update_rejects_normal_firmware(self) -> None:
         context = mock.Mock(log_path=Path("run.log"))
@@ -389,30 +497,33 @@ class GatewayTests(unittest.TestCase):
             gateway_profile=None,
             device_id="device-a",
             manifest_url="https://updates.example.test/manifest.json",
+            manifest_path=None,
         )
-        with (
-            mock.patch("mosaico_cli.commands.ensure_gateway", return_value=session),
-            mock.patch(
-                "mosaico_cli.commands.connected_devices",
-                return_value=[{"device_id": "device-a", "firmware_mode": "normal"}],
-            ),
-            mock.patch(
-                "mosaico_cli.commands.gateway_json",
-                return_value={"device": {"firmware_mode": "normal"}},
-            ),
-            self.assertRaises(RecoveryRequiredError),
-        ):
-            start_http_system_update(arguments, context)
+        with ExitStack() as _contexts:
+            _contexts.enter_context(
+                mock.patch("mosaico_cli.commands.ensure_gateway", return_value=session)
+            )
+            _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.commands.connected_devices",
+                    return_value=[{"device_id": "device-a", "firmware_mode": "normal"}],
+                )
+            )
+            _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.commands.gateway_json",
+                    return_value={"device": {"firmware_mode": "normal"}},
+                )
+            )
+            _contexts.enter_context(self.assertRaises(RecoveryRequiredError))
+            start_system_update(arguments, context)
 
     def test_iris_tools_are_found_only_in_the_pinned_submodule(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
+        with ExitStack() as _contexts:
+            temporary = _contexts.enter_context(tempfile.TemporaryDirectory())
             repository = Path(temporary)
             component = (
-                repository
-                / "submodule"
-                / "esp-iris"
-                / "components"
-                / "esp_iris"
+                repository / "submodule" / "esp-iris" / "components" / "esp_iris"
             )
             (component / "tools").mkdir(parents=True)
             script = component / "tools" / "esp_iris.py"
@@ -423,28 +534,88 @@ class GatewayTests(unittest.TestCase):
             python.parent.mkdir(parents=True)
             python.write_text("", encoding="utf-8")
             competing = (
-                repository / "projects" / "aaa" / "managed_components" / "esp_iris" / "tools"
+                repository
+                / "projects"
+                / "aaa"
+                / "managed_components"
+                / "esp_iris"
+                / "tools"
             )
             competing.mkdir(parents=True)
             (competing / "esp_iris.py").write_text("# wrong\n", encoding="utf-8")
 
-            discovered_python, discovered = locate_iris_tools(repository)
+            with mock.patch(
+                "mosaico_cli.gateway._python_major_minor",
+                return_value=(sys.version_info.major, sys.version_info.minor),
+            ):
+                discovered_python, discovered = locate_iris_tools(repository)
 
             self.assertEqual(discovered_python, python)
             self.assertEqual(discovered, script)
 
+    def test_iris_environment_tracks_the_active_python_version(self) -> None:
+        source = Path("/source/esp-iris")
+        expected = source / f".venv-py{sys.version_info.major}.{sys.version_info.minor}"
+        self.assertEqual(iris_environment_root(source), expected)
+
+    def test_iris_lock_change_reinstalls_into_the_active_environment(self) -> None:
+        with ExitStack() as _contexts:
+            temporary = _contexts.enter_context(tempfile.TemporaryDirectory())
+            repository = Path(temporary)
+            source = repository / "submodule" / "esp-iris"
+            tools = source / "components" / "esp_iris" / "tools"
+            tools.mkdir(parents=True)
+            script = tools / "esp_iris.py"
+            script.touch()
+            lock = tools / "requirements.lock"
+            lock.write_text('aiohttp==3.10.11 ; python_version < "3.10"\n')
+            lock_hash = hashlib.sha256(lock.read_bytes()).hexdigest()
+            environment_root = (
+                source / f".venv-py{sys.version_info.major}.{sys.version_info.minor}"
+            )
+            python = virtual_environment_python(environment_root)
+            python.parent.mkdir(parents=True)
+            python.touch()
+            marker = environment_root / ".mosaico-requirements"
+            marker.write_text("stale\n", encoding="utf-8")
+            context = mock.Mock(repository=repository)
+            context.run.return_value = subprocess.CompletedProcess([], 0, "", "")
+            _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.gateway._python_major_minor",
+                    return_value=(sys.version_info.major, sys.version_info.minor),
+                )
+            )
+            selected_python, selected_script = ensure_iris_tools(context)
+            marker_value = marker.read_text()
+        self.assertEqual((selected_python, selected_script), (python, script))
+        install = context.run.call_args.args[0]
+        self.assertEqual(install[:4], [python, "-m", "pip", "install"])
+        self.assertIn(lock_hash, marker_value)
+
     def test_unreachable_explicit_profile_never_starts_local_gateway(self) -> None:
         context = mock.Mock(repository=REPOSITORY)
-        with (
-            mock.patch("mosaico_cli.gateway.ensure_iris_tools", return_value=(Path("python"), Path("iris"))),
-            mock.patch("mosaico_cli.gateway._probe", return_value=False),
-            mock.patch("mosaico_cli.gateway.subprocess.Popen") as start,
-        ):
-            with self.assertRaises(DeviceError):
+        with ExitStack() as _contexts:
+            _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.gateway.ensure_iris_tools",
+                    return_value=(Path("python"), Path("iris")),
+                )
+            )
+            _contexts.enter_context(
+                mock.patch("mosaico_cli.gateway._probe", return_value=False)
+            )
+            start = _contexts.enter_context(
+                mock.patch("mosaico_cli.gateway.subprocess.Popen")
+            )
+            with ExitStack() as _contexts:
+                _contexts.enter_context(self.assertRaises(DeviceError))
                 ensure_gateway(context, "remote")
         start.assert_not_called()
 
-    def test_maintenance_lease_requires_local_gateway_and_suppresses_token_log(self) -> None:
+    def test_maintenance_lease_requires_local_gateway_and_suppresses_token_log(
+        self,
+    ) -> None:
         context = mock.Mock()
         context.run.side_effect = [
             subprocess.CompletedProcess(
@@ -474,7 +645,11 @@ class GatewayTests(unittest.TestCase):
             ),
         ]
         local = GatewaySession(
-            Path("python"), Path("iris"), ("--url", "http://127.0.0.1:8443"), None, False
+            Path("python"),
+            Path("iris"),
+            ("--url", "http://127.0.0.1:8443"),
+            None,
+            False,
         )
         lease = acquire_maintenance_lease(
             context,
@@ -486,7 +661,8 @@ class GatewayTests(unittest.TestCase):
         self.assertEqual(lease["lease_id"], "lease-1")
         self.assertTrue(context.run.call_args.kwargs["sensitive_output"])
         remote = GatewaySession(Path("python"), Path("iris"), (), "remote", False)
-        with self.assertRaises(DeviceError):
+        with ExitStack() as _contexts:
+            _contexts.enter_context(self.assertRaises(DeviceError))
             acquire_maintenance_lease(
                 context,
                 remote,
@@ -495,7 +671,9 @@ class GatewayTests(unittest.TestCase):
                 timeout=180,
             )
 
-    def test_endpoint_maintenance_lease_uses_local_gateway_and_suppresses_token(self) -> None:
+    def test_endpoint_maintenance_lease_uses_local_gateway_and_suppresses_token(
+        self,
+    ) -> None:
         context = mock.Mock()
         context.run.side_effect = [
             subprocess.CompletedProcess(
@@ -550,50 +728,68 @@ class GatewayTests(unittest.TestCase):
 
     def test_wrong_revision_local_gateway_is_not_stopped_or_replaced(self) -> None:
         context = mock.Mock(repository=REPOSITORY)
-        with (
-            mock.patch(
-                "mosaico_cli.gateway.ensure_iris_tools",
-                return_value=(Path("python"), Path("iris")),
-            ),
-            mock.patch("mosaico_cli.gateway._probe", return_value=True),
-            mock.patch(
-                "mosaico_cli.gateway._gateway_health",
-                return_value={
-                    "status": "ok",
-                    "instance_id": "older",
-                    "gateway_api": {"major": 1, "minor": 1},
-                    "capabilities": ["device-maintenance-lease/v1"],
-                    "esp_iris_revision": "wrong-revision",
-                },
-            ),
-            mock.patch(
-                "mosaico_cli.gateway._pinned_source_revision",
-                return_value="pinned-revision",
-            ),
-            mock.patch("mosaico_cli.gateway.subprocess.Popen") as start,
-            self.assertRaises(EnvironmentError),
-        ):
+        with ExitStack() as _contexts:
+            _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.gateway.ensure_iris_tools",
+                    return_value=(Path("python"), Path("iris")),
+                )
+            )
+            _contexts.enter_context(
+                mock.patch("mosaico_cli.gateway._probe", return_value=True)
+            )
+            _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.gateway._gateway_health",
+                    return_value={
+                        "status": "ok",
+                        "instance_id": "older",
+                        "gateway_api": {"major": 1, "minor": 1},
+                        "capabilities": ["device-maintenance-lease/v1"],
+                        "esp_iris_revision": "wrong-revision",
+                    },
+                )
+            )
+            _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.gateway._pinned_source_revision",
+                    return_value="pinned-revision",
+                )
+            )
+            start = _contexts.enter_context(
+                mock.patch("mosaico_cli.gateway.subprocess.Popen")
+            )
+            _contexts.enter_context(self.assertRaises(EnvironmentError))
             ensure_gateway(context, None)
         start.assert_not_called()
 
     def test_unusable_running_local_gateway_is_not_replaced(self) -> None:
         context = mock.Mock(repository=REPOSITORY)
-        with (
-            mock.patch(
-                "mosaico_cli.gateway.ensure_iris_tools",
-                return_value=(Path("python"), Path("iris")),
-            ),
-            mock.patch("mosaico_cli.gateway._probe", return_value=False),
-            mock.patch(
-                "mosaico_cli.gateway._pinned_source_revision",
-                return_value="pinned-revision",
-            ),
-            mock.patch(
-                "mosaico_cli.gateway._health_instance", return_value="existing"
-            ),
-            mock.patch("mosaico_cli.gateway.subprocess.Popen") as start,
-            self.assertRaises(DeviceError),
-        ):
+        with ExitStack() as _contexts:
+            _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.gateway.ensure_iris_tools",
+                    return_value=(Path("python"), Path("iris")),
+                )
+            )
+            _contexts.enter_context(
+                mock.patch("mosaico_cli.gateway._probe", return_value=False)
+            )
+            _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.gateway._pinned_source_revision",
+                    return_value="pinned-revision",
+                )
+            )
+            _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.gateway._health_instance", return_value="existing"
+                )
+            )
+            start = _contexts.enter_context(
+                mock.patch("mosaico_cli.gateway.subprocess.Popen")
+            )
+            _contexts.enter_context(self.assertRaises(DeviceError))
             ensure_gateway(context, None)
         start.assert_not_called()
 
@@ -604,7 +800,8 @@ class GatewayTests(unittest.TestCase):
             [], 1, json.dumps({"operation": {"status": "outcome_unknown"}}), ""
         )
         session = GatewaySession(Path("python"), Path("iris"), (), None, False)
-        with self.assertRaises(OutcomeUnknownError):
+        with ExitStack() as _contexts:
+            _contexts.enter_context(self.assertRaises(OutcomeUnknownError))
             run_ota(
                 context,
                 session,
@@ -624,7 +821,8 @@ class GatewayTests(unittest.TestCase):
             [], 1, json.dumps({"operation": {"status": "failed"}}), ""
         )
         session = GatewaySession(Path("python"), Path("iris"), (), None, False)
-        with self.assertRaises(OperationError):
+        with ExitStack() as _contexts:
+            _contexts.enter_context(self.assertRaises(OperationError))
             run_ota(
                 context,
                 session,
@@ -667,10 +865,11 @@ class GatewayTests(unittest.TestCase):
             }
         }
         session = GatewaySession(Path("python"), Path("iris"), (), None, False)
-        with (
-            mock.patch("mosaico_cli.gateway.gateway_json", return_value=completed) as poll,
-            mock.patch("mosaico_cli.gateway.time.sleep"),
-        ):
+        with ExitStack() as _contexts:
+            poll = _contexts.enter_context(
+                mock.patch("mosaico_cli.gateway.gateway_json", return_value=completed)
+            )
+            _contexts.enter_context(mock.patch("mosaico_cli.gateway.time.sleep"))
             result = run_ota(
                 context,
                 session,
@@ -705,14 +904,23 @@ class GatewayTests(unittest.TestCase):
         process.poll.return_value = 0
         process.wait.return_value = 0
         try:
-            with (
-                mock.patch("mosaico_cli.commands.ensure_gateway", return_value=session),
-                mock.patch(
-                    "mosaico_cli.commands.connected_devices",
-                    return_value=[{"device_id": "device"}],
-                ),
-                mock.patch("mosaico_cli.commands.subprocess.Popen", return_value=process) as start,
-            ):
+            with ExitStack() as _contexts:
+                _contexts.enter_context(
+                    mock.patch(
+                        "mosaico_cli.commands.ensure_gateway", return_value=session
+                    )
+                )
+                _contexts.enter_context(
+                    mock.patch(
+                        "mosaico_cli.commands.connected_devices",
+                        return_value=[{"device_id": "device"}],
+                    )
+                )
+                start = _contexts.enter_context(
+                    mock.patch(
+                        "mosaico_cli.commands.subprocess.Popen", return_value=process
+                    )
+                )
                 self.assertEqual(monitor(REPOSITORY, arguments, context, False), 0)
             self.assertEqual(start.call_args.kwargs["env"]["PYTHONUNBUFFERED"], "1")
             self.assertIn("--json", start.call_args.args[0])
@@ -741,15 +949,24 @@ class GatewayTests(unittest.TestCase):
         process.wait.return_value = 0
         output = io.StringIO()
         try:
-            with (
-                mock.patch("mosaico_cli.commands.ensure_gateway", return_value=session),
-                mock.patch(
-                    "mosaico_cli.commands.connected_devices",
-                    return_value=[{"device_id": "device"}],
-                ),
-                mock.patch("mosaico_cli.commands.subprocess.Popen", return_value=process),
-                redirect_stdout(output),
-            ):
+            with ExitStack() as _contexts:
+                _contexts.enter_context(
+                    mock.patch(
+                        "mosaico_cli.commands.ensure_gateway", return_value=session
+                    )
+                )
+                _contexts.enter_context(
+                    mock.patch(
+                        "mosaico_cli.commands.connected_devices",
+                        return_value=[{"device_id": "device"}],
+                    )
+                )
+                _contexts.enter_context(
+                    mock.patch(
+                        "mosaico_cli.commands.subprocess.Popen", return_value=process
+                    )
+                )
+                _contexts.enter_context(redirect_stdout(output))
                 self.assertEqual(monitor(REPOSITORY, arguments, context, False), 0)
         finally:
             process.stdout.close()
@@ -773,10 +990,7 @@ class MonitorRenderingTests(unittest.TestCase):
         output = io.StringIO()
         renderer = _MonitorTextRenderer(output, grep=None, color_enabled=True)
         renderer.feed(
-            "I (1) tag: info\n"
-            "W (2) tag: warning\n"
-            "E (3) tag: error\n"
-            "D (4) tag: debug\n"
+            "I (1) tag: info\nW (2) tag: warning\nE (3) tag: error\nD (4) tag: debug\n"
         )
         renderer.finish()
         self.assertEqual(
@@ -845,7 +1059,8 @@ class HostCompatibilityTests(unittest.TestCase):
         )
 
     def test_idf_environment_uses_idf_python_without_a_shell(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
+        with ExitStack() as _contexts:
+            temporary = _contexts.enter_context(tempfile.TemporaryDirectory())
             idf = Path(temporary) / "ESP IDF"
             (idf / "tools").mkdir(parents=True)
             (idf / "tools" / "idf.py").touch()
@@ -854,12 +1069,21 @@ class HostCompatibilityTests(unittest.TestCase):
             python = virtual_environment_python(python_env)
             python.parent.mkdir(parents=True)
             python.touch()
-            exported = (
-                f"IDF_PYTHON_ENV_PATH={python_env}\n"
-                f"PATH={idf / 'tools'}:$PATH\n"
+            exported = f"IDF_PYTHON_ENV_PATH={python_env}\nPATH={idf / 'tools'}:$PATH\n"
+            probe = subprocess.CompletedProcess(
+                [], 0, '["/bootstrap/python", 3, 10]\n', ""
             )
             completed = subprocess.CompletedProcess([], 0, exported, "")
-            with mock.patch("mosaico_cli.host.subprocess.run", return_value=completed) as run:
+            idf_python_probe = subprocess.CompletedProcess(
+                [], 0, f'["{python}", 3, 12]\n', ""
+            )
+            with ExitStack() as _contexts:
+                run = _contexts.enter_context(
+                    mock.patch(
+                        "mosaico_cli.host.subprocess.run",
+                        side_effect=[probe, completed, idf_python_probe],
+                    )
+                )
                 prepared = prepare_idf_environment(
                     idf,
                     base_environment={"PATH": "/usr/bin"},
@@ -867,9 +1091,97 @@ class HostCompatibilityTests(unittest.TestCase):
                 )
             self.assertEqual(prepared.python, python)
             self.assertEqual(prepared.values["PATH"], f"{idf / 'tools'}:/usr/bin")
-            argv = run.call_args.args[0]
+            argv = run.call_args_list[1].args[0]
             self.assertEqual(argv[0], str(Path("/bootstrap/python")))
             self.assertNotIn("bash", argv)
+
+    def test_python38_runtime_hands_idf_to_a_newer_python(self) -> None:
+        active = Path("/idf-python")
+        with ExitStack() as _contexts:
+            probe = _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.host._probe_python",
+                    return_value=(active, (3, 12)),
+                )
+            )
+            _contexts.enter_context(
+                mock.patch("mosaico_cli.host.sys.executable", "/python38")
+            )
+            selected = resolve_idf_bootstrap_python(
+                Path("/idf"),
+                {
+                    "IDF_PYTHON_ENV_PATH": "/idf-env",
+                    "PATH": "",
+                },
+            )
+        self.assertEqual(selected, active)
+        self.assertEqual(probe.call_args_list[0].args[0], ["/idf-env/bin/python"])
+
+    def test_explicit_idf_python_environment_takes_priority(self) -> None:
+        configured = Path("/configured/python")
+        with mock.patch(
+            "mosaico_cli.host._probe_python",
+            return_value=(configured, (3, 11)),
+        ) as probe:
+            selected = resolve_idf_bootstrap_python(
+                Path("/idf"),
+                {
+                    "MOSAICO_IDF_PYTHON": str(configured),
+                    "IDF_PYTHON_ENV_PATH": "/active-idf-env",
+                    "PATH": "",
+                },
+            )
+        self.assertEqual(selected, configured)
+        probe.assert_called_once_with([str(configured)], mock.ANY)
+
+    def test_exported_idf_environment_rejects_python38(self) -> None:
+        with ExitStack() as _contexts:
+            temporary = _contexts.enter_context(tempfile.TemporaryDirectory())
+            idf = Path(temporary) / "idf"
+            (idf / "tools").mkdir(parents=True)
+            (idf / "tools" / "idf.py").touch()
+            (idf / "tools" / "idf_tools.py").touch()
+            python_env = Path(temporary) / "idf-python"
+            python = virtual_environment_python(python_env)
+            python.parent.mkdir(parents=True)
+            python.touch()
+            exported = f"IDF_PYTHON_ENV_PATH={python_env}\nPATH=/idf/bin:$PATH\n"
+            _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.host._probe_python",
+                    side_effect=[
+                        (Path("/bootstrap-python"), (3, 12)),
+                        (python, (3, 8)),
+                    ],
+                )
+            )
+            _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.host.subprocess.run",
+                    return_value=subprocess.CompletedProcess([], 0, exported, ""),
+                )
+            )
+            caught = _contexts.enter_context(self.assertRaises(HostEnvironmentError))
+            prepare_idf_environment(
+                idf,
+                base_environment={"PATH": "/usr/bin"},
+                bootstrap_python=Path("/bootstrap-python"),
+            )
+        self.assertIn("selected ESP-IDF environment", str(caught.exception))
+        self.assertIn("Python 3.10", str(caught.exception))
+
+    def test_missing_idf_python_reports_the_separate_requirement(self) -> None:
+        with ExitStack() as _contexts:
+            _contexts.enter_context(
+                mock.patch("mosaico_cli.host._probe_python", return_value=None)
+            )
+            _contexts.enter_context(
+                mock.patch("mosaico_cli.host.shutil.which", return_value=None)
+            )
+            caught = _contexts.enter_context(self.assertRaises(HostEnvironmentError))
+            resolve_idf_bootstrap_python(Path("/idf"), {"PATH": ""})
+        self.assertIn("mosaico.py supports Python 3.8", str(caught.exception))
+        self.assertIn("ESP-IDF", str(caught.exception))
 
 
 class ProjectTests(unittest.TestCase):
@@ -880,25 +1192,30 @@ class ProjectTests(unittest.TestCase):
         return path
 
     def test_single_user_project_is_selected(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
+        with ExitStack() as _contexts:
+            temporary = _contexts.enter_context(tempfile.TemporaryDirectory())
             root = Path(temporary)
             expected = self._project(root, "demo")
             self._project(root, "factory")
             self.assertEqual(resolve_project(root, None, root), expected)
 
     def test_factory_is_not_implicitly_selected(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
+        with ExitStack() as _contexts:
+            temporary = _contexts.enter_context(tempfile.TemporaryDirectory())
             root = Path(temporary)
             self._project(root, "factory")
-            with self.assertRaises(SelectionError):
+            with ExitStack() as _contexts:
+                _contexts.enter_context(self.assertRaises(SelectionError))
                 resolve_project(root, None, root)
 
     def test_multiple_projects_require_selection(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
+        with ExitStack() as _contexts:
+            temporary = _contexts.enter_context(tempfile.TemporaryDirectory())
             root = Path(temporary)
             self._project(root, "a")
             self._project(root, "b")
-            with self.assertRaises(SelectionError) as caught:
+            with ExitStack() as _contexts:
+                caught = _contexts.enter_context(self.assertRaises(SelectionError))
                 resolve_project(root, None, root)
             self.assertEqual(len(caught.exception.details["candidates"]), 2)
 
@@ -913,16 +1230,24 @@ class RecoveryBundleTests(unittest.TestCase):
         model = select_model(None)
         value = load_bundle(REPOSITORY / model.recovery_dir, model.target)
         self.assertEqual(value["schema_version"], 2)
-        self.assertEqual(set(value["images"]), {"bootloader", "partition_table", "ota_data", "recovery"})
+        self.assertEqual(
+            set(value["images"]),
+            {"bootloader", "partition_table", "ota_data", "recovery"},
+        )
 
     def test_corrupt_bundle_is_rejected(self) -> None:
         source = REPOSITORY / select_model(None).recovery_dir
-        with tempfile.TemporaryDirectory() as temporary:
+        with ExitStack() as _contexts:
+            temporary = _contexts.enter_context(tempfile.TemporaryDirectory())
             target = Path(temporary) / "recovery"
             shutil.copytree(source, target)
-            with (target / "ota_data_initial.bin").open("ab") as stream:
+            with ExitStack() as _contexts:
+                stream = _contexts.enter_context(
+                    (target / "ota_data_initial.bin").open("ab")
+                )
                 stream.write(b"corrupt")
-            with self.assertRaises(EnvironmentError):
+            with ExitStack() as _contexts:
+                _contexts.enter_context(self.assertRaises(EnvironmentError))
                 load_bundle(target, "esp32s31")
 
     def test_manifest_hashes_match_files(self) -> None:
@@ -938,33 +1263,42 @@ class RecoveryBundleTests(unittest.TestCase):
             "app_version": "2.0.0-recovery",
             "capability_names": ["ota"],
         }
-        self.assertFalse(
-            recovery_is_verified("device", status, "2.1.0-recovery")
-        )
+        self.assertFalse(recovery_is_verified("device", status, "2.1.0-recovery"))
         status["app_version"] = "2.1.0-recovery"
-        self.assertTrue(
-            recovery_is_verified("device", status, "2.1.0-recovery")
-        )
+        self.assertTrue(recovery_is_verified("device", status, "2.1.0-recovery"))
 
     def test_verification_record_read_retries_a_windows_sharing_error(self) -> None:
         record = {
             "device_id": "device",
             "recovery_version": "2.1.1-recovery",
         }
-        with mock.patch.object(
-            Path,
-            "read_text",
-            side_effect=[PermissionError("sharing violation"), json.dumps(record)],
-        ) as read_text, mock.patch("mosaico_cli.recovery.time.sleep") as sleep:
+        with ExitStack() as _contexts:
+            read_text = _contexts.enter_context(
+                mock.patch.object(
+                    Path,
+                    "read_text",
+                    side_effect=[
+                        PermissionError("sharing violation"),
+                        json.dumps(record),
+                    ],
+                )
+            )
+            sleep = _contexts.enter_context(
+                mock.patch("mosaico_cli.recovery.time.sleep")
+            )
             self.assertEqual(_read_verification_record(Path("record.json")), record)
         self.assertEqual(read_text.call_count, 2)
         sleep.assert_called_once()
 
     def test_verification_details_report_a_persistent_read_error(self) -> None:
         diagnostics: list[dict[str, object]] = []
-        with mock.patch.object(
-            Path, "read_text", side_effect=PermissionError("access denied")
-        ), mock.patch("mosaico_cli.recovery.time.sleep"):
+        with ExitStack() as _contexts:
+            _contexts.enter_context(
+                mock.patch.object(
+                    Path, "read_text", side_effect=PermissionError("access denied")
+                )
+            )
+            _contexts.enter_context(mock.patch("mosaico_cli.recovery.time.sleep"))
             self.assertIsNone(
                 _read_verification_record(Path("record.json"), diagnostics)
             )
@@ -991,9 +1325,9 @@ class RecoveryCommandTests(unittest.TestCase):
         self.assertEqual(_device_status(None), {})
         self.assertEqual(_device_status([]), {})
         self.assertEqual(_device_status({"device": None}), {})
-        self.assertEqual(_device_status({"firmware_mode": "normal"}), {
-            "firmware_mode": "normal"
-        })
+        self.assertEqual(
+            _device_status({"firmware_mode": "normal"}), {"firmware_mode": "normal"}
+        )
 
     def test_normal_device_snapshot_overrides_stale_recovery_status(self) -> None:
         value = _recovery_verification_status(
@@ -1019,7 +1353,8 @@ class RecoveryCommandTests(unittest.TestCase):
         )
 
     def test_install_refreshes_record_from_verified_live_recovery(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
+        with ExitStack() as _contexts:
+            temporary = _contexts.enter_context(tempfile.TemporaryDirectory())
             root = Path(temporary)
             project = root / "project"
             project.mkdir()
@@ -1050,23 +1385,43 @@ class RecoveryCommandTests(unittest.TestCase):
                 "capability_names": ["ota"],
                 "boot_id": 123,
             }
-            with (
-                mock.patch("mosaico_cli.commands.resolve_project", return_value=project),
-                mock.patch("mosaico_cli.commands.discover_artifacts", return_value=artifacts),
-                mock.patch(
-                    "mosaico_cli.commands.load_bundle",
-                    return_value={"version": "2.1.1-recovery"},
-                ),
-                mock.patch("mosaico_cli.commands.ensure_gateway", return_value=session),
-                mock.patch(
-                    "mosaico_cli.commands.connected_devices", return_value=[status]
-                ),
-                mock.patch("mosaico_cli.commands.gateway_json", return_value=status),
-                mock.patch("mosaico_cli.commands.run_ota", return_value={}),
-                mock.patch(
-                    "mosaico_cli.commands.record_recovery_verification"
-                ) as record,
-            ):
+            with ExitStack() as _contexts:
+                _contexts.enter_context(
+                    mock.patch(
+                        "mosaico_cli.commands.resolve_project", return_value=project
+                    )
+                )
+                _contexts.enter_context(
+                    mock.patch(
+                        "mosaico_cli.commands.discover_artifacts",
+                        return_value=artifacts,
+                    )
+                )
+                _contexts.enter_context(
+                    mock.patch(
+                        "mosaico_cli.commands.load_bundle",
+                        return_value={"version": "2.1.1-recovery"},
+                    )
+                )
+                _contexts.enter_context(
+                    mock.patch(
+                        "mosaico_cli.commands.ensure_gateway", return_value=session
+                    )
+                )
+                _contexts.enter_context(
+                    mock.patch(
+                        "mosaico_cli.commands.connected_devices", return_value=[status]
+                    )
+                )
+                _contexts.enter_context(
+                    mock.patch("mosaico_cli.commands.gateway_json", return_value=status)
+                )
+                _contexts.enter_context(
+                    mock.patch("mosaico_cli.commands.run_ota", return_value={})
+                )
+                record = _contexts.enter_context(
+                    mock.patch("mosaico_cli.commands.record_recovery_verification")
+                )
                 result = install(root, arguments, context)
             self.assertEqual(result["status"], "succeeded")
             record.assert_called_once_with("device", "2.1.1-recovery", 123)
@@ -1078,7 +1433,10 @@ class RecoveryCommandTests(unittest.TestCase):
             pid=0x0020,
             product="ESP32-S31",
         )
-        with mock.patch("serial.tools.list_ports.comports", return_value=[port]):
+        with ExitStack() as _contexts:
+            _contexts.enter_context(
+                mock.patch("serial.tools.list_ports.comports", return_value=[port])
+            )
             self.assertEqual(
                 _registered_recovery_ports(select_model(None)), ["/dev/ttyACM-test"]
             )
@@ -1090,10 +1448,11 @@ class RecoveryCommandTests(unittest.TestCase):
             pid=0x0020,
             product=None,
         )
-        with mock.patch("serial.tools.list_ports.comports", return_value=[port]):
-            self.assertEqual(
-                _registered_recovery_ports(select_model(None)), ["COM16"]
+        with ExitStack() as _contexts:
+            _contexts.enter_context(
+                mock.patch("serial.tools.list_ports.comports", return_value=[port])
             )
+            self.assertEqual(_registered_recovery_ports(select_model(None)), ["COM16"])
 
     def test_unregistered_serial_device_is_rejected(self) -> None:
         port = SimpleNamespace(
@@ -1102,7 +1461,10 @@ class RecoveryCommandTests(unittest.TestCase):
             pid=0x5678,
             product="Other device",
         )
-        with mock.patch("serial.tools.list_ports.comports", return_value=[port]):
+        with ExitStack() as _contexts:
+            _contexts.enter_context(
+                mock.patch("serial.tools.list_ports.comports", return_value=[port])
+            )
             self.assertEqual(_registered_recovery_ports(select_model(None)), [])
 
     def test_current_dry_run_does_not_build_or_flash(self) -> None:
@@ -1118,18 +1480,39 @@ class RecoveryCommandTests(unittest.TestCase):
         context = mock.Mock(repository=REPOSITORY)
         context.log_path = REPOSITORY / ".codex-runs" / "test.log"
         context.note = mock.Mock()
-        with (
-            mock.patch("mosaico_cli.commands.ensure_gateway", side_effect=DeviceError("offline")),
-            mock.patch("mosaico_cli.commands.provisioning_candidate", return_value="internal-device"),
-            mock.patch("mosaico_cli.commands.resolve_idf_path", return_value=Path("/idf")),
-            mock.patch("mosaico_cli.commands.run_idf_target") as target,
-        ):
+        with ExitStack() as _contexts:
+            _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.commands.ensure_gateway",
+                    side_effect=DeviceError("offline"),
+                )
+            )
+            _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.commands.provisioning_candidate",
+                    return_value="internal-device",
+                )
+            )
+            _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.commands.resolve_idf_path", return_value=Path("/idf")
+                )
+            )
+            target = _contexts.enter_context(
+                mock.patch("mosaico_cli.commands.run_idf_target")
+            )
             result = recover(REPOSITORY, arguments, context)
         self.assertEqual(result["status"], "dry_run")
         target.assert_not_called()
         messages = [call.args[0] for call in context.status.call_args_list]
-        self.assertTrue(any(message.startswith("recovery: model=") for message in messages))
-        self.assertTrue(any(message.startswith("device: recovery interface") for message in messages))
+        self.assertTrue(
+            any(message.startswith("recovery: model=") for message in messages)
+        )
+        self.assertTrue(
+            any(
+                message.startswith("device: recovery interface") for message in messages
+            )
+        )
         self.assertTrue(any(message.startswith("validation:") for message in messages))
 
     def test_managed_recovery_uses_device_lease_without_stopping_gateway(self) -> None:
@@ -1163,25 +1546,47 @@ class RecoveryCommandTests(unittest.TestCase):
             "token": "secret",
             "endpoint": {"path": "/dev/serial/by-path/device-a"},
         }
-        with (
-            mock.patch("mosaico_cli.commands.load_bundle", return_value=manifest),
-            mock.patch("mosaico_cli.commands.ensure_gateway", return_value=session),
-            mock.patch(
-                "mosaico_cli.commands.connected_devices",
-                return_value=[{"device_id": "device-a", "boot_id": "boot-old"}],
-            ),
-            mock.patch("mosaico_cli.commands.resolve_idf_path", return_value=Path("/idf")),
-            mock.patch("mosaico_cli.commands.run_idf_target") as target,
-            mock.patch(
-                "mosaico_cli.commands.acquire_maintenance_lease", return_value=lease
-            ) as acquire,
-            mock.patch("mosaico_cli.commands.renew_maintenance_lease"),
-            mock.patch(
-                "mosaico_cli.commands.finish_maintenance_lease",
-                return_value={"state": "released", "evidence": {"verification": verification}},
-            ) as finish,
-            mock.patch("mosaico_cli.commands.record_recovery_verification") as record,
-        ):
+        with ExitStack() as _contexts:
+            _contexts.enter_context(
+                mock.patch("mosaico_cli.commands.load_bundle", return_value=manifest)
+            )
+            _contexts.enter_context(
+                mock.patch("mosaico_cli.commands.ensure_gateway", return_value=session)
+            )
+            _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.commands.connected_devices",
+                    return_value=[{"device_id": "device-a", "boot_id": "boot-old"}],
+                )
+            )
+            _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.commands.resolve_idf_path", return_value=Path("/idf")
+                )
+            )
+            target = _contexts.enter_context(
+                mock.patch("mosaico_cli.commands.run_idf_target")
+            )
+            acquire = _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.commands.acquire_maintenance_lease", return_value=lease
+                )
+            )
+            _contexts.enter_context(
+                mock.patch("mosaico_cli.commands.renew_maintenance_lease")
+            )
+            finish = _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.commands.finish_maintenance_lease",
+                    return_value={
+                        "state": "released",
+                        "evidence": {"verification": verification},
+                    },
+                )
+            )
+            record = _contexts.enter_context(
+                mock.patch("mosaico_cli.commands.record_recovery_verification")
+            )
             result = recover(REPOSITORY, arguments, context)
         self.assertEqual(result["status"], "succeeded")
         self.assertEqual(result["maintenance_lease_id"], "lease-1")
@@ -1229,30 +1634,51 @@ class RecoveryCommandTests(unittest.TestCase):
             "app_version": "2.1.1-recovery",
             "capability_names": ["ota"],
         }
-        with (
-            mock.patch("mosaico_cli.commands.load_bundle", return_value=manifest),
-            mock.patch("mosaico_cli.commands.ensure_gateway", return_value=session),
-            mock.patch("mosaico_cli.commands.connected_devices", return_value=[]),
-            mock.patch(
-                "mosaico_cli.commands.provisioning_candidate",
-                return_value="/dev/serial/by-path/recovery",
-            ),
-            mock.patch("mosaico_cli.commands.resolve_idf_path", return_value=Path("/idf")),
-            mock.patch("mosaico_cli.commands.run_idf_target") as target,
-            mock.patch(
-                "mosaico_cli.commands.acquire_endpoint_maintenance_lease",
-                return_value=lease,
-            ) as acquire,
-            mock.patch("mosaico_cli.commands.renew_maintenance_lease"),
-            mock.patch(
-                "mosaico_cli.commands.finish_maintenance_lease",
-                return_value={
-                    "state": "released",
-                    "evidence": {"verification": verification},
-                },
-            ),
-            mock.patch("mosaico_cli.commands.record_recovery_verification") as record,
-        ):
+        with ExitStack() as _contexts:
+            _contexts.enter_context(
+                mock.patch("mosaico_cli.commands.load_bundle", return_value=manifest)
+            )
+            _contexts.enter_context(
+                mock.patch("mosaico_cli.commands.ensure_gateway", return_value=session)
+            )
+            _contexts.enter_context(
+                mock.patch("mosaico_cli.commands.connected_devices", return_value=[])
+            )
+            _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.commands.provisioning_candidate",
+                    return_value="/dev/serial/by-path/recovery",
+                )
+            )
+            _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.commands.resolve_idf_path", return_value=Path("/idf")
+                )
+            )
+            target = _contexts.enter_context(
+                mock.patch("mosaico_cli.commands.run_idf_target")
+            )
+            acquire = _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.commands.acquire_endpoint_maintenance_lease",
+                    return_value=lease,
+                )
+            )
+            _contexts.enter_context(
+                mock.patch("mosaico_cli.commands.renew_maintenance_lease")
+            )
+            _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.commands.finish_maintenance_lease",
+                    return_value={
+                        "state": "released",
+                        "evidence": {"verification": verification},
+                    },
+                )
+            )
+            record = _contexts.enter_context(
+                mock.patch("mosaico_cli.commands.record_recovery_verification")
+            )
             result = recover(REPOSITORY, arguments, context)
         acquire.assert_called_once_with(
             context,
@@ -1272,11 +1698,14 @@ class RecoveryCommandTests(unittest.TestCase):
     def test_remote_recovery_is_rejected_before_gateway_or_flash(self) -> None:
         arguments = SimpleNamespace(gateway_profile="remote")
         context = mock.Mock(repository=REPOSITORY)
-        with (
-            mock.patch("mosaico_cli.commands.ensure_gateway") as gateway,
-            mock.patch("mosaico_cli.commands.run_idf_target") as target,
-            self.assertRaises(DeviceError),
-        ):
+        with ExitStack() as _contexts:
+            gateway = _contexts.enter_context(
+                mock.patch("mosaico_cli.commands.ensure_gateway")
+            )
+            target = _contexts.enter_context(
+                mock.patch("mosaico_cli.commands.run_idf_target")
+            )
+            _contexts.enter_context(self.assertRaises(DeviceError))
             recover(REPOSITORY, arguments, context)
         gateway.assert_not_called()
         target.assert_not_called()
@@ -1305,29 +1734,44 @@ class RecoveryCommandTests(unittest.TestCase):
             "token": "secret",
             "endpoint": {"path": "/dev/serial/by-path/device-a"},
         }
-        with (
-            mock.patch("mosaico_cli.commands.load_bundle", return_value=manifest),
-            mock.patch("mosaico_cli.commands.ensure_gateway", return_value=session),
-            mock.patch(
-                "mosaico_cli.commands.connected_devices",
-                return_value=[{"device_id": "device-a", "boot_id": "boot-old"}],
-            ),
-            mock.patch("mosaico_cli.commands.resolve_idf_path", return_value=Path("/idf")),
-            mock.patch(
-                "mosaico_cli.commands.run_idf_target",
-                side_effect=[None, BuildError("flash failed")],
-            ),
-            mock.patch(
-                "mosaico_cli.commands.acquire_maintenance_lease", return_value=lease
-            ),
-            mock.patch("mosaico_cli.commands.renew_maintenance_lease"),
-            mock.patch("mosaico_cli.commands.finish_maintenance_lease") as finish,
-            self.assertRaises(BuildError),
-        ):
+        with ExitStack() as _contexts:
+            _contexts.enter_context(
+                mock.patch("mosaico_cli.commands.load_bundle", return_value=manifest)
+            )
+            _contexts.enter_context(
+                mock.patch("mosaico_cli.commands.ensure_gateway", return_value=session)
+            )
+            _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.commands.connected_devices",
+                    return_value=[{"device_id": "device-a", "boot_id": "boot-old"}],
+                )
+            )
+            _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.commands.resolve_idf_path", return_value=Path("/idf")
+                )
+            )
+            _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.commands.run_idf_target",
+                    side_effect=[None, BuildError("flash failed")],
+                )
+            )
+            _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.commands.acquire_maintenance_lease", return_value=lease
+                )
+            )
+            _contexts.enter_context(
+                mock.patch("mosaico_cli.commands.renew_maintenance_lease")
+            )
+            finish = _contexts.enter_context(
+                mock.patch("mosaico_cli.commands.finish_maintenance_lease")
+            )
+            _contexts.enter_context(self.assertRaises(BuildError))
             recover(REPOSITORY, arguments, context)
-        finish.assert_called_once_with(
-            context, session, lease, abort=True, timeout=30
-        )
+        finish.assert_called_once_with(context, session, lease, abort=True, timeout=30)
 
     def test_idf_wrapper_invokes_only_named_target(self) -> None:
         context = mock.Mock()
@@ -1340,9 +1784,12 @@ class RecoveryCommandTests(unittest.TestCase):
             Path("/idf/tools/idf.py"),
             {"PATH": "idf-tools"},
         )
-        with mock.patch(
-            "mosaico_cli.runtime.prepare_idf_environment", return_value=prepared
-        ):
+        with ExitStack() as _contexts:
+            _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.runtime.prepare_idf_environment", return_value=prepared
+                )
+            )
             run_idf_target(
                 context,
                 idf_path=Path("/idf"),
@@ -1378,12 +1825,13 @@ class RecoveryCommandTests(unittest.TestCase):
             Path("/idf/tools/idf.py"),
             {"PATH": "idf-tools"},
         )
-        with (
-            mock.patch(
-                "mosaico_cli.runtime.prepare_idf_environment", return_value=prepared
-            ),
-            self.assertRaises(DeviceError),
-        ):
+        with ExitStack() as _contexts:
+            _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.runtime.prepare_idf_environment", return_value=prepared
+                )
+            )
+            _contexts.enter_context(self.assertRaises(DeviceError))
             run_idf_target(
                 context,
                 idf_path=Path("/idf"),
@@ -1396,9 +1844,11 @@ class RecoveryCommandTests(unittest.TestCase):
         self.assertEqual(context.run.call_count, 1)
 
     def test_run_context_streams_selected_child_status(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
+        with ExitStack() as _contexts:
+            temporary = _contexts.enter_context(tempfile.TemporaryDirectory())
             context = RunContext(Path(temporary), "stream-test")
-            with mock.patch.object(context, "status") as status:
+            with ExitStack() as _contexts:
+                status = _contexts.enter_context(mock.patch.object(context, "status"))
                 result = context.run(
                     [sys.executable, "-c", "print('streamed child output')"],
                     output_status=lambda line: f"child: {line.strip()}",
@@ -1408,7 +1858,8 @@ class RecoveryCommandTests(unittest.TestCase):
             self.assertIn("streamed child output", context.log_path.read_text())
 
     def test_run_context_hides_sensitive_command_and_output(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
+        with ExitStack() as _contexts:
+            temporary = _contexts.enter_context(tempfile.TemporaryDirectory())
             context = RunContext(Path(temporary), "sensitive-test")
             result = context.run(
                 [sys.executable, "-c", "print('secret-url')"],

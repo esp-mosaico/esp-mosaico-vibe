@@ -46,10 +46,15 @@ use `list --details` for endpoint, ESP-IDF version, Session ID, and capabilities
 or `list --json` for the complete Gateway record.
 
 The CLI supports native Linux and macOS shells plus Windows PowerShell and
-Command Prompt; WSL and Git Bash are not required. Use Python 3.11 or newer,
+Command Prompt; WSL and Git Bash are not required. Use Python 3.8 or newer,
 an ESP-IDF checkout satisfying the factory project's version constraint, and
-the pinned `submodule/esp-iris` checkout, and its automatically prepared
-host environment from `tools/requirements.lock`. Run
+the pinned `submodule/esp-iris` checkout. The Gateway environment is prepared
+for the active Python major/minor version, and the PEP 508 markers in its single
+`tools/requirements.lock` select compatible packages automatically. ESP-IDF
+6.1 still requires Python 3.10 or newer; when the CLI runs on Python 3.8 or 3.9,
+it discovers and delegates ESP-IDF bootstrap commands to a compatible Python
+interpreter independently. Set `MOSAICO_IDF_PYTHON` to an explicit compatible
+interpreter when automatic discovery is not appropriate. Run
 `doctor` first to verify Python, ESP-IDF, ESP32-S31 target support, ESP-Iris,
 the host state directory, and current USB discovery. It does not build or
 write firmware.

@@ -40,9 +40,13 @@ Boot ID，并保留 Gateway 缓存中的离线设备。使用 `list --details` �
 ESP-IDF 版本、Session ID 和能力列表，或使用 `list --json` 查看完整 Gateway 记录。
 
 CLI 支持 Linux、macOS 原生终端，以及 Windows PowerShell 和 CMD，不依赖 WSL
-或 Git Bash。主机需使用 Python 3.11 或更新版本、满足 factory 工程约束的
-ESP-IDF、固定版本的 `submodule/esp-iris`，以及按其中
-`tools/requirements.lock` 自动准备的独立运行环境。首次操作前运行
+或 Git Bash。主机 CLI 最低支持 Python 3.8，并使用满足 factory 工程约束的
+ESP-IDF 和固定版本的 `submodule/esp-iris`。Gateway 会按当前激活 Python 的
+major/minor 自动准备隔离环境，单个 `tools/requirements.lock` 中的 PEP 508
+条件会自动选择兼容依赖。ESP-IDF 6.1 仍要求 Python 3.10 或更新版本；当 CLI
+由 Python 3.8/3.9 启动时，会独立寻找兼容解释器并将 ESP-IDF bootstrap 命令
+转交给它；不适合自动发现时可用 `MOSAICO_IDF_PYTHON` 显式指定兼容解释器。
+首次操作前运行
 `doctor`，可检查 Python、ESP-IDF、ESP32-S31 target、ESP-Iris、主机状态目录和
 实时 USB 枚举；该命令不会构建或写入固件。
 

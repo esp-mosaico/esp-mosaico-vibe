@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import time
@@ -36,10 +37,43 @@ def _state_home() -> Path:
     return state_root("esp-mosaico") / "gateway"
 
 
+def _python_major_minor(python: Path) -> tuple[int, int] | None:
+    try:
+        result = subprocess.run(
+            [
+                str(python),
+                "-c",
+                "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')",
+            ],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    match = re.fullmatch(r"(\d+)\.(\d+)", result.stdout.strip())
+    if result.returncode or match is None:
+        return None
+    return int(match.group(1)), int(match.group(2))
+
+
+def iris_environment_root(source: Path) -> Path:
+    """Select an isolated Gateway environment for the active Python runtime."""
+
+    desired = sys.version_info.major, sys.version_info.minor
+    legacy = source / ".venv"
+    legacy_python = virtual_environment_python(legacy)
+    if legacy_python.is_file() and _python_major_minor(legacy_python) == desired:
+        return legacy
+    return source / f".venv-py{desired[0]}.{desired[1]}"
+
+
 def locate_iris_tools(repository: Path) -> tuple[Path, Path]:
     source = repository / "submodule" / "esp-iris"
     script = source / "components" / "esp_iris" / "tools" / "esp_iris.py"
-    python = virtual_environment_python(source / ".venv")
+    python = virtual_environment_python(iris_environment_root(source))
     if not script.is_file():
         raise EnvironmentError(
             "The pinned ESP-Iris submodule is unavailable. Run "
@@ -62,17 +96,31 @@ def ensure_iris_tools(context: RunContext) -> tuple[Path, Path]:
         raise EnvironmentError(
             "The pinned ESP-Iris submodule or its host dependency lock is unavailable."
         )
-    python = virtual_environment_python(source / ".venv")
-    marker = source / ".venv" / ".mosaico-requirements"
+    environment_root = iris_environment_root(source)
+    python = virtual_environment_python(environment_root)
+    marker = environment_root / ".mosaico-requirements"
     fingerprint = (
         f"python={sys.version_info.major}.{sys.version_info.minor}\n"
         f"requirements={hashlib.sha256(lock.read_bytes()).hexdigest()}\n"
     )
     current = marker.read_text(encoding="utf-8") if marker.is_file() else ""
+    desired = sys.version_info.major, sys.version_info.minor
+    if python.is_file() and _python_major_minor(python) != desired:
+        result = context.run(
+            [sys.executable, "-m", "venv", "--clear", environment_root],
+            timeout=120,
+        )
+        if result.returncode:
+            raise EnvironmentError(
+                "Could not refresh the pinned ESP-Iris host environment."
+            )
+        current = ""
     if not python.is_file():
-        if sys.version_info < (3, 11):
-            raise EnvironmentError("ESP-Iris host runtime requires Python 3.11 or newer.")
-        result = context.run([sys.executable, "-m", "venv", source / ".venv"], timeout=120)
+        if sys.version_info < (3, 8):
+            raise EnvironmentError("ESP-Iris host runtime requires Python 3.8 or newer.")
+        result = context.run(
+            [sys.executable, "-m", "venv", environment_root], timeout=120
+        )
         if result.returncode:
             raise EnvironmentError("Could not create the pinned ESP-Iris host environment.")
     if current != fingerprint:

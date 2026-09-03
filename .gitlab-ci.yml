@@ -1,0 +1,16 @@
+stages:
+  - verify
+
+variables:
+  GIT_SUBMODULE_STRATEGY: normal
+
+python-host:
+  stage: verify
+  parallel:
+    matrix:
+      - PYTHON_VERSION: ["3.8", "3.12"]
+  image: python:${PYTHON_VERSION}
+  script:
+    - python -m compileall -q mosaico.py tools/mosaico_cli
+    - python -m unittest discover -s tests/mosaico_cli -v
+    - python mosaico.py --version

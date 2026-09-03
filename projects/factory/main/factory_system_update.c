@@ -1076,7 +1076,8 @@ esp_err_t factory_system_update_get_status(
     return ESP_OK;
 }
 
-esp_err_t factory_system_update_local_prepare(
+esp_err_t factory_system_update_source_prepare(
+    factory_system_update_owner_t owner,
     const uint8_t *manifest, size_t manifest_size,
     const uint8_t operation_id[ESP_IRIS_SYSTEM_OPERATION_ID_BYTES])
 {
@@ -1118,24 +1119,28 @@ esp_err_t factory_system_update_local_prepare(
     ESP_RETURN_ON_ERROR(hash_memory(manifest, manifest_size,
                                     descriptor.manifest_sha256),
                         TAG, "hash local update manifest");
-    return prepare_update_owned(&descriptor,
-                                FACTORY_SYSTEM_UPDATE_OWNER_HTTP);
+    ESP_RETURN_ON_FALSE(
+        owner == FACTORY_SYSTEM_UPDATE_OWNER_HTTP ||
+            owner == FACTORY_SYSTEM_UPDATE_OWNER_NAND,
+        ESP_ERR_INVALID_ARG, TAG, "invalid system-update source owner");
+    return prepare_update_owned(&descriptor, owner);
 }
 
-size_t factory_system_update_local_component_count(void)
+size_t factory_system_update_source_component_count(
+    factory_system_update_owner_t owner)
 {
-    return update_owner_is(FACTORY_SYSTEM_UPDATE_OWNER_HTTP) &&
-                   s_update.prepared
+    return update_owner_is(owner) && s_update.prepared
         ? s_update.plan_count : 0;
 }
 
-esp_err_t factory_system_update_local_component(
-    size_t index, esp_iris_system_update_component_t *component,
+esp_err_t factory_system_update_source_component(
+    factory_system_update_owner_t owner, size_t index,
+    esp_iris_system_update_component_t *component,
     char filename[FACTORY_SYSTEM_UPDATE_FILENAME_BYTES])
 {
     ESP_RETURN_ON_FALSE(
-        update_owner_is(FACTORY_SYSTEM_UPDATE_OWNER_HTTP) &&
-            s_update.prepared && index < s_update.plan_count &&
+        update_owner_is(owner) && s_update.prepared &&
+            index < s_update.plan_count &&
             component != NULL && filename != NULL,
         ESP_ERR_INVALID_ARG, TAG, "invalid local component request");
     *component = s_update.plan[index].descriptor;
@@ -1144,50 +1149,54 @@ esp_err_t factory_system_update_local_component(
     return ESP_OK;
 }
 
-esp_err_t factory_system_update_local_begin_component(
+esp_err_t factory_system_update_source_begin_component(
+    factory_system_update_owner_t owner,
     const esp_iris_system_update_component_t *component)
 {
-    ESP_RETURN_ON_FALSE(update_owner_is(FACTORY_SYSTEM_UPDATE_OWNER_HTTP),
+    ESP_RETURN_ON_FALSE(update_owner_is(owner),
                         ESP_ERR_INVALID_STATE, TAG,
-                        "HTTP updater does not own writer");
+                        "update source does not own writer");
     return begin_component(component, &s_update);
 }
 
-esp_err_t factory_system_update_local_write_component(
+esp_err_t factory_system_update_source_write_component(
+    factory_system_update_owner_t owner,
     const esp_iris_system_update_component_t *component, uint32_t offset,
     const uint8_t *data, size_t size)
 {
-    ESP_RETURN_ON_FALSE(update_owner_is(FACTORY_SYSTEM_UPDATE_OWNER_HTTP),
+    ESP_RETURN_ON_FALSE(update_owner_is(owner),
                         ESP_ERR_INVALID_STATE, TAG,
-                        "HTTP updater does not own writer");
+                        "update source does not own writer");
     return write_component(component, offset, data, size, &s_update);
 }
 
-esp_err_t factory_system_update_local_end_component(
+esp_err_t factory_system_update_source_end_component(
+    factory_system_update_owner_t owner,
     const esp_iris_system_update_component_t *component,
     const uint8_t actual_sha256[ESP_IRIS_SYSTEM_SHA256_BYTES])
 {
-    ESP_RETURN_ON_FALSE(update_owner_is(FACTORY_SYSTEM_UPDATE_OWNER_HTTP),
+    ESP_RETURN_ON_FALSE(update_owner_is(owner),
                         ESP_ERR_INVALID_STATE, TAG,
-                        "HTTP updater does not own writer");
+                        "update source does not own writer");
     return end_component(component, actual_sha256, &s_update);
 }
 
-esp_err_t factory_system_update_local_commit(
+esp_err_t factory_system_update_source_commit(
+    factory_system_update_owner_t owner,
     const uint8_t operation_id[ESP_IRIS_SYSTEM_OPERATION_ID_BYTES])
 {
-    ESP_RETURN_ON_FALSE(update_owner_is(FACTORY_SYSTEM_UPDATE_OWNER_HTTP),
+    ESP_RETURN_ON_FALSE(update_owner_is(owner),
                         ESP_ERR_INVALID_STATE, TAG,
-                        "HTTP updater does not own writer");
+                        "update source does not own writer");
     return commit_update(operation_id, &s_update);
 }
 
-void factory_system_update_local_abort(
+void factory_system_update_source_abort(
+    factory_system_update_owner_t owner,
     const uint8_t operation_id[ESP_IRIS_SYSTEM_OPERATION_ID_BYTES],
     esp_err_t reason)
 {
-    abort_update_owned(operation_id, reason,
-                       FACTORY_SYSTEM_UPDATE_OWNER_HTTP);
+    abort_update_owned(operation_id, reason, owner);
 }
 
 esp_err_t factory_system_update_register(void)
@@ -1205,6 +1214,8 @@ esp_err_t factory_system_update_register(void)
                         "register system update backend");
     ESP_RETURN_ON_ERROR(factory_system_update_http_register(), TAG,
                         "register HTTP system-update trigger");
+    ESP_RETURN_ON_ERROR(factory_system_update_nand_register(), TAG,
+                        "register NAND system-update trigger");
     ESP_LOGW(TAG, "unsigned full-system update backend enabled");
     return ESP_OK;
 }
@@ -1227,42 +1238,52 @@ esp_err_t factory_system_update_get_status(
     return ESP_OK;
 }
 
-esp_err_t factory_system_update_local_prepare(
+esp_err_t factory_system_update_source_prepare(
+    factory_system_update_owner_t owner,
     const uint8_t *manifest, size_t manifest_size,
     const uint8_t operation_id[ESP_IRIS_SYSTEM_OPERATION_ID_BYTES])
 {
+    (void)owner;
     (void)manifest;
     (void)manifest_size;
     (void)operation_id;
     return ESP_ERR_NOT_SUPPORTED;
 }
 
-size_t factory_system_update_local_component_count(void)
+size_t factory_system_update_source_component_count(
+    factory_system_update_owner_t owner)
 {
+    (void)owner;
     return 0;
 }
 
-esp_err_t factory_system_update_local_component(
-    size_t index, esp_iris_system_update_component_t *component,
+esp_err_t factory_system_update_source_component(
+    factory_system_update_owner_t owner, size_t index,
+    esp_iris_system_update_component_t *component,
     char filename[FACTORY_SYSTEM_UPDATE_FILENAME_BYTES])
 {
+    (void)owner;
     (void)index;
     (void)component;
     (void)filename;
     return ESP_ERR_NOT_SUPPORTED;
 }
 
-esp_err_t factory_system_update_local_begin_component(
+esp_err_t factory_system_update_source_begin_component(
+    factory_system_update_owner_t owner,
     const esp_iris_system_update_component_t *component)
 {
+    (void)owner;
     (void)component;
     return ESP_ERR_NOT_SUPPORTED;
 }
 
-esp_err_t factory_system_update_local_write_component(
+esp_err_t factory_system_update_source_write_component(
+    factory_system_update_owner_t owner,
     const esp_iris_system_update_component_t *component, uint32_t offset,
     const uint8_t *data, size_t size)
 {
+    (void)owner;
     (void)component;
     (void)offset;
     (void)data;
@@ -1270,26 +1291,32 @@ esp_err_t factory_system_update_local_write_component(
     return ESP_ERR_NOT_SUPPORTED;
 }
 
-esp_err_t factory_system_update_local_end_component(
+esp_err_t factory_system_update_source_end_component(
+    factory_system_update_owner_t owner,
     const esp_iris_system_update_component_t *component,
     const uint8_t actual_sha256[ESP_IRIS_SYSTEM_SHA256_BYTES])
 {
+    (void)owner;
     (void)component;
     (void)actual_sha256;
     return ESP_ERR_NOT_SUPPORTED;
 }
 
-esp_err_t factory_system_update_local_commit(
+esp_err_t factory_system_update_source_commit(
+    factory_system_update_owner_t owner,
     const uint8_t operation_id[ESP_IRIS_SYSTEM_OPERATION_ID_BYTES])
 {
+    (void)owner;
     (void)operation_id;
     return ESP_ERR_NOT_SUPPORTED;
 }
 
-void factory_system_update_local_abort(
+void factory_system_update_source_abort(
+    factory_system_update_owner_t owner,
     const uint8_t operation_id[ESP_IRIS_SYSTEM_OPERATION_ID_BYTES],
     esp_err_t reason)
 {
+    (void)owner;
     (void)operation_id;
     (void)reason;
 }

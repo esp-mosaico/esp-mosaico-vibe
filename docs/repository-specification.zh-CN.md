@@ -258,6 +258,8 @@ ESP-Mosaico 真实设备
 | --- | --- | --- |
 | FR-101 | 项目必须约束 ESP-IDF 版本 | `idf_component.yml` 声明 `idf >= 6.1` |
 | FR-102 | 环境解析必须验证真实工具链 | 若根目录存在 `Environment`，仅作为不可信静态清单读取；同时验证 IDF 路径、版本、revision、Python 环境及 ESP32-S31 支持 |
+| FR-107 | 主机 CLI 必须支持 Python 3.8 或更新版本 | Gateway 隔离环境与当前解释器 major/minor 一致，单个条件锁自动选择兼容依赖 |
+| FR-108 | ESP-IDF Python 必须独立解析 | CLI 使用 Python 3.8/3.9 时，为 ESP-IDF 6.1 bootstrap 解析并验证 Python 3.10 或更新解释器；缺失时明确区分 CLI 与 ESP-IDF 的版本要求 |
 | FR-103 | `install` 必须解析和构建用户工程 | 当前工程优先；无法唯一选择时列出候选并退出 |
 | FR-104 | `--skip-build` 必须显式标记复用 | 只复用完整 BIN/ELF/MAP，并在结果中返回 `reused_build=true` |
 | FR-105 | `recover` 必须校验评审基础包 | 文件缺失、哈希不匹配或目标不兼容时停止，不写设备 |
@@ -413,6 +415,9 @@ Agent 遇到以下情况必须暂停，并向用户说明风险及所需输入�
 6. Recovery manifest 记录完整基础包的来源、布局和哈希；发布或量产基线应从干净、可复现 revision 生成并验证。
 7. Recovery 首次配置由 `python mosaico.py recover` 完成；正常应用由 `python mosaico.py install` 安装。
 8. Skill 体系支持持续扩展。仓库能力以已经接入并通过验证的资源为准。
+9. `mosaico.py` 与 ESP-Iris Gateway 支持 Python 3.8 或更新版本；ESP-IDF 6.1
+   的 bootstrap 解释器仍须为 Python 3.10 或更新版本，两套解释器由统一命令
+   分别解析和检查。
 
 ### 7.5 变更控制
 

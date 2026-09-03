@@ -129,6 +129,38 @@ config IRIS_FACTORY_HTTP_SYSTEM_UPDATE_MANIFEST_URL
         Absolute URL of manifest.json. Component file names in the manifest
         are resolved relative to this URL. Leave empty to disable auto-start.
 
+config IRIS_FACTORY_NAND_SYSTEM_UPDATE
+    bool "Enable recovery NAND LittleFS system-update source"
+    default n
+    depends on IRIS_FACTORY_SYSTEM_UPDATE_BACKEND
+    select NAND_FLASH_ENABLE_BDL
+    help
+        Register RPC 0x1201/2. Its payload is an absolute manifest path below
+        /nand. Recovery mounts the board SPI NAND LittleFS read-only and reads
+        the manifest plus every root-level component from the same directory.
+        The Recovery UI scans /nand/system-update/manifest.json and one level
+        of release subdirectories so an operator can select a bundle locally.
+
+config IRIS_FACTORY_NAND_SYSTEM_UPDATE_TASK_STACK
+    int "NAND system-update task stack size"
+    range 6144 16384
+    default 8192
+    depends on IRIS_FACTORY_NAND_SYSTEM_UPDATE
+
+config IRIS_FACTORY_NAND_SYSTEM_UPDATE_AUTO_START
+    bool "Automatically apply the configured NAND bundle in Recovery"
+    default n
+    depends on IRIS_FACTORY_NAND_SYSTEM_UPDATE
+
+config IRIS_FACTORY_NAND_SYSTEM_UPDATE_MANIFEST_PATH
+    string "Automatic NAND system-update manifest path"
+    default "/nand/system-update/manifest.json"
+    depends on IRIS_FACTORY_NAND_SYSTEM_UPDATE_AUTO_START
+    help
+        Absolute LittleFS path below /nand. Component file names in the
+        manifest are resolved relative to this file. Leave empty to disable
+        auto-start.
+
 endmenu
 
 endmenu

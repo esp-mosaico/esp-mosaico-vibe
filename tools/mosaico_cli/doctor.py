@@ -68,12 +68,12 @@ def diagnose_host(repository: Path) -> dict[str, Any]:
     checks: list[dict[str, str]] = []
     platform = host_platform()
     python_version = ".".join(str(item) for item in sys.version_info[:3])
-    python_ready = sys.version_info >= (3, 11)
+    python_ready = sys.version_info >= (3, 8)
     _check(
         checks,
         "python",
         "pass" if python_ready else "fail",
-        f"Python {python_version}; 3.11 or newer is required",
+        f"Python {python_version}; 3.8 or newer is required",
     )
     platform_ready = platform in {"linux", "macos", "windows"}
     _check(
@@ -99,7 +99,10 @@ def diagnose_host(repository: Path) -> dict[str, Any]:
     else:
         _check(checks, "inventory", "pass", "Environment inventory is present")
 
-    idf: dict[str, Any] = {"constraint": _declared_constraint(repository)}
+    idf: dict[str, Any] = {
+        "constraint": _declared_constraint(repository),
+        "python_version": "unresolved",
+    }
     try:
         idf_path = resolve_idf_path(repository, repository / "projects" / "factory")
         prepared = prepare_idf_environment(idf_path)
@@ -109,6 +112,17 @@ def diagnose_host(repository: Path) -> dict[str, Any]:
                 "python": str(prepared.python),
                 "target": "esp32s31",
             }
+        )
+        python_code, python_output = _command([str(prepared.python), "--version"])
+        idf_python_ready = python_code == 0 and _version_satisfies(
+            python_output, ">=3.10"
+        )
+        idf["python_version"] = python_output or "unresolved"
+        _check(
+            checks,
+            "idf-python",
+            "pass" if idf_python_ready else "fail",
+            f"{idf['python_version']} (ESP-IDF requires 3.10 or newer)",
         )
         version_code, version_output = _command(
             [str(prepared.python), str(prepared.idf_py), "--version"],
@@ -157,6 +171,13 @@ def diagnose_host(repository: Path) -> dict[str, Any]:
         )
     except (HostEnvironmentError, OSError, RuntimeError) as error:
         idf["error"] = str(error)
+        if not any(item["name"] == "idf-python" for item in checks):
+            _check(
+                checks,
+                "idf-python",
+                "fail",
+                f"ESP-IDF Python is unavailable: {error}",
+            )
         _check(checks, "idf-environment", "fail", str(error))
 
     iris: dict[str, Any] = {"devices": []}

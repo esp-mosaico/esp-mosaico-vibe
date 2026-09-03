@@ -2,6 +2,7 @@ idf_component_register(
     SRCS
         "main.c"
         "factory_http_update.c"
+        "factory_nand_update.c"
         "factory_network.c"
         "factory_system_inventory.c"
         "factory_system_metadata.c"

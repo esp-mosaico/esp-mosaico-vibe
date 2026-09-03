@@ -38,14 +38,51 @@ python mosaico.py system-update --device-id DEVICE_ID \
 
 RPC 只启动后台任务并立即返回。Recovery 等待已配置的 Wi-Fi，下载并验证所有
 组件；application 写入 `ota_0`，bootloader 和 partition table 暂存在 PSRAM，
-所有组件验证完成后才进入不可取消的 single-copy commit。USB System Update
-和 HTTP(S) pull 共用同一个 Flash writer owner，不能并行执行。
+所有组件验证完成后才进入不可取消的 single-copy commit。
 
 HTTPS 默认使用 ESP-IDF certificate bundle 验证服务器。明文 HTTP 仅用于隔离的
 开发网络，需显式设置
 `CONFIG_IRIS_FACTORY_HTTP_SYSTEM_UPDATE_ALLOW_PLAIN_HTTP=y`。当前 product backend
 仍是 unsigned policy；面向非受控网络发布前必须加入并启用 manifest release-key
 验证。
+
+### Recovery 从 NAND LittleFS 读取系统更新
+
+ESP-Mosaico 的板载 NAND 与 `esp-mosaico-claw` 一致，使用 SPI NAND、wear-leveling
+block device 和 LittleFS，挂载点为 `/nand`。Recovery 只读挂载已有文件系统，挂载
+失败时不会格式化 NAND。将解包后的 bundle 放到同一目录，例如：
+
+```text
+/nand/system-update/manifest.json
+/nand/system-update/ota_0.bin
+/nand/system-update/bootloader.bin
+/nand/system-update/partition-table.bin
+```
+
+Recovery 首页提供 **Update from NAND**：进入后固件会异步、只读扫描以下两种
+catalog 布局，最多列出 8 个完整 bundle；点击条目可先核对 release、组件数、总
+容量和 manifest 路径，再确认更新。
+
+```text
+/nand/system-update/manifest.json
+/nand/system-update/<release>/manifest.json
+```
+
+每个 `manifest.json` 引用的组件必须与它位于同一目录。扫描阶段会过滤 manifest
+格式错误、组件缺失或文件大小不符的条目；确认安装后，System Update backend
+仍会重新执行完整 manifest、SHA-256、镜像和布局校验。也可以通过产品 CLI 直接
+启动指定路径：
+
+```sh
+python mosaico.py system-update --device-id DEVICE_ID \
+  --manifest-path /nand/system-update/manifest.json
+```
+
+Recovery 逐块读取组件并复用与 USB、HTTP(S) 相同的 manifest、SHA-256、镜像及
+分区布局校验。application 流式写入 `ota_0`；bootloader 和 partition table 暂存
+到 PSRAM，全部验证完成后统一提交。三种来源共用一个 Flash writer owner，不能
+并行执行。可通过 `CONFIG_IRIS_FACTORY_NAND_SYSTEM_UPDATE_AUTO_START=y` 配置固定
+路径自动启动；默认关闭，避免误用 NAND 中遗留的旧 bundle。
 
 ## Flash 布局
 

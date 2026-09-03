@@ -6,11 +6,11 @@ import argparse
 import json
 from pathlib import Path
 import sys
-from typing import Any, Never, Sequence
+from typing import Any, NoReturn, Sequence
 from urllib.parse import urlsplit
 
 from . import __version__
-from .commands import install, list_devices, monitor, recover, start_http_system_update
+from .commands import install, list_devices, monitor, recover, start_system_update
 from .doctor import diagnose_host, print_diagnosis
 from .errors import MosaicoError
 from .runtime import RunContext
@@ -22,7 +22,7 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 class MosaicoArgumentParser(argparse.ArgumentParser):
     json_errors = False
 
-    def error(self, message: str) -> Never:
+    def error(self, message: str) -> NoReturn:
         if self.json_errors:
             print(
                 json.dumps(
@@ -69,6 +69,17 @@ def http_manifest_url(value: str) -> str:
         raise argparse.ArgumentTypeError("must name a manifest file")
     if len(value.encode("utf-8")) >= 512:
         raise argparse.ArgumentTypeError("must be shorter than 512 UTF-8 bytes")
+    return value
+
+
+def nand_manifest_path(value: str) -> str:
+    if not value.startswith("/nand/") or value.endswith("/") or "\\" in value:
+        raise argparse.ArgumentTypeError("must be an absolute file below /nand")
+    segments = value[len("/nand/") :].split("/")
+    if any(segment in {"", ".", ".."} for segment in segments):
+        raise argparse.ArgumentTypeError("must not contain empty, '.' or '..' segments")
+    if len(value.encode("utf-8")) >= 256:
+        raise argparse.ArgumentTypeError("must be shorter than 256 UTF-8 bytes")
     return value
 
 
@@ -122,14 +133,21 @@ def build_parser() -> argparse.ArgumentParser:
 
     system_update_parser = commands.add_parser(
         "system-update",
-        help="Start a Recovery HTTP(S) full-system update",
+        help="Start a Recovery full-system update from HTTP(S) or NAND",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    system_update_parser.add_argument(
+    system_update_source = system_update_parser.add_mutually_exclusive_group(
+        required=True
+    )
+    system_update_source.add_argument(
         "--manifest-url",
-        required=True,
         type=http_manifest_url,
         help="Absolute URL of the exploded bundle manifest.json",
+    )
+    system_update_source.add_argument(
+        "--manifest-path",
+        type=nand_manifest_path,
+        help="Absolute NAND LittleFS path of the exploded bundle manifest.json",
     )
     system_update_parser.add_argument(
         "--device-id",
@@ -295,8 +313,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     raw = list(argv or sys.argv[1:])
     MosaicoArgumentParser.json_errors = "--json" in raw
     arguments = build_parser().parse_args(_normalize_globals(raw))
-    if sys.version_info < (3, 11):
-        message = "mosaico.py requires Python 3.11 or newer."
+    if sys.version_info < (3, 8):
+        message = "mosaico.py requires Python 3.8 or newer."
         if arguments.json:
             print(
                 json.dumps(
@@ -358,7 +376,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if arguments.command == "install":
             result = install(REPOSITORY, arguments, context)
         elif arguments.command == "system-update":
-            result = start_http_system_update(arguments, context)
+            result = start_system_update(arguments, context)
         elif arguments.command == "recover":
             result = recover(REPOSITORY, arguments, context)
         else:

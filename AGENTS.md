@@ -27,6 +27,9 @@ Before running ESP-IDF tools, resolve the PC environment as follows:
    ESP32-S31 target support. The project version constraint is declared in
    `projects/factory/main/idf_component.yml`; do not rely only on the
    inventory.
+   The `mosaico.py` and ESP-Iris host tools support Python 3.8 or newer. ESP-IDF
+   6.1 still requires Python 3.10 or newer; allow `mosaico.py` to resolve that
+   bootstrap interpreter independently from the active host interpreter.
 3. If no compatible ESP-IDF environment exists, use
    `skills/espressif-env-setup/SKILL.md` for the fresh ESP-IDF installation and
    its first verification build.

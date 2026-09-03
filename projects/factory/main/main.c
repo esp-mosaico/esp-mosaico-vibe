@@ -42,6 +42,17 @@ void app_main(void)
 #endif
 
 #if CONFIG_GET_STARTED_RECOVERY
+#if CONFIG_IRIS_FACTORY_NAND_SYSTEM_UPDATE && \
+    CONFIG_IRIS_FACTORY_NAND_SYSTEM_UPDATE_AUTO_START
+    if (CONFIG_IRIS_FACTORY_NAND_SYSTEM_UPDATE_MANIFEST_PATH[0] != '\0') {
+        const esp_err_t update_err = factory_system_update_start_nand(
+            CONFIG_IRIS_FACTORY_NAND_SYSTEM_UPDATE_MANIFEST_PATH);
+        if (update_err != ESP_OK) {
+            ESP_LOGE(TAG, "Could not start configured NAND system update: %s",
+                     esp_err_to_name(update_err));
+        }
+    }
+#endif
     const esp_err_t network_err = factory_network_start();
     if (network_err != ESP_OK) {
         ESP_LOGE(TAG, "Factory network unavailable; USB recovery remains active: %s",
