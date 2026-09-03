@@ -45,11 +45,15 @@ confirmation before clone or install.
 1. Translate the user's request into a project-level goal and identify the
    required board capabilities.
 2. Use `projects/factory` as the reference project and create the new
-   application under `projects/<project-name>`. Do not implement a user
-   application directly in `projects/factory` unless the user explicitly
-   asks to change the template.
+   application under `projects/<project-name>`. For a GSP Hello World that
+   runs on the PC simulator and on device, start from `projects/gsp_hello`.
+   Do not implement a user application directly in `projects/factory` unless
+   the user explicitly asks to change the template.
 3. Read `skills/README.md`, then load only the `SKILL.md` files relevant to the
-   requested capabilities.
+   requested capabilities. For GSP UI work, load `skills/gsp-sim/SKILL.md` and
+   preview scenes with `python3 tools/gsp-sim/run.py` using
+   **espressif/esp-gsp 1.1.0** in `submodule/esp-gsp`.
+   Do not import Mosaic claw hub/runtime into this repository.
 4. Component repositories and supporting project material are Git submodules.
    Initialize and inspect only the submodules needed for the current task.
 5. Follow component source, examples, and upstream documentation. Do not

@@ -18,6 +18,11 @@
 子模组。实现功能前，先查看 [`skills/README.md`](skills/README.md)，并按需读取
 相关的 `SKILL.md`，无需一次性加载全部资料。
 
+使用 GSP 绘制界面的工程可先在 PC 上预览 480×480 场景，再烧录真机。入口是
+[`tools/gsp-sim`](tools/gsp-sim/README.md)，固定使用
+**espressif/esp-gsp 1.1.0**（`submodule/esp-gsp`）。
+`projects/factory` 仍是 LVGL 参考工程。
+
 ## 统一设备命令
 
 日常安装、日志和恢复统一通过仓库根目录的 `mosaico.py` 完成：
@@ -95,6 +100,9 @@ ESP-Mosaico 只有一个 High-Speed USB 接口。正常固件和 Recovery 都会
 ## 仓库结构
 
 - `projects/`：开发者工程目录，新工程从 `projects/factory` 开始。
+  `projects/gsp_hello` 是 GSP Hello World（PC 仿真 + 真机安装）。
+- `submodule/esp-gsp/`：固定的 ESP-GSP 1.1.0（设备预编译库；主机仿真器与 gspc 另行下载）。
+- `tools/gsp-sim/`：打包场景并运行独立的 ESP-GSP `sim`。
 - `submodule/esp-iris/`：固定版本的 ESP-Iris 固件组件与主机运行时。
 - `skills/`：面向 Agent 和开发者的任务集成指南，详见
   [`skills/README.md`](skills/README.md)。

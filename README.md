@@ -23,6 +23,11 @@ submodules. Load or initialize only the submodules required by the current
 task. Before implementing a feature, consult [`skills/README.md`](skills/README.md)
 and read only the relevant `SKILL.md` guides.
 
+GSP applications can preview 480×480 scenes on the PC before flashing. Use
+[`tools/gsp-sim`](tools/gsp-sim/README.md) with the pinned
+**espressif/esp-gsp 1.1.0** submodule (`submodule/esp-gsp`).
+`projects/factory` remains LVGL.
+
 ## Unified device commands
 
 Use the repository-level product commands for installation, logs, and recovery:
@@ -112,6 +117,9 @@ partitions without explicit user authorization.
 ## Repository layout
 
 - `projects/` — developer applications; start from `projects/factory`.
+  `projects/gsp_hello` is the GSP Hello World (PC sim + device install).
+- `submodule/esp-gsp/` — pinned ESP-GSP 1.1.0 (device prebuilts; sim/gspc fetched separately).
+- `tools/gsp-sim/` — packs scenes and runs the standalone ESP-GSP `sim`.
 - `submodule/esp-iris/` — pinned ESP-Iris firmware component and host runtime.
 - `skills/` — task-oriented integration guides for agents and humans. See
   [`skills/README.md`](skills/README.md).
