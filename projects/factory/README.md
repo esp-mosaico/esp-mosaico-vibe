@@ -25,6 +25,28 @@ python mosaico.py monitor
 Recovery 屏幕在普通 OTA 写入期间显示应用镜像接收进度、传输所有者和
 SHA-256 校验状态；完成后显示重启提示。System Update 继续复用同一进度页面。
 
+### Recovery 从 HTTP(S) 拉取系统更新
+
+Recovery profile 默认编译 HTTP(S) System Update source，但不会自动访问网络。
+服务器需要提供解包后的 bundle，`manifest.json` 及其 `components[].file` 必须位于
+同一目录；manifest 格式与 ESP-Iris `.irisfw` bundle 相同。通过产品 CLI 触发：
+
+```sh
+python mosaico.py system-update --device-id DEVICE_ID \
+  --manifest-url 'https://updates.example.com/mosaico/release/manifest.json'
+```
+
+RPC 只启动后台任务并立即返回。Recovery 等待已配置的 Wi-Fi，下载并验证所有
+组件；application 写入 `ota_0`，bootloader 和 partition table 暂存在 PSRAM，
+所有组件验证完成后才进入不可取消的 single-copy commit。USB System Update
+和 HTTP(S) pull 共用同一个 Flash writer owner，不能并行执行。
+
+HTTPS 默认使用 ESP-IDF certificate bundle 验证服务器。明文 HTTP 仅用于隔离的
+开发网络，需显式设置
+`CONFIG_IRIS_FACTORY_HTTP_SYSTEM_UPDATE_ALLOW_PLAIN_HTTP=y`。当前 product backend
+仍是 unsigned policy；面向非受控网络发布前必须加入并启用 manifest release-key
+验证。
+
 ## Flash 布局
 
 16 MiB Flash 使用固定系统前缀和尾部可缩减的单应用槽：

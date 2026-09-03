@@ -1,6 +1,7 @@
 idf_component_register(
     SRCS
         "main.c"
+        "factory_http_update.c"
         "factory_network.c"
         "factory_system_inventory.c"
         "factory_system_metadata.c"
@@ -14,6 +15,7 @@ idf_component_register(
         bootloader_support
         esp_app_format
         esp_event
+        esp_http_client
         esp_iris
         esp-mosaico-bsp
         esp_netif

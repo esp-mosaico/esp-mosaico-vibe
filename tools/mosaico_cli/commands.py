@@ -163,6 +163,56 @@ def list_devices(context: RunContext, gateway_profile: str | None) -> dict[str, 
     }
 
 
+def start_http_system_update(
+    arguments: Any, context: RunContext
+) -> dict[str, Any]:
+    """Ask a live Recovery instance to pull and apply an HTTP(S) bundle."""
+
+    context.status("gateway: connecting")
+    session = ensure_gateway(context, arguments.gateway_profile)
+    device = select_device(connected_devices(context, session), arguments.device_id)
+    device_id = str(device.get("device_id"))
+    status = _device_status(
+        gateway_json(context, session, "status", device_id)
+    )
+    firmware_mode = status.get("firmware_mode") or device.get("firmware_mode")
+    context.status(
+        f"device: {device_id} mode={firmware_mode or 'unknown'} "
+        f"boot_id={status.get('boot_id') or device.get('boot_id') or 'unknown'}"
+    )
+    if firmware_mode != "recovery":
+        raise RecoveryRequiredError(
+            "HTTP system update requires a live Recovery service. "
+            "Run 'python mosaico.py recover' first."
+        )
+
+    context.status("system update: requesting Recovery HTTP(S) pull")
+    response = gateway_json(
+        context,
+        session,
+        "rpc-raw",
+        device_id,
+        "0x1201",
+        "1",
+        "--payload",
+        arguments.manifest_url,
+        "--deadline-ms",
+        "5000",
+        timeout=10,
+        sensitive_output=True,
+    )
+    context.status("system update: accepted by Recovery; download is running")
+    return {
+        "command": "system-update",
+        "status": "accepted",
+        "device_id": device_id,
+        "firmware_mode": firmware_mode,
+        "gateway_started": session.started_local,
+        "response": response,
+        "log": str(context.log_path),
+    }
+
+
 def install(repository: Path, arguments: Any, context: RunContext) -> dict[str, Any]:
     project = resolve_project(repository, arguments.project, Path.cwd())
     context.status(f"project: {project}")

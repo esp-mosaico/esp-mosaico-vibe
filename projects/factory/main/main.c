@@ -47,6 +47,18 @@ void app_main(void)
         ESP_LOGE(TAG, "Factory network unavailable; USB recovery remains active: %s",
                  esp_err_to_name(network_err));
     }
+#if CONFIG_IRIS_FACTORY_HTTP_SYSTEM_UPDATE && \
+    CONFIG_IRIS_FACTORY_HTTP_SYSTEM_UPDATE_AUTO_START
+    if (network_err == ESP_OK &&
+        CONFIG_IRIS_FACTORY_HTTP_SYSTEM_UPDATE_MANIFEST_URL[0] != '\0') {
+        const esp_err_t update_err = factory_system_update_start_http(
+            CONFIG_IRIS_FACTORY_HTTP_SYSTEM_UPDATE_MANIFEST_URL);
+        if (update_err != ESP_OK) {
+            ESP_LOGE(TAG, "Could not start configured HTTP system update: %s",
+                     esp_err_to_name(update_err));
+        }
+    }
+#endif
 #endif
 
     ESP_LOGI(TAG, "ESP-Mosaico %s firmware is ready",

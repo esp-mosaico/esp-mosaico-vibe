@@ -32,6 +32,7 @@ from mosaico_cli.commands import (
     list_devices,
     monitor,
     recover,
+    start_http_system_update,
 )
 from mosaico_cli.errors import (
     BuildError,
@@ -39,6 +40,7 @@ from mosaico_cli.errors import (
     EnvironmentError,
     OperationError,
     OutcomeUnknownError,
+    RecoveryRequiredError,
     SelectionError,
 )
 from mosaico_cli.gateway import (
@@ -98,6 +100,18 @@ class ParserTests(unittest.TestCase):
         self.assertFalse(value.snapshot)
         self.assertFalse(value.force_color)
         self.assertFalse(value.disable_auto_color)
+
+    def test_system_update_requires_valid_manifest_url(self) -> None:
+        value = self.parse(
+            "system-update",
+            "--manifest-url",
+            "https://updates.example.test/release/manifest.json",
+        )
+        self.assertEqual(value.command, "system-update")
+        self.assertIsNone(value.device_id)
+        with self.assertRaises(SystemExit) as caught:
+            self.parse("system-update", "--manifest-url", "file:///manifest.json")
+        self.assertEqual(caught.exception.code, 2)
 
     def test_global_flags_work_after_command(self) -> None:
         value = self.parse(
@@ -336,6 +350,59 @@ class GatewayTests(unittest.TestCase):
         self.assertTrue(result["devices"][0]["online"])
         self.assertEqual(result["devices"][0]["connection"], "USB Highspeed")
         self.assertFalse(result["devices"][1]["online"])
+
+    def test_http_system_update_uses_recovery_rpc_and_hides_url(self) -> None:
+        context = mock.Mock(log_path=Path("run.log"))
+        session = GatewaySession(
+            Path("python"), Path("iris"), ("--profile", "bench"), "bench", False
+        )
+        arguments = argparse.Namespace(
+            gateway_profile="bench",
+            device_id="device-a",
+            manifest_url="https://updates.example.test/release/manifest.json?token=secret",
+        )
+        with (
+            mock.patch("mosaico_cli.commands.ensure_gateway", return_value=session),
+            mock.patch(
+                "mosaico_cli.commands.connected_devices",
+                return_value=[{"device_id": "device-a", "firmware_mode": "recovery"}],
+            ),
+            mock.patch(
+                "mosaico_cli.commands.gateway_json",
+                side_effect=[
+                    {"device": {"firmware_mode": "recovery", "boot_id": "boot-a"}},
+                    {"response": {"payload_hex": ""}},
+                ],
+            ) as gateway,
+        ):
+            result = start_http_system_update(arguments, context)
+
+        self.assertEqual(result["status"], "accepted")
+        rpc_call = gateway.call_args_list[1]
+        self.assertEqual(rpc_call.args[2:7], ("rpc-raw", "device-a", "0x1201", "1", "--payload"))
+        self.assertTrue(rpc_call.kwargs["sensitive_output"])
+
+    def test_http_system_update_rejects_normal_firmware(self) -> None:
+        context = mock.Mock(log_path=Path("run.log"))
+        session = GatewaySession(Path("python"), Path("iris"), (), None, False)
+        arguments = argparse.Namespace(
+            gateway_profile=None,
+            device_id="device-a",
+            manifest_url="https://updates.example.test/manifest.json",
+        )
+        with (
+            mock.patch("mosaico_cli.commands.ensure_gateway", return_value=session),
+            mock.patch(
+                "mosaico_cli.commands.connected_devices",
+                return_value=[{"device_id": "device-a", "firmware_mode": "normal"}],
+            ),
+            mock.patch(
+                "mosaico_cli.commands.gateway_json",
+                return_value={"device": {"firmware_mode": "normal"}},
+            ),
+            self.assertRaises(RecoveryRequiredError),
+        ):
+            start_http_system_update(arguments, context)
 
     def test_iris_tools_are_found_only_in_the_pinned_submodule(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -1339,6 +1406,18 @@ class RecoveryCommandTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0)
             status.assert_called_once_with("child: streamed child output")
             self.assertIn("streamed child output", context.log_path.read_text())
+
+    def test_run_context_hides_sensitive_command_and_output(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            context = RunContext(Path(temporary), "sensitive-test")
+            result = context.run(
+                [sys.executable, "-c", "print('secret-url')"],
+                sensitive_output=True,
+            )
+            self.assertEqual(result.returncode, 0)
+            log = context.log_path.read_text()
+            self.assertNotIn("secret-url", log)
+            self.assertIn("[sensitive command omitted]", log)
 
 
 if __name__ == "__main__":

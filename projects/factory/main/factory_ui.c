@@ -17,6 +17,7 @@
 #include "esp_iris_system_update.h"
 #include "esp_wifi.h"
 #include "factory_network.h"
+#include "factory_system_update.h"
 #endif
 
 #define COLOR_PAPER   lv_color_hex(0xF6F6F3)
@@ -739,16 +740,17 @@ static const char *transport_name(esp_iris_transport_kind_t transport)
 
 static void system_update_ui_update(const esp_iris_status_t *iris)
 {
-    esp_iris_system_update_status_t update;
-    if (esp_iris_system_update_get_status(&update) != ESP_OK) {
+    factory_system_update_status_t snapshot;
+    if (factory_system_update_get_status(&snapshot) != ESP_OK) {
         return;
     }
+    const esp_iris_system_update_status_t *update = &snapshot.update;
     lv_label_set_text(s_ui.update_title, "Updating system");
     lv_label_set_text(s_ui.update_verified, "Unsigned");
-    if (update.phase == ESP_IRIS_SYSTEM_UPDATE_PHASE_IDLE) {
+    if (update->phase == ESP_IRIS_SYSTEM_UPDATE_PHASE_IDLE) {
         return;
     }
-    if (update.phase == ESP_IRIS_SYSTEM_UPDATE_PHASE_COMMITTED) {
+    if (update->phase == ESP_IRIS_SYSTEM_UPDATE_PHASE_COMMITTED) {
         lv_obj_set_style_bg_color(s_ui.result_mark, COLOR_GREEN, LV_PART_MAIN);
         lv_label_set_text(s_ui.result_title, "Update complete");
         lv_label_set_text(s_ui.result_detail,
@@ -756,43 +758,48 @@ static void system_update_ui_update(const esp_iris_status_t *iris)
         if (s_ui.page != FACTORY_PAGE_RESULT) {
             show_page(FACTORY_PAGE_RESULT);
         }
-        s_ui.update_phase = update.phase;
+        s_ui.update_phase = update->phase;
         return;
     }
-    if (update.phase == ESP_IRIS_SYSTEM_UPDATE_PHASE_FAILED ||
-        update.phase == ESP_IRIS_SYSTEM_UPDATE_PHASE_CANCELLED) {
+    if (update->phase == ESP_IRIS_SYSTEM_UPDATE_PHASE_FAILED ||
+        update->phase == ESP_IRIS_SYSTEM_UPDATE_PHASE_CANCELLED) {
         lv_obj_set_style_bg_color(s_ui.result_mark, COLOR_RED, LV_PART_MAIN);
         lv_label_set_text(s_ui.result_title, "Update failed");
         lv_label_set_text_fmt(s_ui.result_detail, "Error 0x%08x - use USB to retry",
-                              (unsigned)update.result);
+                              (unsigned)update->result);
         if (s_ui.page != FACTORY_PAGE_RESULT) {
             show_page(FACTORY_PAGE_RESULT);
         }
-        s_ui.update_phase = update.phase;
+        s_ui.update_phase = update->phase;
         return;
     }
 
-    const uint16_t progress = update.component_size > 0
-        ? (uint16_t)(((uint64_t)update.component_received * 1000U) /
-                     update.component_size)
+    const uint16_t progress = update->component_size > 0
+        ? (uint16_t)(((uint64_t)update->component_received * 1000U) /
+                     update->component_size)
         : 0;
     const char *detail = "Validating unsigned update plan";
-    if (update.phase == ESP_IRIS_SYSTEM_UPDATE_PHASE_RECEIVING) {
-        detail = "Receiving system component";
-    } else if (update.phase ==
+    if (update->phase == ESP_IRIS_SYSTEM_UPDATE_PHASE_RECEIVING) {
+        detail = snapshot.owner == FACTORY_SYSTEM_UPDATE_OWNER_HTTP
+            ? "Downloading system component"
+            : "Receiving system component";
+    } else if (update->phase ==
                ESP_IRIS_SYSTEM_UPDATE_PHASE_COMPONENT_VERIFIED) {
         detail = "Component verified";
-    } else if (update.phase == ESP_IRIS_SYSTEM_UPDATE_PHASE_COMMITTING) {
+    } else if (update->phase == ESP_IRIS_SYSTEM_UPDATE_PHASE_COMMITTING) {
         detail = "Committing protected system images";
     }
     lv_label_set_text(s_ui.update_detail, detail);
     lv_label_set_text_fmt(s_ui.update_percent, "%u%%", progress / 10U);
     lv_bar_set_value(s_ui.update_bar, progress, LV_ANIM_OFF);
-    lv_label_set_text(s_ui.update_owner, transport_name(iris->transport));
+    lv_label_set_text(s_ui.update_owner,
+                      snapshot.owner == FACTORY_SYSTEM_UPDATE_OWNER_HTTP
+                          ? "HTTP(S)"
+                          : transport_name(iris->transport));
     if (s_ui.page != FACTORY_PAGE_UPDATE) {
         show_page(FACTORY_PAGE_UPDATE);
     }
-    s_ui.update_phase = update.phase;
+    s_ui.update_phase = update->phase;
 }
 
 static bool ota_ui_update(const esp_iris_status_t *iris)

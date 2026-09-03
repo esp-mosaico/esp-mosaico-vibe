@@ -36,6 +36,7 @@
 
 typedef struct {
     esp_iris_system_update_component_t descriptor;
+    char filename[FACTORY_SYSTEM_UPDATE_FILENAME_BYTES];
     bool completed;
 } factory_update_plan_component_t;
 
@@ -59,6 +60,92 @@ static const char *TAG = "factory_sysupdate";
 static factory_update_state_t s_update = {
     .active_index = -1,
 };
+static factory_system_update_owner_t s_owner =
+    FACTORY_SYSTEM_UPDATE_OWNER_NONE;
+static factory_system_update_status_t s_status = {
+    .owner = FACTORY_SYSTEM_UPDATE_OWNER_NONE,
+    .update = {
+        .phase = ESP_IRIS_SYSTEM_UPDATE_PHASE_IDLE,
+        .result = ESP_OK,
+    },
+};
+static portMUX_TYPE s_state_lock = portMUX_INITIALIZER_UNLOCKED;
+
+static bool update_owner_claim(factory_system_update_owner_t owner)
+{
+    bool claimed = false;
+    taskENTER_CRITICAL(&s_state_lock);
+    if (s_owner == FACTORY_SYSTEM_UPDATE_OWNER_NONE) {
+        s_owner = owner;
+        claimed = true;
+    }
+    taskEXIT_CRITICAL(&s_state_lock);
+    return claimed;
+}
+
+static void update_owner_release(void)
+{
+    taskENTER_CRITICAL(&s_state_lock);
+    s_owner = FACTORY_SYSTEM_UPDATE_OWNER_NONE;
+    taskEXIT_CRITICAL(&s_state_lock);
+}
+
+static bool update_owner_is(factory_system_update_owner_t owner)
+{
+    bool matches;
+    taskENTER_CRITICAL(&s_state_lock);
+    matches = s_owner == owner;
+    taskEXIT_CRITICAL(&s_state_lock);
+    return matches;
+}
+
+static void update_status_start(
+    factory_system_update_owner_t owner,
+    const uint8_t operation_id[ESP_IRIS_SYSTEM_OPERATION_ID_BYTES],
+    size_t component_count)
+{
+    taskENTER_CRITICAL(&s_state_lock);
+    memset(&s_status, 0, sizeof(s_status));
+    s_status.owner = owner;
+    memcpy(s_status.update.operation_id, operation_id,
+           sizeof(s_status.update.operation_id));
+    s_status.update.phase = ESP_IRIS_SYSTEM_UPDATE_PHASE_PREPARED;
+    s_status.update.component_count = (uint8_t)component_count;
+    s_status.update.result = ESP_OK;
+    taskEXIT_CRITICAL(&s_state_lock);
+}
+
+static void update_status_component(uint8_t component_id, uint32_t received,
+                                    uint32_t size,
+                                    esp_iris_system_update_phase_t phase)
+{
+    taskENTER_CRITICAL(&s_state_lock);
+    s_status.update.active_component_id = component_id;
+    s_status.update.component_received = received;
+    s_status.update.component_size = size;
+    s_status.update.phase = phase;
+    taskEXIT_CRITICAL(&s_state_lock);
+}
+
+static void update_status_component_complete(void)
+{
+    taskENTER_CRITICAL(&s_state_lock);
+    ++s_status.update.completed_components;
+    s_status.update.active_component_id = 0;
+    s_status.update.phase =
+        ESP_IRIS_SYSTEM_UPDATE_PHASE_COMPONENT_VERIFIED;
+    taskEXIT_CRITICAL(&s_state_lock);
+}
+
+static void update_status_finish(esp_iris_system_update_phase_t phase,
+                                 esp_err_t result)
+{
+    taskENTER_CRITICAL(&s_state_lock);
+    s_status.update.phase = phase;
+    s_status.update.result = result;
+    s_status.update.active_component_id = 0;
+    taskEXIT_CRITICAL(&s_state_lock);
+}
 
 static bool bytes_equal(const uint8_t *left, const uint8_t *right,
                         size_t size)
@@ -337,6 +424,7 @@ static esp_err_t parse_component(const cJSON *item,
     uint32_t id = 0;
     uint32_t flags = 0;
     const char *kind_name = NULL;
+    const char *filename = NULL;
     ESP_RETURN_ON_ERROR(json_uint32(item, "id", UINT8_MAX, &id), TAG,
                         "component id");
     ESP_RETURN_ON_FALSE(id != 0, ESP_ERR_INVALID_ARG, TAG,
@@ -367,6 +455,17 @@ static esp_err_t parse_component(const cJSON *item,
                         "component kind policy");
     ESP_RETURN_ON_ERROR(json_sha256(item, "sha256", plan->descriptor.sha256),
                         TAG, "component digest");
+    ESP_RETURN_ON_ERROR(json_string(item, "file", &filename), TAG,
+                        "component file");
+    const size_t filename_size = strnlen(
+        filename, FACTORY_SYSTEM_UPDATE_FILENAME_BYTES);
+    ESP_RETURN_ON_FALSE(
+        filename_size > 0 &&
+            filename_size < FACTORY_SYSTEM_UPDATE_FILENAME_BYTES &&
+            strcmp(filename, ".") != 0 && strcmp(filename, "..") != 0 &&
+            strchr(filename, '/') == NULL && strchr(filename, '\\') == NULL,
+        ESP_ERR_INVALID_ARG, TAG, "component file is not root-level");
+    strlcpy(plan->filename, filename, sizeof(plan->filename));
     return authorize_component_target(&plan->descriptor);
 }
 
@@ -443,7 +542,8 @@ static esp_err_t parse_manifest_json(
             goto done;
         }
         for (size_t i = 0; i < s_update.plan_count; ++i) {
-            if (s_update.plan[i].descriptor.id == plan->descriptor.id) {
+            if (s_update.plan[i].descriptor.id == plan->descriptor.id ||
+                strcmp(s_update.plan[i].filename, plan->filename) == 0) {
                 err = ESP_ERR_INVALID_ARG;
                 goto done;
             }
@@ -473,24 +573,42 @@ done:
     return err;
 }
 
+static esp_err_t prepare_update_owned(
+    const esp_iris_system_update_manifest_t *manifest,
+    factory_system_update_owner_t owner)
+{
+    ESP_RETURN_ON_FALSE(update_owner_claim(owner), ESP_ERR_INVALID_STATE, TAG,
+                        "system update writer is busy");
+    update_state_reset();
+    if (manifest == NULL || manifest->manifest == NULL ||
+        manifest->manifest_size == 0 || manifest->signature_size != 0) {
+        update_status_finish(ESP_IRIS_SYSTEM_UPDATE_PHASE_FAILED,
+                             ESP_ERR_INVALID_ARG);
+        update_owner_release();
+        return ESP_ERR_INVALID_ARG;
+    }
+    const esp_err_t parse_err = parse_manifest_json(manifest);
+    if (parse_err != ESP_OK) {
+        update_status_finish(ESP_IRIS_SYSTEM_UPDATE_PHASE_FAILED, parse_err);
+        update_state_reset();
+        update_owner_release();
+        return parse_err;
+    }
+    memcpy(s_update.operation_id, manifest->operation_id,
+           sizeof(s_update.operation_id));
+    s_update.prepared = true;
+    update_status_start(owner, manifest->operation_id, s_update.plan_count);
+    ESP_LOGW(TAG, "accepted unsigned system plan with %u component(s)",
+             (unsigned)s_update.plan_count);
+    return ESP_OK;
+}
+
 static esp_err_t prepare_update(
     const esp_iris_system_update_manifest_t *manifest, void *user_ctx)
 {
     (void)user_ctx;
-    update_state_reset();
-    ESP_RETURN_ON_FALSE(manifest != NULL && manifest->manifest != NULL &&
-                            manifest->manifest_size > 0 &&
-                            manifest->signature_size == 0,
-                        ESP_ERR_INVALID_ARG, TAG,
-                        "unsigned manifest required");
-    ESP_RETURN_ON_ERROR(parse_manifest_json(manifest), TAG,
-                        "validate manifest");
-    memcpy(s_update.operation_id, manifest->operation_id,
-           sizeof(s_update.operation_id));
-    s_update.prepared = true;
-    ESP_LOGW(TAG, "accepted unsigned system plan with %u component(s)",
-             (unsigned)s_update.plan_count);
-    return ESP_OK;
+    return prepare_update_owned(manifest,
+                                FACTORY_SYSTEM_UPDATE_OWNER_ESP_IRIS);
 }
 
 static int find_plan_component(
@@ -541,13 +659,15 @@ static esp_err_t begin_component(
             : &s_update.partition_table_image;
         free(*destination);
         *destination = heap_caps_malloc(component->size,
-                                        MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+                                        MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
         ESP_RETURN_ON_FALSE(*destination != NULL, ESP_ERR_NO_MEM, TAG,
                             "stage protected component");
         memset(*destination, 0xff, component->size);
     }
     s_update.active_index = index;
     s_update.received = 0;
+    update_status_component(component->id, 0, component->size,
+                            ESP_IRIS_SYSTEM_UPDATE_PHASE_RECEIVING);
     return ESP_OK;
 }
 
@@ -578,6 +698,9 @@ static esp_err_t write_component(
     }
     if (err == ESP_OK) {
         s_update.received += (uint32_t)size;
+        update_status_component(component->id, s_update.received,
+                                component->size,
+                                ESP_IRIS_SYSTEM_UPDATE_PHASE_RECEIVING);
     }
     return err;
 }
@@ -794,6 +917,7 @@ static esp_err_t end_component(
         goto done;
     }
     plan->completed = true;
+    update_status_component_complete();
 done:
     s_update.active_index = -1;
     s_update.received = 0;
@@ -860,6 +984,7 @@ static esp_err_t commit_update(
                             bytes_equal(operation_id, s_update.operation_id,
                                         sizeof(s_update.operation_id)),
                         ESP_ERR_INVALID_STATE, TAG, "commit state");
+    update_status_finish(ESP_IRIS_SYSTEM_UPDATE_PHASE_COMMITTING, ESP_OK);
     for (size_t i = 0; i < s_update.plan_count; ++i) {
         ESP_RETURN_ON_FALSE(s_update.plan[i].completed,
                             ESP_ERR_INVALID_STATE, TAG,
@@ -897,8 +1022,38 @@ static esp_err_t commit_update(
     ESP_RETURN_ON_FALSE(xTaskCreate(restart_task, "factory_restart", 2048,
                                     NULL, 5, NULL) == pdPASS,
                         ESP_ERR_NO_MEM, TAG, "schedule restart");
+    update_status_finish(ESP_IRIS_SYSTEM_UPDATE_PHASE_COMMITTED, ESP_OK);
     ESP_LOGI(TAG, "system update committed; restart scheduled");
     return ESP_OK;
+}
+
+static void abort_update_owned(
+    const uint8_t operation_id[ESP_IRIS_SYSTEM_OPERATION_ID_BYTES],
+    esp_err_t reason, factory_system_update_owner_t owner)
+{
+    if (!update_owner_is(owner)) {
+        ESP_LOGW(TAG, "ignored abort from non-owner %d", (int)owner);
+        return;
+    }
+    if (operation_id == NULL || !s_update.prepared ||
+        !bytes_equal(operation_id, s_update.operation_id,
+                     ESP_IRIS_SYSTEM_OPERATION_ID_BYTES)) {
+        ESP_LOGW(TAG, "ignored abort for inactive operation");
+        return;
+    }
+    const bool prepared = s_update.prepared;
+    uint8_t saved_operation_id[ESP_IRIS_SYSTEM_OPERATION_ID_BYTES] = {0};
+    if (operation_id != NULL) {
+        memcpy(saved_operation_id, operation_id, sizeof(saved_operation_id));
+    }
+    update_state_reset();
+    update_status_finish(ESP_IRIS_SYSTEM_UPDATE_PHASE_FAILED, reason);
+    update_owner_release();
+    if (prepared &&
+        persist_result(saved_operation_id, reason) != ESP_OK) {
+        ESP_LOGE(TAG, "could not persist failed system-update result");
+    }
+    ESP_LOGW(TAG, "system update aborted: %s", esp_err_to_name(reason));
 }
 
 static void abort_update(
@@ -906,17 +1061,133 @@ static void abort_update(
     esp_err_t reason, void *user_ctx)
 {
     (void)user_ctx;
-    const bool prepared = s_update.prepared;
-    uint8_t saved_operation_id[ESP_IRIS_SYSTEM_OPERATION_ID_BYTES] = {0};
-    if (operation_id != NULL) {
-        memcpy(saved_operation_id, operation_id, sizeof(saved_operation_id));
+    abort_update_owned(operation_id, reason,
+                       FACTORY_SYSTEM_UPDATE_OWNER_ESP_IRIS);
+}
+
+esp_err_t factory_system_update_get_status(
+    factory_system_update_status_t *status)
+{
+    ESP_RETURN_ON_FALSE(status != NULL, ESP_ERR_INVALID_ARG, TAG,
+                        "status output is null");
+    taskENTER_CRITICAL(&s_state_lock);
+    *status = s_status;
+    taskEXIT_CRITICAL(&s_state_lock);
+    return ESP_OK;
+}
+
+esp_err_t factory_system_update_local_prepare(
+    const uint8_t *manifest, size_t manifest_size,
+    const uint8_t operation_id[ESP_IRIS_SYSTEM_OPERATION_ID_BYTES])
+{
+    ESP_RETURN_ON_FALSE(
+        manifest != NULL && manifest_size > 0 &&
+            manifest_size <= CONFIG_ESP_IRIS_SYSTEM_UPDATE_MANIFEST_BYTES &&
+            operation_id != NULL,
+        ESP_ERR_INVALID_ARG, TAG, "invalid local update manifest");
+
+    bool nonzero_operation_id = false;
+    for (size_t i = 0; i < ESP_IRIS_SYSTEM_OPERATION_ID_BYTES; ++i) {
+        nonzero_operation_id |= operation_id[i] != 0;
     }
-    update_state_reset();
-    if (prepared &&
-        persist_result(saved_operation_id, reason) != ESP_OK) {
-        ESP_LOGE(TAG, "could not persist failed system-update result");
-    }
-    ESP_LOGW(TAG, "system update aborted: %s", esp_err_to_name(reason));
+    ESP_RETURN_ON_FALSE(nonzero_operation_id, ESP_ERR_INVALID_ARG, TAG,
+                        "local operation ID is zero");
+
+    cJSON *root = cJSON_ParseWithLength((const char *)manifest,
+                                        manifest_size);
+    ESP_RETURN_ON_FALSE(root != NULL, ESP_ERR_INVALID_ARG, TAG,
+                        "parse local update manifest");
+    const cJSON *components = json_member(root, "components");
+    const int component_count = cJSON_IsArray(components)
+        ? cJSON_GetArraySize(components) : 0;
+    cJSON_Delete(root);
+    ESP_RETURN_ON_FALSE(
+        component_count > 0 &&
+            component_count <= CONFIG_ESP_IRIS_SYSTEM_UPDATE_MAX_COMPONENTS,
+        ESP_ERR_INVALID_SIZE, TAG, "local component count");
+
+    esp_iris_system_update_manifest_t descriptor = {
+        .manifest = manifest,
+        .manifest_size = manifest_size,
+        .signature = NULL,
+        .signature_size = 0,
+        .component_count = (uint8_t)component_count,
+    };
+    memcpy(descriptor.operation_id, operation_id,
+           sizeof(descriptor.operation_id));
+    ESP_RETURN_ON_ERROR(hash_memory(manifest, manifest_size,
+                                    descriptor.manifest_sha256),
+                        TAG, "hash local update manifest");
+    return prepare_update_owned(&descriptor,
+                                FACTORY_SYSTEM_UPDATE_OWNER_HTTP);
+}
+
+size_t factory_system_update_local_component_count(void)
+{
+    return update_owner_is(FACTORY_SYSTEM_UPDATE_OWNER_HTTP) &&
+                   s_update.prepared
+        ? s_update.plan_count : 0;
+}
+
+esp_err_t factory_system_update_local_component(
+    size_t index, esp_iris_system_update_component_t *component,
+    char filename[FACTORY_SYSTEM_UPDATE_FILENAME_BYTES])
+{
+    ESP_RETURN_ON_FALSE(
+        update_owner_is(FACTORY_SYSTEM_UPDATE_OWNER_HTTP) &&
+            s_update.prepared && index < s_update.plan_count &&
+            component != NULL && filename != NULL,
+        ESP_ERR_INVALID_ARG, TAG, "invalid local component request");
+    *component = s_update.plan[index].descriptor;
+    strlcpy(filename, s_update.plan[index].filename,
+            FACTORY_SYSTEM_UPDATE_FILENAME_BYTES);
+    return ESP_OK;
+}
+
+esp_err_t factory_system_update_local_begin_component(
+    const esp_iris_system_update_component_t *component)
+{
+    ESP_RETURN_ON_FALSE(update_owner_is(FACTORY_SYSTEM_UPDATE_OWNER_HTTP),
+                        ESP_ERR_INVALID_STATE, TAG,
+                        "HTTP updater does not own writer");
+    return begin_component(component, &s_update);
+}
+
+esp_err_t factory_system_update_local_write_component(
+    const esp_iris_system_update_component_t *component, uint32_t offset,
+    const uint8_t *data, size_t size)
+{
+    ESP_RETURN_ON_FALSE(update_owner_is(FACTORY_SYSTEM_UPDATE_OWNER_HTTP),
+                        ESP_ERR_INVALID_STATE, TAG,
+                        "HTTP updater does not own writer");
+    return write_component(component, offset, data, size, &s_update);
+}
+
+esp_err_t factory_system_update_local_end_component(
+    const esp_iris_system_update_component_t *component,
+    const uint8_t actual_sha256[ESP_IRIS_SYSTEM_SHA256_BYTES])
+{
+    ESP_RETURN_ON_FALSE(update_owner_is(FACTORY_SYSTEM_UPDATE_OWNER_HTTP),
+                        ESP_ERR_INVALID_STATE, TAG,
+                        "HTTP updater does not own writer");
+    return end_component(component, actual_sha256, &s_update);
+}
+
+esp_err_t factory_system_update_local_commit(
+    const uint8_t operation_id[ESP_IRIS_SYSTEM_OPERATION_ID_BYTES])
+{
+    ESP_RETURN_ON_FALSE(update_owner_is(FACTORY_SYSTEM_UPDATE_OWNER_HTTP),
+                        ESP_ERR_INVALID_STATE, TAG,
+                        "HTTP updater does not own writer");
+    return commit_update(operation_id, &s_update);
+}
+
+void factory_system_update_local_abort(
+    const uint8_t operation_id[ESP_IRIS_SYSTEM_OPERATION_ID_BYTES],
+    esp_err_t reason)
+{
+    abort_update_owned(operation_id, reason,
+                       FACTORY_SYSTEM_UPDATE_OWNER_HTTP);
 }
 
 esp_err_t factory_system_update_register(void)
@@ -932,6 +1203,8 @@ esp_err_t factory_system_update_register(void)
     };
     ESP_RETURN_ON_ERROR(esp_iris_system_update_register(&backend), TAG,
                         "register system update backend");
+    ESP_RETURN_ON_ERROR(factory_system_update_http_register(), TAG,
+                        "register HTTP system-update trigger");
     ESP_LOGW(TAG, "unsigned full-system update backend enabled");
     return ESP_OK;
 }
@@ -941,6 +1214,84 @@ esp_err_t factory_system_update_register(void)
 esp_err_t factory_system_update_register(void)
 {
     return ESP_OK;
+}
+
+esp_err_t factory_system_update_get_status(
+    factory_system_update_status_t *status)
+{
+    if (status == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    memset(status, 0, sizeof(*status));
+    status->update.phase = ESP_IRIS_SYSTEM_UPDATE_PHASE_IDLE;
+    return ESP_OK;
+}
+
+esp_err_t factory_system_update_local_prepare(
+    const uint8_t *manifest, size_t manifest_size,
+    const uint8_t operation_id[ESP_IRIS_SYSTEM_OPERATION_ID_BYTES])
+{
+    (void)manifest;
+    (void)manifest_size;
+    (void)operation_id;
+    return ESP_ERR_NOT_SUPPORTED;
+}
+
+size_t factory_system_update_local_component_count(void)
+{
+    return 0;
+}
+
+esp_err_t factory_system_update_local_component(
+    size_t index, esp_iris_system_update_component_t *component,
+    char filename[FACTORY_SYSTEM_UPDATE_FILENAME_BYTES])
+{
+    (void)index;
+    (void)component;
+    (void)filename;
+    return ESP_ERR_NOT_SUPPORTED;
+}
+
+esp_err_t factory_system_update_local_begin_component(
+    const esp_iris_system_update_component_t *component)
+{
+    (void)component;
+    return ESP_ERR_NOT_SUPPORTED;
+}
+
+esp_err_t factory_system_update_local_write_component(
+    const esp_iris_system_update_component_t *component, uint32_t offset,
+    const uint8_t *data, size_t size)
+{
+    (void)component;
+    (void)offset;
+    (void)data;
+    (void)size;
+    return ESP_ERR_NOT_SUPPORTED;
+}
+
+esp_err_t factory_system_update_local_end_component(
+    const esp_iris_system_update_component_t *component,
+    const uint8_t actual_sha256[ESP_IRIS_SYSTEM_SHA256_BYTES])
+{
+    (void)component;
+    (void)actual_sha256;
+    return ESP_ERR_NOT_SUPPORTED;
+}
+
+esp_err_t factory_system_update_local_commit(
+    const uint8_t operation_id[ESP_IRIS_SYSTEM_OPERATION_ID_BYTES])
+{
+    (void)operation_id;
+    return ESP_ERR_NOT_SUPPORTED;
+}
+
+void factory_system_update_local_abort(
+    const uint8_t operation_id[ESP_IRIS_SYSTEM_OPERATION_ID_BYTES],
+    esp_err_t reason)
+{
+    (void)operation_id;
+    (void)reason;
 }
 
 #endif

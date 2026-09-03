@@ -7,9 +7,10 @@ import json
 from pathlib import Path
 import sys
 from typing import Any, Never, Sequence
+from urllib.parse import urlsplit
 
 from . import __version__
-from .commands import install, list_devices, monitor, recover
+from .commands import install, list_devices, monitor, recover, start_http_system_update
 from .doctor import diagnose_host, print_diagnosis
 from .errors import MosaicoError
 from .runtime import RunContext
@@ -60,6 +61,17 @@ def monitor_timeout(value: str) -> float:
     return result
 
 
+def http_manifest_url(value: str) -> str:
+    parsed = urlsplit(value)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise argparse.ArgumentTypeError("must be an absolute HTTP(S) URL")
+    if not parsed.path or parsed.path.endswith("/"):
+        raise argparse.ArgumentTypeError("must name a manifest file")
+    if len(value.encode("utf-8")) >= 512:
+        raise argparse.ArgumentTypeError("must be shorter than 512 UTF-8 bytes")
+    return value
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = MosaicoArgumentParser(
         prog="mosaico.py",
@@ -106,6 +118,25 @@ def build_parser() -> argparse.ArgumentParser:
     )
     install_parser.add_argument(
         "--timeout", type=positive_timeout, default=600.0, help="Installation timeout in seconds"
+    )
+
+    system_update_parser = commands.add_parser(
+        "system-update",
+        help="Start a Recovery HTTP(S) full-system update",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    system_update_parser.add_argument(
+        "--manifest-url",
+        required=True,
+        type=http_manifest_url,
+        help="Absolute URL of the exploded bundle manifest.json",
+    )
+    system_update_parser.add_argument(
+        "--device-id",
+        help="Target Device ID; selected automatically when only one is available",
+    )
+    system_update_parser.add_argument(
+        "--gateway-profile", help="ESP-Iris profile; use the current profile by default"
     )
 
     recover_parser = commands.add_parser(
@@ -326,6 +357,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         if arguments.command == "install":
             result = install(REPOSITORY, arguments, context)
+        elif arguments.command == "system-update":
+            result = start_http_system_update(arguments, context)
         elif arguments.command == "recover":
             result = recover(REPOSITORY, arguments, context)
         else:

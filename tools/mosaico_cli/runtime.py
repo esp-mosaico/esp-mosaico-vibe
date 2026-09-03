@@ -63,7 +63,10 @@ class RunContext:
         sensitive_output: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         command = [os.fspath(item) for item in argv]
-        self.note("$ " + " ".join(command))
+        self.note(
+            "$ [sensitive command omitted]"
+            if sensitive_output else "$ " + " ".join(command)
+        )
         try:
             if output_status is None:
                 result = subprocess.run(
