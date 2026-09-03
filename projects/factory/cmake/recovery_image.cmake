@@ -1,16 +1,11 @@
-include(ExternalProject)
-
-idf_build_get_property(recovery_idf_path IDF_PATH)
 idf_build_get_property(recovery_idf_target IDF_TARGET)
 idf_build_get_property(recovery_python PYTHON)
 
-if(NOT CONFIG_ESP_IRIS_OTA_DEFAULT_VIA_RECOVERY)
-    message(FATAL_ERROR
-        "Normal firmware must retain the Gateway-controlled recovery path")
+if(NOT CONFIG_FACTORY_RECOVERY_FIRMWARE)
+    message(FATAL_ERROR "projects/factory must build the retained Recovery firmware")
 endif()
-if(CONFIG_ESP_IRIS_OTA)
-    message(FATAL_ERROR
-        "The ESP-Iris OTA writer belongs only in the Recovery firmware")
+if(NOT CONFIG_ESP_IRIS_OTA)
+    message(FATAL_ERROR "The retained Recovery firmware requires the ESP-Iris OTA writer")
 endif()
 
 partition_table_get_partition_info(
@@ -32,13 +27,12 @@ endif()
 set(recovery_tool "${CMAKE_CURRENT_LIST_DIR}/../tools/prepare_recovery.py")
 set(recovery_output_dir "${CMAKE_BINARY_DIR}/recovery")
 set(recovery_current_output_dir "${CMAKE_BINARY_DIR}/recovery-current")
-set(recovery_source_build_dir "${CMAKE_BINARY_DIR}/recovery-from-source")
-set(recovery_source_description "${recovery_source_build_dir}/project_description.json")
-set(recovery_source_bootloader "${recovery_source_build_dir}/bootloader/bootloader.bin")
+set(recovery_source_description "${CMAKE_BINARY_DIR}/project_description.json")
+set(recovery_source_bootloader "${CMAKE_BINARY_DIR}/bootloader/bootloader.bin")
 set(recovery_source_partition_table
-    "${recovery_source_build_dir}/partition_table/partition-table.bin")
-set(recovery_source_ota_data "${recovery_source_build_dir}/ota_data_initial.bin")
-set(recovery_source_application "${recovery_source_build_dir}/factory.bin")
+    "${CMAKE_BINARY_DIR}/partition_table/partition-table.bin")
+set(recovery_source_ota_data "${CMAKE_BINARY_DIR}/ota_data_initial.bin")
+set(recovery_source_application "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.bin")
 
 set(recovery_bundle_files
     bootloader.bin partition-table.bin ota_data_initial.bin factory.bin manifest.json)
@@ -53,24 +47,6 @@ if(CONFIG_SECURE_FLASH_ENC_ENABLED)
 else()
     set(recovery_flash_encryption 0)
 endif()
-
-ExternalProject_Add(recovery-from-source
-    SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/.."
-    BINARY_DIR "${recovery_source_build_dir}"
-    CMAKE_ARGS
-        "-DIDF_PATH=${recovery_idf_path}"
-        "-DIDF_TARGET=${recovery_idf_target}"
-        "-DBUILD_PROFILE=recovery"
-        "-DSDKCONFIG=${recovery_source_build_dir}/sdkconfig"
-    INSTALL_COMMAND ""
-    BUILD_BYPRODUCTS
-        "${recovery_source_bootloader}"
-        "${recovery_source_partition_table}"
-        "${recovery_source_ota_data}"
-        "${recovery_source_application}"
-        "${recovery_source_description}"
-    BUILD_ALWAYS TRUE
-    EXCLUDE_FROM_ALL TRUE)
 
 set(recovery_layout_args
     --target "${recovery_idf_target}"
@@ -119,7 +95,7 @@ add_custom_command(
     DEPENDS ${recovery_prebuilt_dependencies}
     COMMENT "Validating the reviewed Recovery bundle"
     VERBATIM)
-add_custom_target(recovery-image ALL DEPENDS ${recovery_output_files})
+add_custom_target(recovery-image DEPENDS ${recovery_output_files})
 
 add_custom_target(recovery-current-bundle
     COMMAND "${recovery_python}" "${recovery_tool}"
@@ -127,18 +103,20 @@ add_custom_target(recovery-current-bundle
         ${recovery_layout_args}
         --output-dir "${recovery_current_output_dir}"
     BYPRODUCTS ${recovery_current_output_files}
-    DEPENDS recovery-from-source "${recovery_tool}"
-    COMMENT "Building an unreviewed Recovery candidate bundle"
+    DEPENDS "${recovery_tool}"
+    COMMENT "Packaging an unreviewed Recovery candidate from the current build"
     VERBATIM)
+add_dependencies(recovery-current-bundle app bootloader partition_table_bin blank_ota_data)
 
 add_custom_target(update-recovery-prebuilt
     COMMAND "${recovery_python}" "${recovery_tool}"
         ${recovery_source_inputs}
         ${recovery_layout_args}
         --output-dir "${RECOVERY_PREBUILT_DIR}"
-    DEPENDS recovery-from-source "${recovery_tool}"
+    DEPENDS "${recovery_tool}"
     COMMENT "Atomically publishing the complete reviewed Recovery bundle"
     VERBATIM)
+add_dependencies(update-recovery-prebuilt app bootloader partition_table_bin blank_ota_data)
 
 set(MOSAICO_RECOVERY_SOURCE "reviewed" CACHE STRING
     "Internal source used by mosaico-recover-flash: reviewed or current")
@@ -154,9 +132,9 @@ else()
     message(FATAL_ERROR "MOSAICO_RECOVERY_SOURCE must be reviewed or current")
 endif()
 
-# Prepare and verify every build artifact before a device maintenance lease is
-# acquired. The flash target below depends on the same target and therefore
-# performs no long-running compilation while the USB endpoint is detached.
+# Prepare and verify every artifact before a device maintenance lease is
+# acquired. The flash target depends on the same bundle and does not compile
+# while the USB endpoint is detached.
 add_custom_target(mosaico-recover-prepare
     DEPENDS ${mosaico_recovery_bundle_target})
 

@@ -6,7 +6,8 @@
 | 文档类型 | 仓库级产品与工程规格书 |
 | 目标硬件 | ESP-Mosaico 开发板（ESP32-S31） |
 | 软件基线 | ESP-IDF 6.1 或更高版本，并具备 ESP32-S31 目标支持 |
-| 参考工程 | `projects/factory` |
+| 参考应用 | `projects/hello_world` |
+| Recovery 工程 | `projects/factory` |
 | 板级能力来源 | `submodule/esp-mosaico-bsp` Git 子模块 |
 | 设备运维入口 | `submodule/esp-iris` 固定版本的 Developer Gateway 及 CLI |
 | 文档状态 | 产品定义与当前工程基线 |
@@ -72,16 +73,17 @@ Agent-Led 的默认主导关系是：**Agent 持续推进，用户在关键节�
 
 ### 2.4 模板化应用孵化
 
-- 以 `projects/factory` 作为参考工程。
+- 以 `projects/hello_world` 作为参考应用。
 - 每个用户应用创建在独立的 `projects/<project-name>` 目录中。
-- 除非明确要求修改模板，不将具体业务直接实现到 `projects/factory`。
-- 参考工程固化芯片目标、设备接入和 recovery-first 契约。
+- `projects/factory` 仅承载保留 Recovery，不实现用户业务，也不作为普通应用安装。
+- 参考应用通过 `components/esp_mosaico_app_recovery` 固化设备接入和
+  recovery-first 契约。
 
 ### 2.5 UI 设计与真机视觉闭环
 
-- 参考工程 `projects/factory` 基于设备显示与触摸约束实现 LVGL 界面。
+- Agent 基于设备显示与触摸约束实现 LVGL 界面。
+- Recovery 固件通过 ESP-Iris 注册 RGB565 屏幕镜像后端，使开发者和 Agent 可在 Gateway 工作台观察恢复界面；具体应用按自身 UI 架构注册对应后端。
 - 使用 GSP 的应用在 PC 上通过 `tools/gsp-sim` 预览 480×480 场景；仿真运行时与 `submodule/esp-gsp` 中的 **espressif/esp-gsp 1.1.0** 配套。
-- 参考工程通过 ESP-Iris 注册 RGB565 屏幕镜像后端，使开发者和 Agent 可在 Gateway 工作台观察真机界面。
 - UI 调整与固件调试共享同一设备记录，减少人工往返。
 - 专项 Skill 可扩展视觉比较能力。具体应用负责定义验收基准。
 
@@ -163,7 +165,8 @@ Agent 按可审查规则持续执行闭环，直到功能通过真机验证。
 Agent Orchestrator（统一控制面）
  ├── 规则与上下文：AGENTS.md / docs/
  ├── 能力路由：skills/
- ├── 工程执行：projects/factory / projects/<project-name>
+ ├── Recovery 执行：projects/factory
+ ├── 应用执行：projects/hello_world / projects/<project-name>
  ├── 板级知识：submodule/esp-mosaico-bsp
  └── 设备操作：ESP-Iris CLI
         │
@@ -187,8 +190,11 @@ ESP-Mosaico 真实设备
 | --- | --- | --- | --- |
 | 仓库入口 | `README.md`、`README_CN.md` | 说明定位、创建工程和设备运维规则 | 保持中英文语义一致 |
 | Agent 规则 | `AGENTS.md` | 路由开发任务、约束设备操作和恢复流程 | 规则应简洁且可执行 |
-| 应用工程 | `projects/` | 容纳参考工程和用户应用 | 一个应用一个目录 |
-| 参考模板 | `projects/factory` | 提供三种构建 profile、显示、ESP-Iris、屏幕镜像和 recovery-first OTA | 不承载具体用户业务 |
+| 应用工程 | `projects/` | 容纳参考应用、用户应用和 Recovery 工程 | 一个应用一个目录 |
+| 参考应用 | `projects/hello_world` | 提供显示、ESP-Iris 和 recovery-first 接入 | 可复制为具体用户应用 |
+| GSP 参考应用 | `projects/gsp_hello` | 提供可在 PC 仿真和真机运行的 GSP Hello World | 作为 GSP 应用起点 |
+| Recovery 工程 | `projects/factory` | 提供固定的保留 Recovery、OTA writer 和系统恢复能力 | 不承载普通应用代码 |
+| 应用恢复组件 | `components/esp_mosaico_app_recovery` | 提供正常应用进入 Recovery 和健康确认能力 | 仅供正常应用使用，不包含 OTA writer |
 | GSP 运行时 | `submodule/esp-gsp/` | 固定 espressif/esp-gsp 1.1.0 Git 子模块 | 固件与仿真共用同一 pin |
 | GSP 主机仿真 | `tools/gsp-sim/` | 用独立 `sim` 预览场景 JSON | 不引入 claw hub/runtime |
 | 板级子模块 | `submodule/esp-mosaico-bsp` | 提供 BSP、扩展模块、交互/网络组件和示例 | 按任务初始化和检查 |
@@ -245,7 +251,7 @@ ESP-Mosaico 真实设备
 | --- | --- | --- |
 | FR-000 | 仓库必须作为 Agent 主导的人机协同开发统一入口 | Agent 从根目录 `AGENTS.md` 获取任务路由，作为默认执行主体推进开发闭环，过程可由用户复核 |
 | FR-001 | 仓库必须提供中英文入口说明 | 根目录存在 `README.md` 与 `README_CN.md`，且核心开发、调试、恢复规则一致 |
-| FR-002 | 仓库必须提供可复制的参考工程 | `projects/factory` 可作为新应用基线，具体应用位于独立 `projects/<project-name>` |
+| FR-002 | 仓库必须提供可复制的参考应用 | `projects/hello_world` 可作为新应用基线，具体应用位于独立 `projects/<project-name>`；`projects/factory` 只构建 Recovery |
 | FR-003 | 仓库必须将板级实现作为子模块管理 | `submodule/esp-mosaico-bsp` 可解析到固定 Git revision，应用通过组件依赖使用 BSP |
 | FR-004 | 仓库必须分离产品工具与 Agent 资产 | 产品 CLI 进入 `tools/`，用户材料进入 `docs/`，Agent 私有资产进入 `.agents/` |
 | FR-005 | 开发任务必须按需加载指南和子模块 | 任务只初始化所需子模块，并先检查 `skills/README.md` 与相关 `SKILL.md` |
@@ -377,7 +383,7 @@ ESP-Mosaico 真实设备
 - 作为 ESP-Mosaico 定制的 Agent 主导人机协同开发统一入口，覆盖从想法到真机验证的工程链路。
 - 正常流程由 Agent 持续推进到真机验证。用户负责目标和验收。
 - 提供 ESP-Mosaico 开发版的统一工程起点和目录规范。
-- 提供 `factory` 参考固件及 recovery-first 工作流。
+- 提供 Recovery-only 的 `factory` 固件、普通应用参考工程及 recovery-first 工作流。
 - 通过 BSP 子模块提供板级能力和示例来源。
 - 规定通过 ESP-Iris Gateway 执行日常设备操作并保留证据。
 - 规定固件交付与恢复的安全路径。

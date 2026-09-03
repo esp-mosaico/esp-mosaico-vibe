@@ -1,0 +1,16 @@
+menu "ESP-Mosaico application recovery"
+
+config ESP_MOSAICO_APP_AUTO_ACCEPT
+    bool "Automatically accept a pending OTA image"
+    default y
+    help
+        Mark the installed application healthy after ESP-Iris starts. Disable
+        this only when intentionally testing bootloader rollback.
+
+config ESP_MOSAICO_APP_ACCEPT_DELAY_MS
+    int "Automatic acceptance delay (milliseconds)"
+    range 1000 30000
+    default 3000
+    depends on ESP_MOSAICO_APP_AUTO_ACCEPT
+
+endmenu

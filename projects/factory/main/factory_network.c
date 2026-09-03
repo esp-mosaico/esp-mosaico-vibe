@@ -5,8 +5,6 @@
 
 #include "sdkconfig.h"
 
-#if CONFIG_GET_STARTED_RECOVERY
-
 #include "esp_check.h"
 #include "esp_event.h"
 #include "esp_iris.h"
@@ -472,35 +470,3 @@ esp_err_t factory_network_get_snapshot(factory_network_snapshot_t *snapshot)
     xSemaphoreGive(s_network.lock);
     return ESP_OK;
 }
-
-#else
-
-esp_err_t factory_network_start(void)
-{
-    return ESP_ERR_NOT_SUPPORTED;
-}
-
-esp_err_t factory_network_request_scan(void)
-{
-    return ESP_ERR_NOT_SUPPORTED;
-}
-
-esp_err_t factory_network_connect(const char *ssid, const char *password)
-{
-    (void)ssid;
-    (void)password;
-    return ESP_ERR_NOT_SUPPORTED;
-}
-
-esp_err_t factory_network_forget(void)
-{
-    return ESP_ERR_NOT_SUPPORTED;
-}
-
-esp_err_t factory_network_get_snapshot(factory_network_snapshot_t *snapshot)
-{
-    (void)snapshot;
-    return ESP_ERR_NOT_SUPPORTED;
-}
-
-#endif

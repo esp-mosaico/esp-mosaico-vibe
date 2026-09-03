@@ -319,7 +319,7 @@ def recover(repository: Path, arguments: Any, context: RunContext) -> dict[str, 
     context.status(
         f"recovery: model={model.id} target={model.target} source={arguments.source}"
     )
-    factory = repository / model.reference_project
+    recovery_project = repository / model.recovery_project
     bundle_dir = repository / model.recovery_dir
     manifest: dict[str, Any] | None = None
     if arguments.source == "reviewed":
@@ -380,9 +380,9 @@ def recover(repository: Path, arguments: Any, context: RunContext) -> dict[str, 
         unowned_port = provisioning_candidate(context, model)
         context.status(f"device: recovery interface ready at {unowned_port}")
 
-    idf_path = resolve_idf_path(repository, factory)
+    idf_path = resolve_idf_path(repository, recovery_project)
     context.status(f"idf: environment ready at {idf_path}")
-    build_dir = factory / "build-mosaico-recover"
+    build_dir = recovery_project / "build-mosaico-recovery"
     plan = {
         "command": "recover",
         "status": "dry_run" if arguments.dry_run else "planned",
@@ -410,13 +410,10 @@ def recover(repository: Path, arguments: Any, context: RunContext) -> dict[str, 
     run_idf_target(
         context,
         idf_path=idf_path,
-        project=factory,
+        project=recovery_project,
         build_dir=build_dir,
         target="mosaico-recover-prepare",
-        definitions={
-            "BUILD_PROFILE": "application",
-            "MOSAICO_RECOVERY_SOURCE": arguments.source,
-        },
+        definitions={"MOSAICO_RECOVERY_SOURCE": arguments.source},
         timeout=arguments.timeout,
     )
     prepared_dir = build_dir / (
@@ -483,13 +480,10 @@ def recover(repository: Path, arguments: Any, context: RunContext) -> dict[str, 
         run_idf_target(
             context,
             idf_path=idf_path,
-            project=factory,
+            project=recovery_project,
             build_dir=build_dir,
             target="mosaico-recover-flash",
-            definitions={
-                "BUILD_PROFILE": "application",
-                "MOSAICO_RECOVERY_SOURCE": arguments.source,
-            },
+            definitions={"MOSAICO_RECOVERY_SOURCE": arguments.source},
             port=port,
             timeout=arguments.timeout,
         )

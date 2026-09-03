@@ -10,9 +10,9 @@
 
 ## 创建工程
 
-以 [`projects/factory`](projects/factory) 为参考工程，在 `projects/`
-目录下为每个新应用创建独立目录。除非任务明确要求修改模板，否则不要直接把
-`factory` 改造成具体应用。
+以 [`projects/hello_world`](projects/hello_world) 为参考应用，在 `projects/`
+目录下为每个新应用创建独立目录。[`projects/factory`](projects/factory)
+仅包含保留 Recovery 固件，不是普通应用模板。
 
 组件仓库和其他项目资料通过 Git 子模组提供。只加载或初始化当前任务所需的
 子模组。实现功能前，先查看 [`skills/README.md`](skills/README.md)，并按需读取
@@ -21,7 +21,8 @@
 使用 GSP 绘制界面的工程可先在 PC 上预览 480×480 场景，再烧录真机。入口是
 [`tools/gsp-sim`](tools/gsp-sim/README.md)，固定使用
 **espressif/esp-gsp 1.1.0**（`submodule/esp-gsp`）。
-`projects/factory` 仍是 LVGL 参考工程。
+需要同时支持 PC 仿真和真机运行的 GSP Hello World，可从
+[`projects/gsp_hello`](projects/gsp_hello) 开始。
 
 ## 统一设备命令
 
@@ -40,7 +41,7 @@ Boot ID，并保留 Gateway 缓存中的离线设备。使用 `list --details` �
 ESP-IDF 版本、Session ID 和能力列表，或使用 `list --json` 查看完整 Gateway 记录。
 
 CLI 支持 Linux、macOS 原生终端，以及 Windows PowerShell 和 CMD，不依赖 WSL
-或 Git Bash。主机 CLI 最低支持 Python 3.8，并使用满足 factory 工程约束的
+或 Git Bash。主机 CLI 最低支持 Python 3.8，并使用满足工作区工程约束的
 ESP-IDF 和固定版本的 `submodule/esp-iris`。Gateway 会按当前激活 Python 的
 major/minor 自动准备隔离环境，单个 `tools/requirements.lock` 中的 PEP 508
 条件会自动选择兼容依赖。ESP-IDF 6.1 仍要求 Python 3.10 或更新版本；当 CLI
@@ -103,8 +104,10 @@ ESP-Mosaico 只有一个 High-Speed USB 接口。正常固件和 Recovery 都会
 
 ## 仓库结构
 
-- `projects/`：开发者工程目录，新工程从 `projects/factory` 开始。
-  `projects/gsp_hello` 是 GSP Hello World（PC 仿真 + 真机安装）。
+- `projects/hello_world`：新开发者工程使用的参考应用。
+- `projects/gsp_hello`：支持 PC 仿真和真机安装的 GSP Hello World。
+- `projects/factory`：保留 Recovery 固件，不作为普通应用安装。
+- `components/esp_mosaico_app_recovery`：普通应用进入 Recovery 和健康确认支持。
 - `submodule/esp-gsp/`：固定的 ESP-GSP 1.1.0（设备预编译库；主机仿真器与 gspc 另行下载）。
 - `tools/gsp-sim/`：打包场景并运行独立的 ESP-GSP `sim`。
 - `submodule/esp-iris/`：固定版本的 ESP-Iris 固件组件与主机运行时。

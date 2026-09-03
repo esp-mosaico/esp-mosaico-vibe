@@ -1209,6 +1209,26 @@ class ProjectTests(unittest.TestCase):
                 _contexts.enter_context(self.assertRaises(SelectionError))
                 resolve_project(root, None, root)
 
+    def test_factory_cannot_be_selected_explicitly(self) -> None:
+        with ExitStack() as _contexts:
+            temporary = _contexts.enter_context(tempfile.TemporaryDirectory())
+            root = Path(temporary)
+            factory = self._project(root, "factory")
+            with ExitStack() as _contexts:
+                caught = _contexts.enter_context(self.assertRaises(SelectionError))
+                resolve_project(root, str(factory), root)
+            self.assertIn("Recovery firmware only", str(caught.exception))
+
+    def test_factory_cannot_be_selected_from_its_working_directory(self) -> None:
+        with ExitStack() as _contexts:
+            temporary = _contexts.enter_context(tempfile.TemporaryDirectory())
+            root = Path(temporary)
+            factory = self._project(root, "factory")
+            with ExitStack() as _contexts:
+                caught = _contexts.enter_context(self.assertRaises(SelectionError))
+                resolve_project(root, None, factory)
+            self.assertIn("Recovery firmware only", str(caught.exception))
+
     def test_multiple_projects_require_selection(self) -> None:
         with ExitStack() as _contexts:
             temporary = _contexts.enter_context(tempfile.TemporaryDirectory())
@@ -1624,6 +1644,14 @@ class RecoveryCommandTests(unittest.TestCase):
         self.assertEqual(
             [call.kwargs["target"] for call in target.call_args_list],
             ["mosaico-recover-prepare", "mosaico-recover-flash"],
+        )
+        self.assertEqual(
+            target.call_args_list[0].kwargs["definitions"],
+            {"MOSAICO_RECOVERY_SOURCE": "reviewed"},
+        )
+        self.assertEqual(
+            target.call_args_list[1].kwargs["definitions"],
+            {"MOSAICO_RECOVERY_SOURCE": "reviewed"},
         )
         self.assertEqual(
             target.call_args_list[1].kwargs["port"], "/dev/serial/by-path/device-a"

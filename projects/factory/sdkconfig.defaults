@@ -10,8 +10,8 @@ CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
 CONFIG_FACTORY_RECOVERY_BOOT_GPIO=7
 CONFIG_FACTORY_RECOVERY_BOOT_DEBOUNCE_MS=50
 
-# USB High-Speed is the application TinyUSB CDC0 link owned by ESP-Iris.
-# Device installation and logs are exposed through the Mosaico product tools.
+# USB High-Speed is the Recovery TinyUSB CDC0 link owned by ESP-Iris.
+# Recovery operations and logs are exposed through the Mosaico product tools.
 CONFIG_ESP_IRIS_TRANSPORT_USB=y
 CONFIG_ESP_IRIS_TASK_STACK_SIZE=3328
 CONFIG_TINYUSB_CDC_RX_BUFSIZE=8192

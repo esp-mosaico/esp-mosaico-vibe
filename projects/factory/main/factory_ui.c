@@ -13,13 +13,11 @@
 #include "freertos/task.h"
 #include "lvgl.h"
 
-#if CONFIG_GET_STARTED_RECOVERY
 #include "esp_iris_system_update.h"
 #include "esp_wifi.h"
 #include "factory_nand_update.h"
 #include "factory_network.h"
 #include "factory_system_update.h"
-#endif
 
 #define COLOR_PAPER   lv_color_hex(0xF6F6F3)
 #define COLOR_TEXT    lv_color_hex(0x101010)
@@ -42,7 +40,6 @@ static lv_obj_t *label_create(lv_obj_t *parent, const char *text,
     return label;
 }
 
-#if CONFIG_GET_STARTED_RECOVERY
 static lv_obj_t *box_create(lv_obj_t *parent, int32_t width, int32_t height,
                             lv_color_t color, int32_t radius)
 {
@@ -56,7 +53,6 @@ static lv_obj_t *box_create(lv_obj_t *parent, int32_t width, int32_t height,
     lv_obj_clear_flag(box, LV_OBJ_FLAG_SCROLLABLE);
     return box;
 }
-#endif
 
 static void screen_prepare(lv_obj_t *screen)
 {
@@ -67,8 +63,6 @@ static void screen_prepare(lv_obj_t *screen)
     lv_obj_set_style_pad_all(screen, 0, LV_PART_MAIN);
     lv_obj_clear_flag(screen, LV_OBJ_FLAG_SCROLLABLE);
 }
-
-#if CONFIG_GET_STARTED_RECOVERY
 
 typedef enum {
     FACTORY_PAGE_READY = 0,
@@ -1179,15 +1173,12 @@ static void ui_status_task(void *arg)
     }
 }
 
-#endif
-
 esp_err_t factory_ui_start(void)
 {
     lv_display_t *display = bsp_display_start();
     ESP_RETURN_ON_FALSE(display, ESP_FAIL, TAG, "start display");
     ESP_RETURN_ON_FALSE(bsp_display_lock(-1), ESP_FAIL, TAG, "lock display");
 
-#if CONFIG_GET_STARTED_RECOVERY
     s_ui.display = display;
     ready_screen_create();
     wifi_screen_create();
@@ -1198,20 +1189,11 @@ esp_err_t factory_ui_start(void)
     update_screen_create();
     result_screen_create();
     show_page(FACTORY_PAGE_READY);
-#else
-    lv_obj_t *screen = lv_display_get_screen_active(display);
-    screen_prepare(screen);
-    lv_obj_t *title = label_create(screen, "ESP-MOSAICO",
-                                   &lv_font_montserrat_48, COLOR_TEXT);
-    lv_obj_center(title);
-#endif
     bsp_display_unlock();
 
-#if CONFIG_GET_STARTED_RECOVERY
     ESP_RETURN_ON_FALSE(xTaskCreate(ui_status_task, "factory_ui", 4096, NULL,
                                     4, NULL) == pdPASS,
                         ESP_ERR_NO_MEM, TAG, "start UI status task");
-#endif
     ESP_LOGI(TAG, "factory UI started at %dx%d", BSP_LCD_H_RES, BSP_LCD_V_RES);
     return ESP_OK;
 }

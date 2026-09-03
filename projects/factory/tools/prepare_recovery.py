@@ -117,8 +117,8 @@ def build_manifest(
         raise RecoveryImageError(
             f"cannot read sdkconfig referenced by {description_path}"
         ) from error
-    if not enabled_config(config, "CONFIG_GET_STARTED_RECOVERY"):
-        raise RecoveryImageError("bundle was not produced by BUILD_PROFILE=recovery")
+    if not enabled_config(config, "CONFIG_FACTORY_RECOVERY_FIRMWARE"):
+        raise RecoveryImageError("bundle was not produced by the factory Recovery project")
     source_commit, source_dirty = source_state(source_root)
     return {
         "schema_version": SCHEMA_VERSION,

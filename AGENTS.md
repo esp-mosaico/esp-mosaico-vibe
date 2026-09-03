@@ -24,8 +24,9 @@ Before running ESP-IDF tools, resolve the PC environment as follows:
    source or execute it and never expose secrets from it. See
    `Environment.template` for the supported fields.
 2. Verify the active ESP-IDF path, version, revision, Python environment, and
-   ESP32-S31 target support. The project version constraint is declared in
-   `projects/factory/main/idf_component.yml`; do not rely only on the
+   ESP32-S31 target support. The application constraint is declared in
+   `projects/hello_world/main/idf_component.yml`, and the Recovery constraint
+   in `projects/factory/main/idf_component.yml`; do not rely only on the
    inventory.
    The `mosaico.py` and ESP-Iris host tools support Python 3.8 or newer. ESP-IDF
    6.1 still requires Python 3.10 or newer; allow `mosaico.py` to resolve that
@@ -47,11 +48,11 @@ confirmation before clone or install.
 
 1. Translate the user's request into a project-level goal and identify the
    required board capabilities.
-2. Use `projects/factory` as the reference project and create the new
+2. Use `projects/hello_world` as the reference application and create the new
    application under `projects/<project-name>`. For a GSP Hello World that
    runs on the PC simulator and on device, start from `projects/gsp_hello`.
-   Do not implement a user application directly in `projects/factory` unless
-   the user explicitly asks to change the template.
+   Do not implement a user application in `projects/factory`; that project
+   contains retained Recovery firmware only.
 3. Read `skills/README.md`, then load only the `SKILL.md` files relevant to the
    requested capabilities. For GSP UI work, load `skills/gsp-sim/SKILL.md` and
    preview scenes with `python3 tools/gsp-sim/run.py` using
@@ -68,11 +69,12 @@ confirmation before clone or install.
 
 Unless the developer approves another architecture, every application must:
 
-1. Retain the compatible recovery and normal-application workflow from
-   `projects/factory`.
-2. Set `CONFIG_ESP_IRIS_OTA_DEFAULT_VIA_RECOVERY=y` in normal builds, keep the
-   OTA writer only in recovery, and call `iris_ota_support_start()` to expose
-   the enter-recovery RPC.
+1. Retain the partition contract from `projects/factory` and the compatible
+   normal-application workflow from `projects/hello_world`.
+2. Set `CONFIG_ESP_IRIS_OTA_DEFAULT_VIA_RECOVERY=y` in normal builds, use the
+   `components/esp_mosaico_app_recovery` component, keep the OTA writer only
+   in Recovery, and call `iris_ota_support_start()` to expose the
+   enter-recovery RPC.
 3. Run `python mosaico.py recover` before the first application install on a
    blank or unverified device.
 4. Install normal firmware only with `python mosaico.py install --project ...`.

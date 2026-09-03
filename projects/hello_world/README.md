@@ -1,7 +1,9 @@
 # ESP-Mosaico Hello World
 
 The application shows `Hello World!` in the center of the 480x480 display and
-logs the same message every five seconds.
+logs the same message every five seconds. It is the reference normal
+application: new projects should preserve its partition layout,
+`sdkconfig.application.defaults`, and `esp_mosaico_app_recovery` integration.
 
 Install it from the repository root after the device Recovery image has been
 initialized and verified:

@@ -17,7 +17,7 @@ class DeviceModel:
     status: str
     default: bool
     preview_target: bool
-    reference_project: str
+    recovery_project: str
     bsp_path: str
     recovery_dir: str
     recovery_usb_ids: list[dict[str, str]]
@@ -27,7 +27,7 @@ def load_registry() -> list[DeviceModel]:
     path = Path(__file__).with_name("devices.json")
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
-        if value.get("schema_version") != 1:
+        if value.get("schema_version") != 2:
             raise ValueError("unsupported schema")
         return [DeviceModel(**item) for item in value["devices"]]
     except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as error:

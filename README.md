@@ -13,10 +13,10 @@ change is required.
 
 ## Start a project
 
-Use [`projects/factory`](projects/factory) as the reference project.
-Create each new application as its own directory under `projects/`; do not
-turn `factory` into the application itself unless the task explicitly
-changes the template.
+Use [`projects/hello_world`](projects/hello_world) as the reference application.
+Create each new application as its own directory under `projects/`.
+[`projects/factory`](projects/factory) contains retained Recovery firmware only
+and is not an application template.
 
 Component repositories and other project material are provided as Git
 submodules. Load or initialize only the submodules required by the current
@@ -26,7 +26,8 @@ and read only the relevant `SKILL.md` guides.
 GSP applications can preview 480×480 scenes on the PC before flashing. Use
 [`tools/gsp-sim`](tools/gsp-sim/README.md) with the pinned
 **espressif/esp-gsp 1.1.0** submodule (`submodule/esp-gsp`).
-`projects/factory` remains LVGL.
+Start from [`projects/gsp_hello`](projects/gsp_hello) for a GSP Hello World
+that runs in the PC simulator and on the device.
 
 ## Unified device commands
 
@@ -47,7 +48,7 @@ or `list --json` for the complete Gateway record.
 
 The CLI supports native Linux and macOS shells plus Windows PowerShell and
 Command Prompt; WSL and Git Bash are not required. Use Python 3.8 or newer,
-an ESP-IDF checkout satisfying the factory project's version constraint, and
+an ESP-IDF checkout satisfying the workspace project version constraint, and
 the pinned `submodule/esp-iris` checkout. The Gateway environment is prepared
 for the active Python major/minor version, and the PEP 508 markers in its single
 `tools/requirements.lock` select compatible packages automatically. ESP-IDF
@@ -121,8 +122,10 @@ partitions without explicit user authorization.
 
 ## Repository layout
 
-- `projects/` — developer applications; start from `projects/factory`.
-  `projects/gsp_hello` is the GSP Hello World (PC sim + device install).
+- `projects/hello_world` — reference application for new developer projects.
+- `projects/gsp_hello` — GSP Hello World for PC simulation and device installation.
+- `projects/factory` — retained Recovery firmware; never install it as a normal application.
+- `components/esp_mosaico_app_recovery` — normal-application Recovery entry and health support.
 - `submodule/esp-gsp/` — pinned ESP-GSP 1.1.0 (device prebuilts; sim/gspc fetched separately).
 - `tools/gsp-sim/` — packs scenes and runs the standalone ESP-GSP `sim`.
 - `submodule/esp-iris/` — pinned ESP-Iris firmware component and host runtime.

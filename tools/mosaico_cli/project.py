@@ -33,6 +33,8 @@ def _is_idf_project(path: Path) -> bool:
 
 
 def resolve_project(repository: Path, requested: str | None, cwd: Path) -> Path:
+    repository = repository.resolve()
+    recovery_project = (repository / "projects" / "factory").resolve()
     if requested:
         path = Path(requested).expanduser()
         if not path.is_absolute():
@@ -41,10 +43,20 @@ def resolve_project(repository: Path, requested: str | None, cwd: Path) -> Path:
             path = path.resolve()
         if not _is_idf_project(path):
             raise SelectionError(f"Not a valid ESP-IDF project: {path}")
+        if path == recovery_project:
+            raise SelectionError(
+                "The factory project contains Recovery firmware only and cannot "
+                "be installed as an application."
+            )
         return path
 
     current = cwd.resolve()
     while current == repository or repository in current.parents:
+        if current != repository and current == recovery_project:
+            raise SelectionError(
+                "The factory project contains Recovery firmware only; select an "
+                "application project with --project PATH."
+            )
         if current != repository and _is_idf_project(current):
             return current
         if current == repository:
@@ -61,7 +73,7 @@ def resolve_project(repository: Path, requested: str | None, cwd: Path) -> Path:
     if not candidates:
         raise SelectionError(
             "No application project was found. Specify one with --project PATH; "
-            "the factory project is never selected automatically."
+            "the Recovery-only factory project is never selected automatically."
         )
     raise SelectionError(
         "Multiple application projects were found; specify one with --project PATH.",

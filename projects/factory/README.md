@@ -1,7 +1,7 @@
 # ESP-Mosaico Factory Reference
 
-`factory` 是 ESP-Mosaico 用户工程的参考模板，同时提供统一恢复流程所需的基础
-固件。日常使用不需要了解其启动链路和 Flash 布局。
+`factory` 仅包含 ESP-Mosaico 保留 Recovery 固件及其构建、打包和恢复流程。
+普通应用从 `projects/hello_world` 创建，不应将本工程作为应用安装到 `ota_0`。
 
 ## 用户命令
 
@@ -27,7 +27,7 @@ SHA-256 校验状态；完成后显示重启提示。System Update 继续复用�
 
 ### Recovery 从 HTTP(S) 拉取系统更新
 
-Recovery profile 默认编译 HTTP(S) System Update source，但不会自动访问网络。
+Recovery 固件默认编译 HTTP(S) System Update source，但不会自动访问网络。
 服务器需要提供解包后的 bundle，`manifest.json` 及其 `components[].file` 必须位于
 同一目录；manifest 格式与 ESP-Iris `.irisfw` bundle 相同。通过产品 CLI 触发：
 

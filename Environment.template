@@ -20,7 +20,7 @@ host:
   path_style: posix             # posix | windows
 
 # Required: the exact ESP-IDF installation intended for this workspace.
-# The project requirement is declared by projects/factory/main/idf_component.yml
+# Project requirements are declared by each project's main/idf_component.yml.
 # and the BSP. `version` and `git_revision` describe the actual checkout and let
 # the agent detect when a different or incompatible checkout is activated.
 esp_idf:
@@ -49,7 +49,7 @@ hardware:
 
 # Recommended: stable defaults shared by build and diagnostic tasks.
 build:
-  default_project: projects/factory
+  default_project: projects/hello_world
   generator: ninja
   jobs: null                    # null lets the build system choose
   ccache_enabled: null          # true | false | null (unknown)
