@@ -845,7 +845,7 @@ static void nand_list_rebuild(
 {
     lv_obj_clean(s_ui.nand_list);
     if (snapshot->scan_state == FACTORY_NAND_SCAN_RUNNING) {
-        lv_label_set_text(s_ui.nand_scan_status, "Scanning read-only NAND...");
+        lv_label_set_text(s_ui.nand_scan_status, "Scanning NAND...");
         return;
     }
     if (snapshot->scan_state == FACTORY_NAND_SCAN_FAILED) {

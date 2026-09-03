@@ -49,8 +49,11 @@ HTTPS 默认使用 ESP-IDF certificate bundle 验证服务器。明文 HTTP 仅�
 ### Recovery 从 NAND LittleFS 读取系统更新
 
 ESP-Mosaico 的板载 NAND 与 `esp-mosaico-claw` 一致，使用 SPI NAND、wear-leveling
-block device 和 LittleFS，挂载点为 `/nand`。Recovery 只读挂载已有文件系统，挂载
-失败时不会格式化 NAND。将解包后的 bundle 放到同一目录，例如：
+block device 和 LittleFS，挂载点为 `/nand`。Recovery 读写挂载已有文件系统，并将
+整个挂载点注册为 ESP-Iris 文件卷 `nand`；可通过 Gateway 列目录、读取、写入、删除、
+建目录和重命名。写入先落到同目录临时文件，校验 SHA-256 后再原子替换目标文件。
+挂载失败时不会格式化 NAND，也不会阻止 Recovery USB 维护服务启动。将解包后的
+bundle 放到同一目录，例如：
 
 ```text
 /nand/system-update/manifest.json
@@ -59,7 +62,7 @@ block device 和 LittleFS，挂载点为 `/nand`。Recovery 只读挂载已有�
 /nand/system-update/partition-table.bin
 ```
 
-Recovery 首页提供 **Update from NAND**：进入后固件会异步、只读扫描以下两种
+Recovery 首页提供 **Update from NAND**：进入后固件会异步扫描以下两种
 catalog 布局，最多列出 8 个完整 bundle；点击条目可先核对 release、组件数、总
 容量和 manifest 路径，再确认更新。
 
@@ -82,7 +85,9 @@ Recovery 逐块读取组件并复用与 USB、HTTP(S) 相同的 manifest、SHA-2
 分区布局校验。application 流式写入 `ota_0`；bootloader 和 partition table 暂存
 到 PSRAM，全部验证完成后统一提交。三种来源共用一个 Flash writer owner，不能
 并行执行。可通过 `CONFIG_IRIS_FACTORY_NAND_SYSTEM_UPDATE_AUTO_START=y` 配置固定
-路径自动启动；默认关闭，避免误用 NAND 中遗留的旧 bundle。
+路径自动启动；默认关闭，避免误用 NAND 中遗留的旧 bundle。启动 NAND 更新后不要
+再通过文件服务修改该 bundle；单文件上传是原子的，但一个 bundle 的多个文件不构成
+同一事务。
 
 ## Flash 布局
 

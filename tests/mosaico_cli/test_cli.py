@@ -76,6 +76,7 @@ from mosaico_cli.recovery import (
     _registered_recovery_ports,
     _verification_path,
     load_bundle,
+    provisioning_candidate,
     recovery_is_verified,
     recovery_verification_details,
 )
@@ -1466,6 +1467,36 @@ class RecoveryCommandTests(unittest.TestCase):
                 mock.patch("serial.tools.list_ports.comports", return_value=[port])
             )
             self.assertEqual(_registered_recovery_ports(select_model(None)), [])
+
+    def test_registered_recovery_is_preferred_over_debug_serial(self) -> None:
+        context = mock.Mock(repository=REPOSITORY)
+        context.run.return_value = SimpleNamespace(
+            returncode=0,
+            stdout=json.dumps(
+                {
+                    "devices": [
+                        {"path": "/dev/debug", "transport": "usb_serial_jtag"},
+                        {"path": "/dev/rom", "transport": "rom"},
+                    ]
+                }
+            ),
+        )
+        with ExitStack() as _contexts:
+            _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.recovery.locate_iris_tools",
+                    return_value=(Path("python"), Path("esp_iris.py")),
+                )
+            )
+            _contexts.enter_context(
+                mock.patch(
+                    "mosaico_cli.recovery._registered_recovery_ports",
+                    return_value=["/dev/rom"],
+                )
+            )
+            self.assertEqual(
+                provisioning_candidate(context, select_model(None)), "/dev/rom"
+            )
 
     def test_current_dry_run_does_not_build_or_flash(self) -> None:
         arguments = argparse.Namespace(

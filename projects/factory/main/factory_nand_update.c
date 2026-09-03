@@ -4,6 +4,8 @@
 #include "factory_nand_update.h"
 
 #include <dirent.h>
+#include <errno.h>
+#include <inttypes.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -37,9 +39,11 @@
 #define NAND_UPDATE_START_METHOD_ID 2U
 #define NAND_UPDATE_READ_BYTES 4096U
 #define NAND_UPDATE_MOUNT_PATH "/nand"
+#define NAND_FILE_VOLUME_ID "nand"
 #define NAND_UPDATE_CATALOG_PATH NAND_UPDATE_MOUNT_PATH "/system-update"
 #define NAND_UPDATE_MANIFEST_NAME "manifest.json"
 #define NAND_UPDATE_MAX_DIRECTORY_ENTRIES 64U
+#define NAND_UPDATE_LOG_STEP_PERCENT 10U
 
 typedef struct {
     char manifest_path[FACTORY_SYSTEM_UPDATE_PATH_BYTES];
@@ -192,7 +196,7 @@ static esp_err_t nand_ensure_mounted(void)
         .base_path = NAND_UPDATE_MOUNT_PATH,
         .blockdev = s_nand.blockdev,
         .format_if_mount_failed = false,
-        .read_only = true,
+        .read_only = false,
         .dont_mount = false,
         .grow_on_mount = false,
     };
@@ -208,7 +212,7 @@ static esp_err_t nand_ensure_mounted(void)
     size_t total = 0;
     size_t used = 0;
     if (esp_littlefs_blockdev_info(s_nand.blockdev, &total, &used) == ESP_OK) {
-        ESP_LOGI(TAG, "NAND LittleFS mounted read-only: total=%u used=%u",
+        ESP_LOGI(TAG, "NAND LittleFS mounted read-write: total=%u used=%u",
                  (unsigned)total, (unsigned)used);
     }
     return ESP_OK;
@@ -440,10 +444,17 @@ static void catalog_try_add(factory_nand_update_snapshot_t *snapshot,
 static esp_err_t scan_catalog(factory_nand_update_snapshot_t *snapshot)
 {
     struct stat root_info;
-    ESP_RETURN_ON_FALSE(stat(NAND_UPDATE_CATALOG_PATH, &root_info) == 0 &&
-                            S_ISDIR(root_info.st_mode),
-                        ESP_ERR_NOT_FOUND, TAG,
-                        "NAND system-update directory not found");
+    if (stat(NAND_UPDATE_CATALOG_PATH, &root_info) != 0) {
+        if (errno == ENOENT) {
+            ESP_LOGI(TAG, "NAND system-update catalog is empty");
+            return ESP_OK;
+        }
+        ESP_LOGE(TAG, "stat NAND system-update catalog failed: errno=%d",
+                 errno);
+        return ESP_FAIL;
+    }
+    ESP_RETURN_ON_FALSE(S_ISDIR(root_info.st_mode), ESP_ERR_INVALID_STATE, TAG,
+                        "NAND system-update catalog is not a directory");
 
     char manifest_path[FACTORY_SYSTEM_UPDATE_PATH_BYTES];
     int written = snprintf(manifest_path, sizeof(manifest_path), "%s/%s",
@@ -550,6 +561,7 @@ static esp_err_t read_component(
         err = buffer != NULL ? ESP_OK : ESP_ERR_NO_MEM;
     }
     uint32_t received = 0;
+    uint32_t next_log_percent = NAND_UPDATE_LOG_STEP_PERCENT;
     while (err == ESP_OK && received < component->size) {
         size_t request = component->size - received;
         if (request > NAND_UPDATE_READ_BYTES) {
@@ -569,6 +581,18 @@ static esp_err_t read_component(
             read_size);
         if (err == ESP_OK) {
             received += (uint32_t)read_size;
+            const uint32_t percent = (uint32_t)(
+                ((uint64_t)received * 100U) / component->size);
+            if (received == component->size ||
+                percent >= next_log_percent) {
+                ESP_LOGI(TAG,
+                         "NAND component %u progress: %" PRIu32
+                         "/%" PRIu32 " bytes (%" PRIu32 "%%)",
+                         component->id, received, component->size, percent);
+                next_log_percent =
+                    ((percent / NAND_UPDATE_LOG_STEP_PERCENT) + 1U) *
+                    NAND_UPDATE_LOG_STEP_PERCENT;
+            }
         }
     }
 
@@ -589,8 +613,12 @@ static esp_err_t read_component(
         }
     }
     if (err == ESP_OK) {
+        ESP_LOGI(TAG, "finalizing NAND component %u", component->id);
         err = factory_system_update_source_end_component(
             FACTORY_SYSTEM_UPDATE_OWNER_NAND, component, digest);
+        if (err == ESP_OK) {
+            ESP_LOGI(TAG, "NAND component %u verified", component->id);
+        }
     }
     if (hash_active) {
         (void)psa_hash_abort(&hash);
@@ -658,6 +686,7 @@ static void nand_update_task(void *argument)
         }
     }
     if (err == ESP_OK) {
+        ESP_LOGI(TAG, "all NAND components verified; starting commit");
         err = factory_system_update_source_commit(
             FACTORY_SYSTEM_UPDATE_OWNER_NAND, operation_id);
     }
@@ -787,6 +816,35 @@ esp_err_t factory_system_update_nand_register(void)
     }
     ESP_RETURN_ON_FALSE(s_nand_snapshot_mutex != NULL, ESP_ERR_NO_MEM, TAG,
                         "create NAND catalog mutex");
+
+    /* Mount and publish the volume before esp_iris_start(), which snapshots
+     * the registered file volumes into the device capability handshake. NAND
+     * remains optional for Recovery availability: a media/mount failure must
+     * not take down the USB maintenance path. */
+    esp_err_t file_err = nand_ensure_mounted();
+    if (file_err == ESP_OK) {
+        const esp_iris_file_volume_config_t volume = {
+            .id = NAND_FILE_VOLUME_ID,
+            .base_path = NAND_UPDATE_MOUNT_PATH,
+            .capabilities = ESP_IRIS_FILE_VOLUME_READ |
+                            ESP_IRIS_FILE_VOLUME_LIST |
+                            ESP_IRIS_FILE_VOLUME_MTIME |
+                            ESP_IRIS_FILE_VOLUME_WRITE |
+                            ESP_IRIS_FILE_VOLUME_DELETE |
+                            ESP_IRIS_FILE_VOLUME_MKDIR |
+                            ESP_IRIS_FILE_VOLUME_RENAME |
+                            ESP_IRIS_FILE_VOLUME_ATOMIC_REPLACE,
+        };
+        file_err = esp_iris_file_volume_register(&volume);
+    }
+    if (file_err == ESP_OK) {
+        ESP_LOGI(TAG, "registered writable ESP-Iris volume id=%s base=%s",
+                 NAND_FILE_VOLUME_ID, NAND_UPDATE_MOUNT_PATH);
+    } else {
+        ESP_LOGE(TAG, "NAND file volume unavailable: %s",
+                 esp_err_to_name(file_err));
+    }
+
     return esp_iris_rpc_register(NAND_UPDATE_SERVICE_ID,
                                  NAND_UPDATE_START_METHOD_ID,
                                  nand_update_rpc, NULL);

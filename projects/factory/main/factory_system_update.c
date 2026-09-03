@@ -22,6 +22,7 @@
 #include "esp_log.h"
 #include "esp_ota_ops.h"
 #include "esp_partition.h"
+#include "esp_private/esp_flash_internal.h"
 #include "esp_system.h"
 #include "factory_system_metadata.h"
 #include "freertos/FreeRTOS.h"
@@ -649,9 +650,14 @@ static esp_err_t begin_component(
         const size_t erase_size =
             (component->size + FACTORY_SYSTEM_FLASH_SECTOR_BYTES - 1U) &
             ~(FACTORY_SYSTEM_FLASH_SECTOR_BYTES - 1U);
+        ESP_LOGI(TAG,
+                 "erasing ota_0 before receive: offset=0x%08" PRIx32
+                 " size=%u",
+                 s_update.ota_partition->address, (unsigned)erase_size);
         ESP_RETURN_ON_ERROR(
             esp_partition_erase_range(s_update.ota_partition, 0, erase_size),
             TAG, "erase ota_0");
+        ESP_LOGI(TAG, "ota_0 erase complete");
     } else {
         uint8_t **destination =
             component->kind == ESP_IRIS_SYSTEM_UPDATE_COMPONENT_BOOTLOADER
@@ -892,6 +898,7 @@ static esp_err_t end_component(
     esp_err_t ret = ESP_OK;
     if (component->kind == ESP_IRIS_SYSTEM_UPDATE_COMPONENT_APPLICATION) {
         uint8_t readback_sha256[32];
+        ESP_LOGI(TAG, "verifying ota_0 readback SHA-256");
         ESP_GOTO_ON_ERROR(hash_flash_region(component->target_offset,
                                             component->size,
                                             readback_sha256), done, TAG,
@@ -902,6 +909,7 @@ static esp_err_t end_component(
         ESP_GOTO_ON_ERROR(verify_application_on_flash(component), done, TAG,
                           "application image validation");
         s_update.application_received = true;
+        ESP_LOGI(TAG, "ota_0 image and readback verified");
     } else if (component->kind ==
                ESP_IRIS_SYSTEM_UPDATE_COMPONENT_BOOTLOADER) {
         ESP_GOTO_ON_ERROR(validate_memory_image(s_update.bootloader_image,
@@ -941,12 +949,35 @@ static esp_err_t commit_protected_image(
                         ESP_ERR_INVALID_STATE, TAG,
                         "protected image is incomplete");
     const esp_iris_system_update_component_t *component = &plan->descriptor;
-    ESP_RETURN_ON_ERROR(esp_flash_erase_region(NULL, component->target_offset,
-                                               component->size),
-                        TAG, "erase protected component");
-    ESP_RETURN_ON_ERROR(esp_flash_write(NULL, image, component->target_offset,
-                                       component->size),
-                        TAG, "write protected component");
+    ESP_LOGW(TAG,
+             "temporarily disabling dangerous-write protection: id=%u "
+             "offset=0x%08" PRIx32 " size=%" PRIu32,
+             component->id, component->target_offset, component->size);
+    esp_err_t ret = esp_flash_set_dangerous_write_protection(
+        esp_flash_default_chip, false);
+    ESP_RETURN_ON_ERROR(ret, TAG, "disable dangerous-write protection");
+
+    ret = esp_flash_erase_region(esp_flash_default_chip,
+                                 component->target_offset, component->size);
+    if (ret == ESP_OK) {
+        ret = esp_flash_write(esp_flash_default_chip, image,
+                              component->target_offset, component->size);
+    }
+
+    esp_err_t protect_ret = esp_flash_set_dangerous_write_protection(
+        esp_flash_default_chip, true);
+    if (protect_ret != ESP_OK) {
+        ESP_LOGE(TAG, "restore dangerous-write protection failed: %s",
+                 esp_err_to_name(protect_ret));
+        if (ret == ESP_OK) {
+            ret = protect_ret;
+        }
+    } else {
+        ESP_LOGI(TAG, "dangerous-write protection restored: id=%u",
+                 component->id);
+    }
+    ESP_RETURN_ON_ERROR(ret, TAG, "write protected component");
+
     uint8_t digest[32];
     ESP_RETURN_ON_ERROR(hash_flash_region(component->target_offset,
                                           component->size, digest),
@@ -997,25 +1028,51 @@ static esp_err_t commit_update(
     const factory_update_plan_component_t *partition_table = plan_for_kind(
         ESP_IRIS_SYSTEM_UPDATE_COMPONENT_PARTITION_TABLE);
 
+    ESP_LOGI(TAG, "system update commit started");
+
     /* This product deliberately accepts the ESP32-S31 single-copy commit
      * policy: bootloader first, partition table last, with mandatory readback.
      * Recovery and data ranges cannot move. ota_0 keeps its start address but
      * may shrink from the Flash tail when the same plan installs a fitting
      * application image. */
-    ESP_RETURN_ON_ERROR(
-        commit_protected_image(bootloader, s_update.bootloader_image), TAG,
-        "commit bootloader");
+    if (bootloader != NULL) {
+        ESP_LOGI(TAG, "committing bootloader");
+    }
+    ESP_RETURN_ON_ERROR(commit_protected_image(
+                            bootloader, s_update.bootloader_image),
+                        TAG, "commit bootloader");
     if (bootloader != NULL) {
         uint32_t image_length = 0;
         ESP_RETURN_ON_ERROR(esp_image_verify_bootloader(&image_length), TAG,
                             "verify committed bootloader");
+        ESP_LOGI(TAG, "bootloader committed and verified: image_length=%" PRIu32,
+                 image_length);
+    }
+    if (partition_table != NULL) {
+        ESP_LOGI(TAG, "committing partition table");
     }
     ESP_RETURN_ON_ERROR(commit_protected_image(
                             partition_table, s_update.partition_table_image),
                         TAG, "commit partition table");
+    if (partition_table != NULL) {
+        ESP_LOGI(TAG, "partition table committed and verified");
+    }
     if (s_update.application_received) {
+        ESP_LOGI(TAG, "selecting ota_0 for next boot: label=%s offset=0x%08" PRIx32,
+                 s_update.ota_partition->label,
+                 s_update.ota_partition->address);
         ESP_RETURN_ON_ERROR(esp_ota_set_boot_partition(s_update.ota_partition),
                             TAG, "select ota_0");
+        const esp_partition_t *configured = esp_ota_get_boot_partition();
+        ESP_RETURN_ON_FALSE(configured != NULL, ESP_ERR_NOT_FOUND, TAG,
+                            "read configured boot partition");
+        ESP_LOGI(TAG,
+                 "configured boot partition: label=%s offset=0x%08" PRIx32,
+                 configured->label, configured->address);
+        ESP_RETURN_ON_FALSE(
+            configured->address == s_update.ota_partition->address,
+            ESP_ERR_INVALID_STATE, TAG,
+            "configured boot partition does not match ota_0");
     }
     ESP_RETURN_ON_ERROR(persist_result(operation_id, ESP_OK), TAG,
                         "persist system update result");

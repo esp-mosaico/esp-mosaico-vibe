@@ -50,7 +50,7 @@ typedef struct {
 } factory_nand_update_snapshot_t;
 
 /* Scan the bounded Recovery bundle catalog below /nand/system-update. The
- * operation is asynchronous and never formats or writes the NAND filesystem. */
+ * operation is asynchronous and never formats the NAND filesystem. */
 esp_err_t factory_nand_update_request_scan(void);
 
 /* Copy the latest catalog and source status for presentation by the UI. */

@@ -136,8 +136,11 @@ config IRIS_FACTORY_NAND_SYSTEM_UPDATE
     select NAND_FLASH_ENABLE_BDL
     help
         Register RPC 0x1201/2. Its payload is an absolute manifest path below
-        /nand. Recovery mounts the board SPI NAND LittleFS read-only and reads
-        the manifest plus every root-level component from the same directory.
+        /nand. Recovery mounts the board SPI NAND LittleFS read-write, exposes
+        the complete /nand tree as the writable ESP-Iris volume "nand", and
+        reads the manifest plus every root-level component from its directory.
+        Mount failures never format the NAND and do not prevent Recovery USB
+        maintenance from starting.
         The Recovery UI scans /nand/system-update/manifest.json and one level
         of release subdirectories so an operator can select a bundle locally.
 

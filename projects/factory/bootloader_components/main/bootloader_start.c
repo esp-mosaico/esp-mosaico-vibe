@@ -24,6 +24,30 @@ ESP_LOG_ATTR_TAG(TAG, "boot");
 static int select_partition_number(bootloader_state_t *bs);
 static int selected_boot_partition(const bootloader_state_t *bs);
 
+static void log_otadata(const bootloader_state_t *bs)
+{
+    esp_ota_select_entry_t entries[2];
+    const esp_err_t err = bootloader_common_read_otadata(&bs->ota_info,
+                                                          entries);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Could not read otadata: 0x%x", (unsigned)err);
+        return;
+    }
+
+    for (size_t i = 0; i < 2; ++i) {
+        const uint32_t expected_crc =
+            bootloader_common_ota_select_crc(&entries[i]);
+        ESP_LOGI(TAG,
+                 "otadata[%u]: seq=0x%08" PRIx32
+                 " state=0x%08" PRIx32 " crc=0x%08" PRIx32
+                 " expected=0x%08" PRIx32 " valid=%d bootable=%d",
+                 (unsigned)i, entries[i].ota_seq, entries[i].ota_state,
+                 entries[i].crc, expected_crc,
+                 bootloader_common_ota_select_valid(&entries[i]),
+                 !bootloader_common_ota_select_invalid(&entries[i]));
+    }
+}
+
 static bool factory_recovery_requested(void)
 {
     const uint32_t pin = CONFIG_FACTORY_RECOVERY_BOOT_GPIO;
@@ -88,6 +112,8 @@ static int select_partition_number(bootloader_state_t *bs)
         return INVALID_INDEX;
     }
 
+    log_otadata(bs);
+
     if (factory_recovery_requested()) {
         if (bs->factory.offset != 0 && bs->factory.size != 0) {
             ESP_LOGW(TAG,
@@ -98,7 +124,9 @@ static int select_partition_number(bootloader_state_t *bs)
         ESP_LOGE(TAG, "Factory recovery requested, but no factory partition exists");
     }
 
-    return selected_boot_partition(bs);
+    const int boot_index = selected_boot_partition(bs);
+    ESP_LOGI(TAG, "Selected boot partition index=%d", boot_index);
+    return boot_index;
 }
 
 /* Keep ESP-IDF's standard OTA, rollback, factory-reset, and test-app rules. */

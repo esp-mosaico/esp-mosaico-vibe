@@ -284,17 +284,26 @@ def provisioning_candidate(context: RunContext, model: DeviceModel) -> str:
         raise DeviceError(
             "Device configuration channel detection returned an invalid result."
         ) from error
+
+    registered_ports = _registered_recovery_ports(model)
+    if len(registered_ports) == 1:
+        # A board may expose a second, independently connected USB
+        # Serial/JTAG interface for diagnostics. The model's registered ROM
+        # VID/PID is the authoritative flash endpoint, so do not reject that
+        # safe configuration as an ambiguous pair of low-level candidates.
+        return registered_ports[0]
+    if len(registered_ports) > 1:
+        raise SelectionError(
+            "Multiple registered recovery interfaces were detected; leave only "
+            "the target device connected."
+        )
+
     candidates = [
         item for item in report.get("devices", [])
         if isinstance(item, dict)
         and item.get("path")
         and item.get("transport") in {"usb_serial_jtag", "serial_jtag", "rom"}
     ]
-    candidates.extend(
-        {"path": path, "transport": "registered_recovery"}
-        for path in _registered_recovery_ports(model)
-        if not any(item.get("path") == path for item in candidates)
-    )
     if not candidates:
         raise DeviceError(
             "No ESP-Mosaico device in recovery configuration mode was detected. "

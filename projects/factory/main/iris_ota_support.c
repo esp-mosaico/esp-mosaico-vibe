@@ -306,6 +306,7 @@ void iris_ota_support_start(void)
     ESP_ERROR_CHECK(esp_iris_start());
 
     const esp_partition_t *running = esp_ota_get_running_partition();
+    const esp_partition_t *configured = esp_ota_get_boot_partition();
     const esp_app_desc_t *app = esp_app_get_description();
     esp_rom_printf("IRIS_READY version=%s mode=%s writer=%d partition=%s\n",
                    app->version,
@@ -320,6 +321,13 @@ void iris_ota_support_start(void)
                    0,
 #endif
                    running != NULL ? running->label : "unknown");
+    ESP_LOGI(TAG,
+             "boot state: running=%s@0x%08" PRIx32
+             " configured=%s@0x%08" PRIx32,
+             running != NULL ? running->label : "unknown",
+             running != NULL ? running->address : 0,
+             configured != NULL ? configured->label : "unknown",
+             configured != NULL ? configured->address : 0);
 
 #if CONFIG_GET_STARTED_AUTO_ACCEPT
     ESP_ERROR_CHECK(xTaskCreate(acceptance_task, "ota_accept", 2048, NULL, 4,
