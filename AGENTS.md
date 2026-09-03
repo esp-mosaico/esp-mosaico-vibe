@@ -62,8 +62,9 @@ confirmation before clone or install.
    Initialize and inspect only the submodules needed for the current task.
 5. Follow component source, examples, and upstream documentation. Do not
    invent board or component APIs.
-6. Keep user-facing documentation in `docs/`, public product tooling in
-   `tools/`, and private agent-facing documentation or tools in `.agents/`.
+6. Keep user-facing documentation in `docs/`, public product tooling in the
+   `submodule/esp-mosaico-tools` submodule, workspace-specific tool settings in
+   `.mosaico.json`, and private agent-facing documentation or tools in `.agents/`.
 
 ### Preserve the retained recovery path
 

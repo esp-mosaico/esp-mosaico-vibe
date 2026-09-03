@@ -7,3 +7,6 @@
 [submodule "submodule/esp-gsp"]
 	path = submodule/esp-gsp
 	url = https://github.com/espressif/esp-gsp.git
+[submodule "submodule/esp-mosaico-tools"]
+	path = submodule/esp-mosaico-tools
+	url = git@github.com:lisir233/esp-mosaico-tools.git

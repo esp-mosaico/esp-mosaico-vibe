@@ -9,7 +9,7 @@
 | 参考应用 | `projects/hello_world` |
 | Recovery 工程 | `projects/factory` |
 | 板级能力来源 | `submodule/esp-mosaico-bsp` Git 子模块 |
-| 设备运维入口 | `submodule/esp-iris` 固定版本的 Developer Gateway 及 CLI |
+| 设备运维入口 | 根目录 `mosaico.py`、固定版本的 `submodule/esp-mosaico-tools` 和 ESP-Iris Developer Gateway |
 | 文档状态 | 产品定义与当前工程基线 |
 
 **仓库定义：ESP-Mosaico 定制的 Agent 主导（Agent-Led）人机协同开发统一入口。**
@@ -198,9 +198,10 @@ ESP-Mosaico 真实设备
 | GSP 运行时 | `submodule/esp-gsp/` | 固定 espressif/esp-gsp 1.1.0 Git 子模块 | 固件与仿真共用同一 pin |
 | GSP 主机仿真 | `tools/gsp-sim/` | 用独立 `sim` 预览场景 JSON | 不引入 claw hub/runtime |
 | 板级子模块 | `submodule/esp-mosaico-bsp` | 提供 BSP、扩展模块、交互/网络组件和示例 | 按任务初始化和检查 |
+| 工具子模块 | `submodule/esp-mosaico-tools` | 提供仓库本地的统一 CLI 与构建 runner | 由主仓库 gitlink 固定版本，不安装到全局 Python 环境 |
 | 任务指南 | `skills/` | 提供环境安装、构建等任务化说明 | 只加载相关指南 |
 | 用户文档 | `docs/` | 面向开发者说明工作流、规格和应用文档 | 不放 Agent 私有工具 |
-| 产品工具 | `mosaico.py`、`tools/mosaico_cli/` | 提供公开统一命令及其实现 | 不依赖 `.agents/` 私有资产 |
+| 产品工具 | `mosaico.py`、`.mosaico.json` | 启动固定的工具子模块并提供工作区配置 | 不依赖 `.agents/` 私有资产 |
 | Agent 资产 | `.agents/` | Agent 专用文档与工具 | 不作为用户 API |
 
 ### 3.4 统一产品命令

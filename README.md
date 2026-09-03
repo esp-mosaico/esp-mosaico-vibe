@@ -41,6 +41,15 @@ python mosaico.py install --project projects/<project>
 python mosaico.py monitor
 ```
 
+The root launcher delegates to the pinned `submodule/esp-mosaico-tools`
+checkout; the CLI is not installed into the active Python environment. The
+workspace-owned [`.mosaico.json`](.mosaico.json) declares project, Recovery,
+BSP, ESP-Iris, and build paths. Initialize the tool checkout with:
+
+```sh
+git submodule update --init submodule/esp-mosaico-tools
+```
+
 `list` connects to the Gateway and prints Device IDs, online state, connection
 type, firmware identity, mode, and Boot ID. It includes cached offline devices;
 use `list --details` for endpoint, ESP-IDF version, Session ID, and capabilities,
@@ -50,8 +59,8 @@ The CLI supports native Linux and macOS shells plus Windows PowerShell and
 Command Prompt; WSL and Git Bash are not required. Use Python 3.8 or newer,
 an ESP-IDF checkout satisfying the workspace project version constraint, and
 the pinned `submodule/esp-iris` checkout. The Gateway environment is prepared
-for the active Python major/minor version, and the PEP 508 markers in its single
-`tools/requirements.lock` select compatible packages automatically. ESP-IDF
+for the active Python major/minor version, and the PEP 508 markers in ESP-Iris's
+`components/esp_iris/tools/requirements.lock` select compatible packages automatically. ESP-IDF
 6.1 still requires Python 3.10 or newer; when the CLI runs on Python 3.8 or 3.9,
 it discovers and delegates ESP-IDF bootstrap commands to a compatible Python
 interpreter independently. Set `MOSAICO_IDF_PYTHON` to an explicit compatible
@@ -64,9 +73,10 @@ Host state follows platform conventions: `$XDG_STATE_HOME/esp-mosaico` (or
 `~/.local/state/esp-mosaico`) on Linux, `~/Library/Application Support/esp-mosaico`
 on macOS, and `%LOCALAPPDATA%\esp-mosaico` on Windows.
 
-Run the same host compatibility smoke test from each native host:
+Run the tool tests and the same host compatibility smoke test from each native host:
 
 ```sh
+python -m unittest discover -s submodule/esp-mosaico-tools/tests -v
 python -m unittest discover -s tests/mosaico_cli -v
 python mosaico.py --version
 python mosaico.py --json list
@@ -129,9 +139,12 @@ partitions without explicit user authorization.
 - `submodule/esp-gsp/` — pinned ESP-GSP 1.1.0 (device prebuilts; sim/gspc fetched separately).
 - `tools/gsp-sim/` — packs scenes and runs the standalone ESP-GSP `sim`.
 - `submodule/esp-iris/` — pinned ESP-Iris firmware component and host runtime.
+- `submodule/esp-mosaico-tools/` — pinned repository-local implementation of
+  `mosaico.py`; no global CLI installation is required.
 - `skills/` — task-oriented integration guides for agents and humans. See
   [`skills/README.md`](skills/README.md).
 - `docs/` — user-facing documentation.
-- `tools/mosaico_cli/` — public product-command implementation for `mosaico.py`.
+- `.mosaico.json` — workspace paths and supported-device configuration consumed
+  by the tool submodule.
 - `.agents/` — private agent-facing documentation and tools, not product CLI code.
 - `AGENTS.md` — concise routing and operating rules for coding agents.

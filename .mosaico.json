@@ -1,5 +1,19 @@
 {
-  "schema_version": 2,
+  "schema_version": 1,
+  "workspace": {
+    "projects_dir": "projects",
+    "default_project": "projects/hello_world",
+    "environment_file": "Environment",
+    "run_dir": ".codex-runs/mosaico",
+    "idf_constraint_manifest": "projects/factory/main/idf_component.yml"
+  },
+  "dependencies": {
+    "bsp": "submodule/esp-mosaico-bsp",
+    "esp_iris": "submodule/esp-iris"
+  },
+  "build": {
+    "runner": "builtin"
+  },
   "devices": [
     {
       "id": "esp-mosaico",
