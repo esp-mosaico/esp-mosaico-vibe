@@ -1,5 +1,6 @@
 #include "factory_system_inventory.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "sdkconfig.h"
@@ -8,6 +9,7 @@
 
 #include "esp_check.h"
 #include "esp_flash.h"
+#include "esp_heap_caps.h"
 #include "esp_iris_system_inventory.h"
 #include "esp_log.h"
 #include "factory_system_metadata.h"
@@ -21,18 +23,22 @@ static const char *TAG = "factory_inventory";
 static esp_err_t hash_flash_region(uint32_t address, size_t size,
                                    uint8_t output[ESP_IRIS_SYSTEM_SHA256_BYTES])
 {
-    uint8_t buffer[FACTORY_HASH_CHUNK_BYTES];
+    uint8_t *buffer = heap_caps_malloc(FACTORY_HASH_CHUNK_BYTES,
+                                       MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+    ESP_RETURN_ON_FALSE(buffer != NULL, ESP_ERR_NO_MEM, TAG,
+                        "allocate Flash hash buffer");
     psa_hash_operation_t operation = PSA_HASH_OPERATION_INIT;
     if (psa_crypto_init() != PSA_SUCCESS ||
         psa_hash_setup(&operation, PSA_ALG_SHA_256) != PSA_SUCCESS) {
+        free(buffer);
         return ESP_FAIL;
     }
 
     esp_err_t err = ESP_OK;
     for (size_t offset = 0; offset < size;) {
         size_t chunk = size - offset;
-        if (chunk > sizeof(buffer)) {
-            chunk = sizeof(buffer);
+        if (chunk > FACTORY_HASH_CHUNK_BYTES) {
+            chunk = FACTORY_HASH_CHUNK_BYTES;
         }
         err = esp_flash_read(NULL, buffer, address + offset, chunk);
         if (err != ESP_OK ||
@@ -53,6 +59,7 @@ static esp_err_t hash_flash_region(uint32_t address, size_t size,
     if (err != ESP_OK) {
         (void)psa_hash_abort(&operation);
     }
+    free(buffer);
     return err;
 }
 

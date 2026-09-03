@@ -1,5 +1,5 @@
 CONFIG_APP_PROJECT_VER_FROM_CONFIG=y
-CONFIG_APP_PROJECT_VER="2.2.0-recovery"
+CONFIG_APP_PROJECT_VER="2.3.0-recovery"
 
 # ESP-Iris owns the separate TinyUSB High-Speed device. Keep the built-in USB
 # Serial/JTAG controller as the primary blocking console so boot, update, and
