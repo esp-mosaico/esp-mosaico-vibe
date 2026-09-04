@@ -29,7 +29,9 @@ python3 tools/gsp-sim/run.py projects/<name>/ui/main.json --interactive
 
 The default scene is `projects/gsp_hello/ui/main.json`. Headless dump is the
 Agent-safe check. Interactive mode opens the official local browser preview.
-Extra simulator flags go after `--` (`--tap`, `--drag`, `--wait`).
+`gsp_hello` attaches `projects/gsp_hello/sim_backend.py` so the load bar
+ticks like firmware `esp_gsp_timer_create`. Extra simulator flags go after
+`--` (`--tap`, `--drag`, `--wait`). `--no-backend` previews the static scene.
 
 ## Authoring rules
 

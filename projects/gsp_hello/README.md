@@ -15,6 +15,10 @@ python3 tools/gsp-sim/run.py projects/gsp_hello/ui/main.json --headless --dump-p
 python3 tools/gsp-sim/run.py projects/gsp_hello/ui/main.json --interactive
 ```
 
+`run.py` attaches `sim_backend.py` automatically. That script is the PC equivalent of
+the firmware load timer: it connects to `sim --backend-listen` and updates the
+`load` progress bind every 250 ms. Use `--no-backend` to preview the static scene.
+
 ## Flash
 
 Recovery must already be on the device (`python mosaico.py recover`). Then:
