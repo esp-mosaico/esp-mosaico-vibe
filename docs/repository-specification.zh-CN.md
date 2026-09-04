@@ -79,7 +79,8 @@ Agent-Led 的默认主导关系是：**Agent 持续推进，用户在关键节�
 
 ### 2.5 UI 设计与真机视觉闭环
 
-- Agent 基于设备显示与触摸约束实现 LVGL 界面。
+- 参考工程 `projects/factory` 基于设备显示与触摸约束实现 LVGL 界面。
+- 使用 GSP 的应用在 PC 上通过 `tools/gsp-sim` 预览 480×480 场景；仿真运行时与 `submodule/esp-gsp` 中的 **espressif/esp-gsp 1.1.0** 配套。
 - 参考工程通过 ESP-Iris 注册 RGB565 屏幕镜像后端，使开发者和 Agent 可在 Gateway 工作台观察真机界面。
 - UI 调整与固件调试共享同一设备记录，减少人工往返。
 - 专项 Skill 可扩展视觉比较能力。具体应用负责定义验收基准。
@@ -184,6 +185,8 @@ ESP-Mosaico 真实设备
 | Agent 规则 | `AGENTS.md` | 路由开发任务、约束设备操作和恢复流程 | 规则应简洁且可执行 |
 | 应用工程 | `projects/` | 容纳参考工程和用户应用 | 一个应用一个目录 |
 | 参考模板 | `projects/factory` | 提供三种构建 profile、显示、ESP-Iris、屏幕镜像和 recovery-first OTA | 不承载具体用户业务 |
+| GSP 运行时 | `submodule/esp-gsp/` | 固定 espressif/esp-gsp 1.1.0 Git 子模块 | 固件与仿真共用同一 pin |
+| GSP 主机仿真 | `tools/gsp-sim/` | 用独立 `sim` 预览场景 JSON | 不引入 claw hub/runtime |
 | 板级子模块 | `submodule/esp-mosaico-bsp` | 提供 BSP、扩展模块、交互/网络组件和示例 | 按任务初始化和检查 |
 | 任务指南 | `skills/` | 提供环境安装、构建等任务化说明 | 只加载相关指南 |
 | 用户文档 | `docs/` | 面向开发者说明工作流、规格和应用文档 | 不放 Agent 私有工具 |
@@ -277,6 +280,7 @@ ESP-Mosaico 真实设备
 | FR-222 | UI 必须可通过 Gateway 观察 | ESP-Iris screen backend 可返回活动 LVGL 帧，工作台能够显示与设备一致的画面 |
 | FR-223 | UI 迭代必须进入真机闭环 | 每个关键界面完成真机显示和交互验证 |
 | FR-224 | 调试证据必须支持多模态关联 | 同一次启动的日志、画面和设备状态可以关联 |
+| FR-225 | GSP 场景必须可在 PC 上用 pinned ESP-GSP 仿真 | `python3 tools/gsp-sim/run.py --headless --dump-ppm` 使用 `submodule/esp-gsp` 1.1.0 配套的独立 `sim` |
 
 ### 4.6 板级与扩展能力
 

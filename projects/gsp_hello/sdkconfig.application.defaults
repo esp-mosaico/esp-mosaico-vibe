@@ -1,0 +1,5 @@
+# Keep the OTA writer only in the retained factory Recovery image. The normal
+# application exposes the enter-Recovery RPC through iris_ota_support_start().
+# CONFIG_ESP_IRIS_OTA is not set
+CONFIG_ESP_IRIS_OTA_DEFAULT_VIA_RECOVERY=y
+CONFIG_ESP_IRIS_USB_PRODUCT="ESP-Iris Mosaico GSP Hello"

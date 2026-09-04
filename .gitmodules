@@ -4,3 +4,6 @@
 [submodule "submodule/esp-iris"]
 	path = submodule/esp-iris
 	url = https://github.com/lisir233/ESP-Iris.git
+[submodule "submodule/esp-gsp"]
+	path = submodule/esp-gsp
+	url = https://github.com/espressif/esp-gsp.git

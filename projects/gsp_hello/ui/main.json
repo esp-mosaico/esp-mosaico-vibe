@@ -1,0 +1,105 @@
+{
+  "screen": "hello",
+  "w": 480,
+  "h": 480,
+  "screen_bg": "#101018",
+  "font": "fonts/DejaVuSans.ttf",
+  "default_font_size": 26,
+  "swipe": false,
+  "objects": [
+    {
+      "type": "container",
+      "parent": -1,
+      "x": 0,
+      "y": 0,
+      "w": 480,
+      "h": 480,
+      "bg_color": "#182030"
+    },
+    {
+      "type": "container",
+      "parent": 0,
+      "x": 32,
+      "y": 40,
+      "w": 416,
+      "h": 148,
+      "bg_color": "#243050",
+      "radius": 16,
+      "border_color": "#4060B0",
+      "border_width": 2
+    },
+    {
+      "type": "label",
+      "parent": 1,
+      "x": 28,
+      "y": 28,
+      "w": 360,
+      "h": 40,
+      "text": "Hello World",
+      "fg_color": "#FFFFFF"
+    },
+    {
+      "type": "label",
+      "parent": 1,
+      "x": 28,
+      "y": 82,
+      "w": 360,
+      "h": 36,
+      "text": "ESP-GSP 1.1.0 · 480×480",
+      "font_size": 18,
+      "fg_color": "#90A0C0"
+    },
+    {
+      "type": "label",
+      "parent": 0,
+      "x": 32,
+      "y": 208,
+      "w": 240,
+      "h": 30,
+      "text": "System load",
+      "font_size": 18,
+      "fg_color": "#C0C8E0"
+    },
+    {
+      "type": "progress",
+      "parent": 0,
+      "x": 32,
+      "y": 244,
+      "w": 416,
+      "h": 28,
+      "value": 42,
+      "bind": "load",
+      "name": "load",
+      "bg_color": "#20283C",
+      "fg_color": "#60C080",
+      "radius": 9
+    },
+    {
+      "type": "label",
+      "parent": 0,
+      "x": 32,
+      "y": 300,
+      "w": 416,
+      "h": 30,
+      "text": "Level (drag)",
+      "font_size": 18,
+      "fg_color": "#C0C8E0"
+    },
+    {
+      "type": "slider",
+      "parent": 0,
+      "x": 32,
+      "y": 336,
+      "w": 416,
+      "h": 40,
+      "value": 50,
+      "min": 0,
+      "max": 100,
+      "name": "level",
+      "bg_color": "#20283C",
+      "fg_color": "#5EC8E8",
+      "knob_color": "#E8F4FF",
+      "radius": 12
+    }
+  ]
+}
