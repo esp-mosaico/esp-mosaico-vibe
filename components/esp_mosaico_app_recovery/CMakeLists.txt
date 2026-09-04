@@ -7,5 +7,7 @@ idf_component_register(
         esp_iris
         esp_partition
         freertos
+        mbedtls
         nvs_flash
+        spi_flash
 )

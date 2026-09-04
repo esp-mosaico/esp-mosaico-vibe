@@ -23,5 +23,12 @@ Recovery must already be on the device (`python mosaico.py recover`). Then:
 python mosaico.py install --project projects/gsp_hello
 ```
 
+To build and install an atomic System Update containing the application,
+bootloader, and partition table, use:
+
+```sh
+python mosaico.py system-update --project projects/gsp_hello
+```
+
 The build fetches a standalone `gspc` if `GSPC_EXECUTABLE` is unset. The
 application keeps the enter-Recovery RPC; it does not include an OTA writer.

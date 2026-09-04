@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stage the hello_world ESP-Iris System Update manifest and components."""
+"""Stage an ESP-Mosaico application System Update manifest and components."""
 
 from __future__ import annotations
 

@@ -16,4 +16,4 @@ set(EXTRA_COMPONENT_DIRS
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(hello_world VERSION 1.0.0)
 
-include(cmake/system_update.cmake)
+include(../../cmake/system_update.cmake)

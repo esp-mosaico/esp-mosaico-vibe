@@ -1,5 +1,13 @@
 menu "ESP-Mosaico application recovery"
 
+config ESP_MOSAICO_APP_SYSTEM_INVENTORY
+    bool
+    default y
+    select ESP_IRIS_SYSTEM_INVENTORY
+    help
+        Keep the read-only ESP-Iris System Inventory enabled in every normal
+        application so a Recovery System Update can be verified after reboot.
+
 config ESP_MOSAICO_APP_AUTO_ACCEPT
     bool "Automatically accept a pending OTA image"
     default y

@@ -1,14 +1,13 @@
 # Build the local, unsigned ESP-Iris System Update bundle used by
-# `python mosaico.py system-update --project projects/hello_world`.
-# Project-specific layout and image validation lives in prepare_system_update.py;
-# this file only wires that staging step into the ESP-IDF build graph.
+# `python mosaico.py system-update --project projects/<application>`.
+# The application supplies its partition layout and binary; this module wires
+# the shared validation and staging step into the ESP-IDF build graph.
 
 set(system_update_preparer
     "${CMAKE_CURRENT_LIST_DIR}/../tools/prepare_system_update.py")
-set(system_update_partition_csv
-    "${CMAKE_CURRENT_LIST_DIR}/../partitions.csv")
+set(system_update_partition_csv "${PROJECT_SOURCE_DIR}/partitions.csv")
 set(system_update_iris_tool
-    "${CMAKE_CURRENT_LIST_DIR}/../../../submodule/esp-iris/components/esp_iris/tools/esp_iris.py")
+    "${CMAKE_CURRENT_LIST_DIR}/../submodule/esp-iris/components/esp_iris/tools/esp_iris.py")
 set(system_update_stage_dir "${CMAKE_BINARY_DIR}/system-update")
 set(system_update_bundle
     "${CMAKE_BINARY_DIR}/${PROJECT_NAME}-system-update.irisfw")
@@ -18,13 +17,13 @@ set(system_update_bundle
 if(DEFINED ENV{ESP_IRIS_PYTHON} AND EXISTS "$ENV{ESP_IRIS_PYTHON}")
     set(system_update_python "$ENV{ESP_IRIS_PYTHON}")
 elseif(WIN32 AND EXISTS
-       "${CMAKE_CURRENT_LIST_DIR}/../../../submodule/esp-iris/.venv/Scripts/python.exe")
+       "${CMAKE_CURRENT_LIST_DIR}/../submodule/esp-iris/.venv/Scripts/python.exe")
     set(system_update_python
-        "${CMAKE_CURRENT_LIST_DIR}/../../../submodule/esp-iris/.venv/Scripts/python.exe")
+        "${CMAKE_CURRENT_LIST_DIR}/../submodule/esp-iris/.venv/Scripts/python.exe")
 elseif(EXISTS
-       "${CMAKE_CURRENT_LIST_DIR}/../../../submodule/esp-iris/.venv/bin/python")
+       "${CMAKE_CURRENT_LIST_DIR}/../submodule/esp-iris/.venv/bin/python")
     set(system_update_python
-        "${CMAKE_CURRENT_LIST_DIR}/../../../submodule/esp-iris/.venv/bin/python")
+        "${CMAKE_CURRENT_LIST_DIR}/../submodule/esp-iris/.venv/bin/python")
 else()
     message(FATAL_ERROR
         "ESP-Iris Python environment not found; run mosaico.py doctor first")

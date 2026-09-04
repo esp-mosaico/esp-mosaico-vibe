@@ -5,10 +5,15 @@
 #include <inttypes.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "esp_app_desc.h"
 #include "esp_check.h"
+#include "esp_flash.h"
+#include "esp_heap_caps.h"
 #include "esp_iris.h"
+#include "esp_iris_system_inventory.h"
 #include "esp_log.h"
 #include "esp_ota_ops.h"
 #include "esp_partition.h"
@@ -18,6 +23,7 @@
 #include "freertos/task.h"
 #include "nvs.h"
 #include "nvs_flash.h"
+#include "psa/crypto.h"
 #include "sdkconfig.h"
 
 #if !CONFIG_ESP_IRIS_OTA_DEFAULT_VIA_RECOVERY
@@ -34,6 +40,20 @@
 #define RECOVERY_SERVICE_ID     0x7FFFU
 #define ENTER_RECOVERY_METHOD   2U
 #define RECOVERY_OTA_NAMESPACE  "iris_ota_demo"
+#define SYSTEM_UPDATE_NAMESPACE "update"
+#define SYSTEM_UPDATE_RESULT_KEY "last_result"
+#define SYSTEM_METADATA_MAGIC   0x49535953U
+#define SYSTEM_METADATA_VERSION 2U
+#define SYSTEM_LAYOUT_VERSION   4U
+#define SYSTEM_HASH_CHUNK_BYTES 1024U
+
+typedef struct {
+    uint32_t magic;
+    uint32_t version;
+    uint8_t operation_id[ESP_IRIS_SYSTEM_OPERATION_ID_BYTES];
+    int32_t result;
+    uint8_t reserved[36];
+} system_metadata_record_t;
 
 static const char *TAG = "app_recovery";
 
@@ -92,6 +112,120 @@ static uint8_t recovery_read_u8(const char *key)
         nvs_close(handle);
     }
     return value;
+}
+
+static esp_err_t hash_flash_region(
+    uint32_t address, size_t size,
+    uint8_t output[ESP_IRIS_SYSTEM_SHA256_BYTES])
+{
+    uint8_t *buffer = heap_caps_malloc(SYSTEM_HASH_CHUNK_BYTES,
+                                       MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+    ESP_RETURN_ON_FALSE(buffer != NULL, ESP_ERR_NO_MEM, TAG,
+                        "allocate Flash hash buffer");
+
+    psa_hash_operation_t operation = PSA_HASH_OPERATION_INIT;
+    if (psa_crypto_init() != PSA_SUCCESS ||
+        psa_hash_setup(&operation, PSA_ALG_SHA_256) != PSA_SUCCESS) {
+        free(buffer);
+        return ESP_FAIL;
+    }
+
+    esp_err_t err = ESP_OK;
+    for (size_t offset = 0; offset < size;) {
+        size_t chunk = size - offset;
+        if (chunk > SYSTEM_HASH_CHUNK_BYTES) {
+            chunk = SYSTEM_HASH_CHUNK_BYTES;
+        }
+        err = esp_flash_read(NULL, buffer, address + offset, chunk);
+        if (err != ESP_OK ||
+            psa_hash_update(&operation, buffer, chunk) != PSA_SUCCESS) {
+            err = err == ESP_OK ? ESP_FAIL : err;
+            break;
+        }
+        offset += chunk;
+    }
+
+    size_t output_size = 0;
+    if (err == ESP_OK &&
+        (psa_hash_finish(&operation, output,
+                         ESP_IRIS_SYSTEM_SHA256_BYTES, &output_size) !=
+             PSA_SUCCESS ||
+         output_size != ESP_IRIS_SYSTEM_SHA256_BYTES)) {
+        err = ESP_FAIL;
+    }
+    if (err != ESP_OK) {
+        (void)psa_hash_abort(&operation);
+    }
+    free(buffer);
+    return err;
+}
+
+static void system_inventory_load_last_result(
+    esp_iris_system_inventory_t *inventory)
+{
+    nvs_handle_t handle;
+    if (nvs_open_from_partition(CONFIG_ESP_IRIS_NVS_PARTITION_NAME,
+                                SYSTEM_UPDATE_NAMESPACE, NVS_READONLY,
+                                &handle) != ESP_OK) {
+        return;
+    }
+
+    system_metadata_record_t record;
+    size_t size = sizeof(record);
+    const esp_err_t err = nvs_get_blob(handle, SYSTEM_UPDATE_RESULT_KEY,
+                                       &record, &size);
+    nvs_close(handle);
+    if (err != ESP_OK || size != sizeof(record) ||
+        record.magic != SYSTEM_METADATA_MAGIC ||
+        record.version != SYSTEM_METADATA_VERSION) {
+        return;
+    }
+
+    memcpy(inventory->last_operation_id, record.operation_id,
+           sizeof(inventory->last_operation_id));
+    inventory->last_result = record.result;
+    inventory->flags |= ESP_IRIS_SYSTEM_INVENTORY_LAST_OPERATION;
+}
+
+static esp_err_t system_inventory_get(
+    esp_iris_system_inventory_t *inventory, void *user_ctx)
+{
+    (void)user_ctx;
+    ESP_RETURN_ON_FALSE(inventory != NULL, ESP_ERR_INVALID_ARG, TAG,
+                        "inventory is null");
+    memset(inventory, 0, sizeof(*inventory));
+    inventory->layout_version = SYSTEM_LAYOUT_VERSION;
+
+    const uint32_t bootloader_offset = CONFIG_BOOTLOADER_OFFSET_IN_FLASH;
+    const uint32_t partition_offset = CONFIG_PARTITION_TABLE_OFFSET;
+    ESP_RETURN_ON_FALSE(partition_offset > bootloader_offset,
+                        ESP_ERR_INVALID_STATE, TAG,
+                        "invalid protected Flash ranges");
+    ESP_RETURN_ON_ERROR(
+        hash_flash_region(bootloader_offset,
+                          partition_offset - bootloader_offset,
+                          inventory->bootloader_sha256),
+        TAG, "hash bootloader range");
+    inventory->flags |= ESP_IRIS_SYSTEM_INVENTORY_BOOTLOADER_SHA256;
+
+    ESP_RETURN_ON_ERROR(
+        hash_flash_region(partition_offset, 0x1000,
+                          inventory->partition_table_sha256),
+        TAG, "hash partition table");
+    inventory->flags |= ESP_IRIS_SYSTEM_INVENTORY_PARTITION_TABLE_SHA256;
+    system_inventory_load_last_result(inventory);
+    return ESP_OK;
+}
+
+static esp_err_t system_inventory_register(void)
+{
+    const esp_iris_system_inventory_provider_t provider = {
+        .get_inventory = system_inventory_get,
+        .user_ctx = NULL,
+    };
+    ESP_RETURN_ON_ERROR(esp_iris_system_inventory_register(&provider), TAG,
+                        "register system inventory");
+    return ESP_OK;
 }
 
 esp_err_t esp_iris_platform_mark_planned_restart(void)
@@ -227,6 +361,7 @@ void iris_ota_support_start(void)
 {
     ESP_ERROR_CHECK(nvs_flash_init_partition(
         CONFIG_ESP_IRIS_NVS_PARTITION_NAME));
+    ESP_ERROR_CHECK(system_inventory_register());
     ESP_ERROR_CHECK(esp_iris_rpc_register(OTA_SERVICE_ID, OTA_STATE_METHOD_ID,
                                           state_rpc, NULL));
     ESP_ERROR_CHECK(esp_iris_rpc_register(OTA_SERVICE_ID, OTA_ACCEPT_METHOD_ID,
