@@ -14,4 +14,6 @@ set(EXTRA_COMPONENT_DIRS
     "${CMAKE_CURRENT_LIST_DIR}/../../components/esp_mosaico_app_recovery")
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-project(hello_world)
+project(hello_world VERSION 1.0.0)
+
+include(cmake/system_update.cmake)

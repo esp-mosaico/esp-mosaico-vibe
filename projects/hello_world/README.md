@@ -12,6 +12,13 @@ initialized and verified:
 python mosaico.py install --project projects/hello_world
 ```
 
+To build and install an atomic System Update containing the application,
+bootloader, and partition table, use:
+
+```sh
+python mosaico.py system-update --project projects/hello_world
+```
+
 Use `python mosaico.py monitor --timeout 20` to observe the periodic log. USB
 and firmware operations remain owned by ESP-Iris; do not open the serial port
 directly.
