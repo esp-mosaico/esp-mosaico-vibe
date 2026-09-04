@@ -2,16 +2,12 @@ idf_component_register(
     SRCS
         "main.c"
         "board_display.c"
-        "../../factory/main/iris_ota_support.c"
     INCLUDE_DIRS
         "."
-        "../../factory/main"
     REQUIRES
-        app_update
-        esp_app_format
         esp_iris
         esp-mosaico-bsp
-        esp_partition
+        esp_mosaico_app_recovery
         freertos
         nvs_flash
     PRIV_REQUIRES
