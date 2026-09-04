@@ -4,8 +4,7 @@
     "projects_dir": "projects",
     "default_project": "projects/hello_world",
     "environment_file": "Environment",
-    "run_dir": ".codex-runs/mosaico",
-    "idf_constraint_manifest": "projects/factory/main/idf_component.yml"
+    "run_dir": ".codex-runs/mosaico"
   },
   "dependencies": {
     "bsp": "submodule/esp-mosaico-bsp",
@@ -22,9 +21,6 @@
       "status": "supported",
       "default": true,
       "preview_target": true,
-      "recovery_project": "projects/factory",
-      "bsp_path": "submodule/esp-mosaico-bsp",
-      "recovery_dir": "projects/factory/prebuilt/recovery",
       "recovery_usb_ids": [
         {
           "vid": "0x303a",

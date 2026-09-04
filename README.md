@@ -15,8 +15,8 @@ change is required.
 
 Use [`projects/hello_world`](projects/hello_world) as the reference application.
 Create each new application as its own directory under `projects/`.
-[`projects/factory`](projects/factory) contains retained Recovery firmware only
-and is not an application template.
+The retained Recovery firmware is an internal resource of the pinned
+`esp-mosaico-tools` submodule and is used only by `mosaico.py recover`.
 
 Component repositories and other project material are provided as Git
 submodules. Load or initialize only the submodules required by the current
@@ -134,13 +134,13 @@ partitions without explicit user authorization.
 
 - `projects/hello_world` — reference application for new developer projects.
 - `projects/gsp_hello` — GSP Hello World for PC simulation and device installation.
-- `projects/factory` — retained Recovery firmware; never install it as a normal application.
 - `components/esp_mosaico_app_recovery` — normal-application Recovery entry and health support.
 - `submodule/esp-gsp/` — pinned ESP-GSP 1.1.0 (device prebuilts; sim/gspc fetched separately).
 - `tools/gsp-sim/` — packs scenes and runs the standalone ESP-GSP `sim`.
 - `submodule/esp-iris/` — pinned ESP-Iris firmware component and host runtime.
 - `submodule/esp-mosaico-tools/` — pinned repository-local implementation of
-  `mosaico.py`; no global CLI installation is required.
+  `mosaico.py` and its internal Recovery firmware; no global CLI installation
+  is required.
 - `skills/` — task-oriented integration guides for agents and humans. See
   [`skills/README.md`](skills/README.md).
 - `docs/` — user-facing documentation.

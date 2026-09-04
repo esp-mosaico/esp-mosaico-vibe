@@ -11,8 +11,8 @@
 ## 创建工程
 
 以 [`projects/hello_world`](projects/hello_world) 为参考应用，在 `projects/`
-目录下为每个新应用创建独立目录。[`projects/factory`](projects/factory)
-仅包含保留 Recovery 固件，不是普通应用模板。
+目录下为每个新应用创建独立目录。保留 Recovery 固件是固定版本
+`esp-mosaico-tools` 子模块的内部资源，只由 `mosaico.py recover` 使用。
 
 组件仓库和其他项目资料通过 Git 子模组提供。只加载或初始化当前任务所需的
 子模组。实现功能前，先查看 [`skills/README.md`](skills/README.md)，并按需读取
@@ -116,13 +116,12 @@ ESP-Mosaico 只有一个 High-Speed USB 接口。正常固件和 Recovery 都会
 
 - `projects/hello_world`：新开发者工程使用的参考应用。
 - `projects/gsp_hello`：支持 PC 仿真和真机安装的 GSP Hello World。
-- `projects/factory`：保留 Recovery 固件，不作为普通应用安装。
 - `components/esp_mosaico_app_recovery`：普通应用进入 Recovery 和健康确认支持。
 - `submodule/esp-gsp/`：固定的 ESP-GSP 1.1.0（设备预编译库；主机仿真器与 gspc 另行下载）。
 - `tools/gsp-sim/`：打包场景并运行独立的 ESP-GSP `sim`。
 - `submodule/esp-iris/`：固定版本的 ESP-Iris 固件组件与主机运行时。
-- `submodule/esp-mosaico-tools/`：固定版本的仓库本地 `mosaico.py` 实现，
-  无需全局安装 CLI。
+- `submodule/esp-mosaico-tools/`：固定版本的仓库本地 `mosaico.py` 实现及其
+  内置 Recovery 固件，无需全局安装 CLI。
 - `skills/`：面向 Agent 和开发者的任务集成指南，详见
   [`skills/README.md`](skills/README.md)。
 - `docs/`：面向用户的文档。

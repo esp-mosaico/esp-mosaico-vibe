@@ -12,14 +12,12 @@ TOOL_ROOT = REPOSITORY / "submodule" / "esp-mosaico-tools"
 sys.path.insert(0, str(TOOL_ROOT / "tools"))
 
 from mosaico_cli.project import resolve_project
-from mosaico_cli.registry import select_model
 from mosaico_cli.workspace import load_workspace
 
 
 class ToolSubmoduleIntegrationTests(unittest.TestCase):
     def test_workspace_configuration_resolves_main_repository_resources(self) -> None:
         workspace = load_workspace(TOOL_ROOT, explicit=str(REPOSITORY))
-        model = select_model(workspace, None)
 
         self.assertEqual(workspace.root, REPOSITORY)
         self.assertEqual(workspace.esp_iris_path, REPOSITORY / "submodule" / "esp-iris")
@@ -32,7 +30,11 @@ class ToolSubmoduleIntegrationTests(unittest.TestCase):
             / "idf_low_noise_build.py",
         )
         self.assertEqual(
-            workspace.resolve(model.recovery_project), REPOSITORY / "projects" / "factory"
+            workspace.recovery_project, TOOL_ROOT / "firmware" / "recovery"
+        )
+        self.assertEqual(
+            workspace.recovery_dir,
+            TOOL_ROOT / "firmware" / "recovery" / "prebuilt" / "recovery",
         )
 
     def test_default_application_is_selected_from_workspace_not_tool_checkout(self) -> None:

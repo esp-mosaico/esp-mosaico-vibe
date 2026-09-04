@@ -26,8 +26,8 @@ Before running ESP-IDF tools, resolve the PC environment as follows:
 2. Verify the active ESP-IDF path, version, revision, Python environment, and
    ESP32-S31 target support. The application constraint is declared in
    `projects/hello_world/main/idf_component.yml`, and the Recovery constraint
-   in `projects/factory/main/idf_component.yml`; do not rely only on the
-   inventory.
+   in `submodule/esp-mosaico-tools/firmware/recovery/main/idf_component.yml`;
+   do not rely only on the inventory.
    The `mosaico.py` and ESP-Iris host tools support Python 3.8 or newer. ESP-IDF
    6.1 still requires Python 3.10 or newer; allow `mosaico.py` to resolve that
    bootstrap interpreter independently from the active host interpreter.
@@ -51,8 +51,8 @@ confirmation before clone or install.
 2. Use `projects/hello_world` as the reference application and create the new
    application under `projects/<project-name>`. For a GSP Hello World that
    runs on the PC simulator and on device, start from `projects/gsp_hello`.
-   Do not implement a user application in `projects/factory`; that project
-   contains retained Recovery firmware only.
+   The tools-owned Recovery project is an internal `mosaico.py recover`
+   resource and is never a user application template.
 3. Read `skills/README.md`, then load only the `SKILL.md` files relevant to the
    requested capabilities. For GSP UI work, load `skills/gsp-sim/SKILL.md` and
    preview scenes with `python3 tools/gsp-sim/run.py` using
@@ -70,7 +70,8 @@ confirmation before clone or install.
 
 Unless the developer approves another architecture, every application must:
 
-1. Retain the partition contract from `projects/factory` and the compatible
+1. Retain the partition contract from
+   `submodule/esp-mosaico-tools/firmware/recovery` and the compatible
    normal-application workflow from `projects/hello_world`.
 2. Set `CONFIG_ESP_IRIS_OTA_DEFAULT_VIA_RECOVERY=y` in normal builds, use the
    `components/esp_mosaico_app_recovery` component, keep the OTA writer only

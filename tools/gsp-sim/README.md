@@ -44,5 +44,5 @@ Keep scene JSON under the application, typically `projects/<name>/ui/`.
 The reference demo is [`projects/gsp_hello`](../../projects/gsp_hello).
 Author at **480×480 RGB565** to match the CO5300 panel. Firmware should depend
 on `espressif/esp-gsp` `==1.1.0` (or `override_path` to `submodule/esp-gsp`).
-`projects/factory` remains the LVGL recovery template; do not convert it to
-GSP unless that is the task.
+The tools-owned Recovery firmware remains LVGL-based and is not a GSP
+application template.

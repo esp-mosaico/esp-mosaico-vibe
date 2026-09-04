@@ -7,7 +7,7 @@
 | 目标硬件 | ESP-Mosaico 开发板（ESP32-S31） |
 | 软件基线 | ESP-IDF 6.1 或更高版本，并具备 ESP32-S31 目标支持 |
 | 参考应用 | `projects/hello_world` |
-| Recovery 工程 | `projects/factory` |
+| Recovery 工程 | `submodule/esp-mosaico-tools/firmware/recovery` |
 | 板级能力来源 | `submodule/esp-mosaico-bsp` Git 子模块 |
 | 设备运维入口 | 根目录 `mosaico.py`、固定版本的 `submodule/esp-mosaico-tools` 和 ESP-Iris Developer Gateway |
 | 文档状态 | 产品定义与当前工程基线 |
@@ -75,7 +75,8 @@ Agent-Led 的默认主导关系是：**Agent 持续推进，用户在关键节�
 
 - 以 `projects/hello_world` 作为参考应用。
 - 每个用户应用创建在独立的 `projects/<project-name>` 目录中。
-- `projects/factory` 仅承载保留 Recovery，不实现用户业务，也不作为普通应用安装。
+- `projects/` 仅承载参考应用和用户应用；保留 Recovery 是
+  `esp-mosaico-tools` 中只由 `mosaico.py recover` 使用的内部固件资源。
 - 参考应用通过 `components/esp_mosaico_app_recovery` 固化设备接入和
   recovery-first 契约。
 
@@ -165,7 +166,7 @@ Agent 按可审查规则持续执行闭环，直到功能通过真机验证。
 Agent Orchestrator（统一控制面）
  ├── 规则与上下文：AGENTS.md / docs/
  ├── 能力路由：skills/
- ├── Recovery 执行：projects/factory
+ ├── Recovery 执行：submodule/esp-mosaico-tools/firmware/recovery
  ├── 应用执行：projects/hello_world / projects/<project-name>
  ├── 板级知识：submodule/esp-mosaico-bsp
  └── 设备操作：ESP-Iris CLI
@@ -190,15 +191,15 @@ ESP-Mosaico 真实设备
 | --- | --- | --- | --- |
 | 仓库入口 | `README.md`、`README_CN.md` | 说明定位、创建工程和设备运维规则 | 保持中英文语义一致 |
 | Agent 规则 | `AGENTS.md` | 路由开发任务、约束设备操作和恢复流程 | 规则应简洁且可执行 |
-| 应用工程 | `projects/` | 容纳参考应用、用户应用和 Recovery 工程 | 一个应用一个目录 |
+| 应用工程 | `projects/` | 容纳参考应用和用户应用 | 一个应用一个目录 |
 | 参考应用 | `projects/hello_world` | 提供显示、ESP-Iris 和 recovery-first 接入 | 可复制为具体用户应用 |
 | GSP 参考应用 | `projects/gsp_hello` | 提供可在 PC 仿真和真机运行的 GSP Hello World | 作为 GSP 应用起点 |
-| Recovery 工程 | `projects/factory` | 提供固定的保留 Recovery、OTA writer 和系统恢复能力 | 不承载普通应用代码 |
+| Recovery 工程 | `submodule/esp-mosaico-tools/firmware/recovery` | 提供固定的保留 Recovery、OTA writer 和系统恢复能力 | 与 `mosaico.py recover` 同版本维护，不承载普通应用代码 |
 | 应用恢复组件 | `components/esp_mosaico_app_recovery` | 提供正常应用进入 Recovery 和健康确认能力 | 仅供正常应用使用，不包含 OTA writer |
 | GSP 运行时 | `submodule/esp-gsp/` | 固定 espressif/esp-gsp 1.1.0 Git 子模块 | 固件与仿真共用同一 pin |
 | GSP 主机仿真 | `tools/gsp-sim/` | 用独立 `sim` 预览场景 JSON | 不引入 claw hub/runtime |
 | 板级子模块 | `submodule/esp-mosaico-bsp` | 提供 BSP、扩展模块、交互/网络组件和示例 | 按任务初始化和检查 |
-| 工具子模块 | `submodule/esp-mosaico-tools` | 提供仓库本地的统一 CLI 与构建 runner | 由主仓库 gitlink 固定版本，不安装到全局 Python 环境 |
+| 工具子模块 | `submodule/esp-mosaico-tools` | 提供仓库本地的统一 CLI、构建 runner 及其内置 Recovery 固件 | 由主仓库 gitlink 固定版本，不安装到全局 Python 环境 |
 | 任务指南 | `skills/` | 提供环境安装、构建等任务化说明 | 只加载相关指南 |
 | 用户文档 | `docs/` | 面向开发者说明工作流、规格和应用文档 | 不放 Agent 私有工具 |
 | 产品工具 | `mosaico.py`、`.mosaico.json` | 启动固定的工具子模块并提供工作区配置 | 不依赖 `.agents/` 私有资产 |
@@ -252,7 +253,7 @@ ESP-Mosaico 真实设备
 | --- | --- | --- |
 | FR-000 | 仓库必须作为 Agent 主导的人机协同开发统一入口 | Agent 从根目录 `AGENTS.md` 获取任务路由，作为默认执行主体推进开发闭环，过程可由用户复核 |
 | FR-001 | 仓库必须提供中英文入口说明 | 根目录存在 `README.md` 与 `README_CN.md`，且核心开发、调试、恢复规则一致 |
-| FR-002 | 仓库必须提供可复制的参考应用 | `projects/hello_world` 可作为新应用基线，具体应用位于独立 `projects/<project-name>`；`projects/factory` 只构建 Recovery |
+| FR-002 | 仓库必须提供可复制的参考应用 | `projects/hello_world` 可作为新应用基线，具体应用位于独立 `projects/<project-name>`；`projects/` 不包含 Recovery 工程 |
 | FR-003 | 仓库必须将板级实现作为子模块管理 | `submodule/esp-mosaico-bsp` 可解析到固定 Git revision，应用通过组件依赖使用 BSP |
 | FR-004 | 仓库必须分离产品工具与 Agent 资产 | 产品 CLI 进入 `tools/`，用户材料进入 `docs/`，Agent 私有资产进入 `.agents/` |
 | FR-005 | 开发任务必须按需加载指南和子模块 | 任务只初始化所需子模块，并先检查 `skills/README.md` 与相关 `SKILL.md` |
