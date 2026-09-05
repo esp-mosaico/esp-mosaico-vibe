@@ -5,4 +5,4 @@ dependencies:
     override_path: ../../../submodule/esp-mosaico-bsp/components/esp-mosaico-bsp
   esp_iris:
     version: "*"
-    override_path: ../../../submodule/esp-iris/components/esp_iris
+    override_path: ../../../submodule/esp-mosaico-tools/submodule/esp-iris/components/esp_iris

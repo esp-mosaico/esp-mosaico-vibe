@@ -47,7 +47,7 @@ workspace-owned [`.mosaico.json`](.mosaico.json) declares project, Recovery,
 BSP, ESP-Iris, and build paths. Initialize the tool checkout with:
 
 ```sh
-git submodule update --init submodule/esp-mosaico-tools
+git submodule update --init --recursive submodule/esp-mosaico-tools
 ```
 
 `list` connects to the Gateway and prints Device IDs, online state, connection
@@ -58,13 +58,14 @@ or `list --json` for the complete Gateway record.
 The CLI supports native Linux and macOS shells plus Windows PowerShell and
 Command Prompt; WSL and Git Bash are not required. Use Python 3.8 or newer,
 an ESP-IDF checkout satisfying the workspace project version constraint, and
-the pinned `submodule/esp-iris` checkout. The Gateway environment is prepared
-for the active Python major/minor version, and the PEP 508 markers in ESP-Iris's
-`components/esp_iris/tools/requirements.lock` select compatible packages automatically. ESP-IDF
-6.1 still requires Python 3.10 or newer; when the CLI runs on Python 3.8 or 3.9,
-it discovers and delegates ESP-IDF bootstrap commands to a compatible Python
-interpreter independently. Set `MOSAICO_IDF_PYTHON` to an explicit compatible
-interpreter when automatic discovery is not appropriate. Run
+the ESP-Iris checkout pinned recursively by `submodule/esp-mosaico-tools`. The
+Gateway environment is prepared for the active Python major/minor version, and
+the PEP 508 markers in ESP-Iris's `components/esp_iris/tools/requirements.lock`
+select compatible packages automatically. ESP-IDF 6.1 still requires Python
+3.10 or newer; when the CLI runs on Python 3.8 or 3.9, it discovers and delegates
+ESP-IDF bootstrap commands to a compatible Python interpreter independently.
+Set `MOSAICO_IDF_PYTHON` to an explicit compatible interpreter when automatic
+discovery is not appropriate. Run
 `doctor` first to verify Python, ESP-IDF, ESP32-S31 target support, ESP-Iris,
 the host state directory, and current USB discovery. It does not build or
 write firmware.
@@ -137,10 +138,9 @@ partitions without explicit user authorization.
 - `components/esp_mosaico_app_recovery` — normal-application Recovery entry and health support.
 - `submodule/esp-gsp/` — pinned ESP-GSP 1.1.0 (device prebuilts; sim/gspc fetched separately).
 - `tools/gsp-sim/` — packs scenes and runs the standalone ESP-GSP `sim`.
-- `submodule/esp-iris/` — pinned ESP-Iris firmware component and host runtime.
 - `submodule/esp-mosaico-tools/` — pinned repository-local implementation of
-  `mosaico.py` and its internal Recovery firmware; no global CLI installation
-  is required.
+  `mosaico.py`, its internal Recovery firmware, and its nested pinned ESP-Iris
+  firmware/host runtime; no global CLI installation is required.
 - `skills/` — task-oriented integration guides for agents and humans. See
   [`skills/README.md`](skills/README.md).
 - `docs/` — user-facing documentation.

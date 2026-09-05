@@ -41,7 +41,7 @@ python mosaico.py monitor
 工程、Recovery、BSP、ESP-Iris 和构建工具路径。首次使用先初始化工具子模块：
 
 ```sh
-git submodule update --init submodule/esp-mosaico-tools
+git submodule update --init --recursive submodule/esp-mosaico-tools
 ```
 
 `list` 会连接 Gateway，列出 Device ID、在线状态、连接方式、固件身份、运行模式和
@@ -50,8 +50,8 @@ ESP-IDF 版本、Session ID 和能力列表，或使用 `list --json` 查看完�
 
 CLI 支持 Linux、macOS 原生终端，以及 Windows PowerShell 和 CMD，不依赖 WSL
 或 Git Bash。主机 CLI 最低支持 Python 3.8，并使用满足工作区工程约束的
-ESP-IDF 和固定版本的 `submodule/esp-iris`。Gateway 会按当前激活 Python 的
-major/minor 自动准备隔离环境，ESP-Iris 的
+ESP-IDF，以及由 `submodule/esp-mosaico-tools` 递归锁定的 ESP-Iris。Gateway
+会按当前激活 Python 的 major/minor 自动准备隔离环境，ESP-Iris 的
 `components/esp_iris/tools/requirements.lock` 中的 PEP 508
 条件会自动选择兼容依赖。ESP-IDF 6.1 仍要求 Python 3.10 或更新版本；当 CLI
 由 Python 3.8/3.9 启动时，会独立寻找兼容解释器并将 ESP-IDF bootstrap 命令
@@ -119,9 +119,8 @@ ESP-Mosaico 只有一个 High-Speed USB 接口。正常固件和 Recovery 都会
 - `components/esp_mosaico_app_recovery`：普通应用进入 Recovery 和健康确认支持。
 - `submodule/esp-gsp/`：固定的 ESP-GSP 1.1.0（设备预编译库；主机仿真器与 gspc 另行下载）。
 - `tools/gsp-sim/`：打包场景并运行独立的 ESP-GSP `sim`。
-- `submodule/esp-iris/`：固定版本的 ESP-Iris 固件组件与主机运行时。
 - `submodule/esp-mosaico-tools/`：固定版本的仓库本地 `mosaico.py` 实现及其
-  内置 Recovery 固件，无需全局安装 CLI。
+  内置 Recovery 固件和嵌套锁定的 ESP-Iris 固件/主机运行时，无需全局安装 CLI。
 - `skills/`：面向 Agent 和开发者的任务集成指南，详见
   [`skills/README.md`](skills/README.md)。
 - `docs/`：面向用户的文档。

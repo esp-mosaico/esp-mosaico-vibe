@@ -20,7 +20,10 @@ class ToolSubmoduleIntegrationTests(unittest.TestCase):
         workspace = load_workspace(TOOL_ROOT, explicit=str(REPOSITORY))
 
         self.assertEqual(workspace.root, REPOSITORY)
-        self.assertEqual(workspace.esp_iris_path, REPOSITORY / "submodule" / "esp-iris")
+        self.assertEqual(
+            workspace.esp_iris_path,
+            TOOL_ROOT / "submodule" / "esp-iris",
+        )
         self.assertEqual(
             workspace.build_runner,
             TOOL_ROOT
