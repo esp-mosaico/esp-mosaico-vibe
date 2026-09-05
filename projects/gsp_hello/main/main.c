@@ -8,6 +8,7 @@
 #include "iris_screen_mirror.h"
 #include "iris_ota_support.h"
 #include "nvs_flash.h"
+#include "ui_bundle.h"
 
 static const char *TAG = "gsp_hello";
 
@@ -23,13 +24,25 @@ void app_main(void)
 {
     ESP_ERROR_CHECK(nvs_flash_init());
 
+    /* Keep Recovery reachable even when the external UI image is absent or
+     * invalid. */
+    iris_ota_support_start();
+
+    esp_gsp_config_t app_config;
+    const esp_err_t bundle_err = ui_bundle_open(&app_config);
+    if (bundle_err != ESP_OK) {
+        ESP_LOGE(TAG,
+                 "GSP UI unavailable (0x%x); ESP-Iris Recovery RPC remains active",
+                 bundle_err);
+        return;
+    }
+
     esp_display_present_target_config_t display;
     ESP_ERROR_CHECK(board_display_init(&display));
 
     esp_lcd_touch_handle_t touch = NULL;
     ESP_ERROR_CHECK(board_touch_init(&touch));
 
-    esp_gsp_config_t app_config = gsp_bundle_config();
     esp_gsp_esp_lcd_config_t lcd = ESP_GSP_ESP_LCD_CONFIG_INIT();
     lcd.display = display;
     lcd.touch = touch;
@@ -42,8 +55,6 @@ void app_main(void)
     void *load_timer = esp_gsp_timer_create(ui, 250, feed_load, NULL);
     ESP_ERROR_CHECK(load_timer == NULL ? ESP_ERR_NO_MEM : ESP_OK);
 
-    /* Start ESP-Iris and expose the enter-Recovery RPC. */
-    iris_ota_support_start();
     ESP_LOGI(TAG, "GSP Hello World ready at %dx%d RGB565",
              BSP_LCD_H_RES, BSP_LCD_V_RES);
 }
