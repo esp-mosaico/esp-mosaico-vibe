@@ -5,6 +5,7 @@
 #include "bundle_gsp.h"
 #include "esp_gsp_esp_lcd.h"
 #include "esp_log.h"
+#include "iris_screen_mirror.h"
 #include "iris_ota_support.h"
 #include "nvs_flash.h"
 
@@ -32,6 +33,8 @@ void app_main(void)
     esp_gsp_esp_lcd_config_t lcd = ESP_GSP_ESP_LCD_CONFIG_INIT();
     lcd.display = display;
     lcd.touch = touch;
+
+    ESP_ERROR_CHECK(iris_screen_mirror_init());
 
     esp_gsp_handle_t ui;
     ESP_ERROR_CHECK(esp_gsp_esp_lcd_start(&app_config, &lcd, &ui));
