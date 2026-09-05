@@ -148,3 +148,11 @@ partitions without explicit user authorization.
   by the tool submodule.
 - `.agents/` — private agent-facing documentation and tools, not product CLI code.
 - `AGENTS.md` — concise routing and operating rules for coding agents.
+
+## Architecture reviews
+
+The 2026-09-05 assessments cover architecture, protocol, implementation, tests,
+and the changes needed for a default ESP32 programming and debugging workflow:
+
+- [ESP-Iris assessment (Chinese)](docs/esp-iris-review.zh-CN.md)
+- [esp-mosaico-tools assessment (Chinese)](docs/esp-mosaico-tools-review.zh-CN.md)
