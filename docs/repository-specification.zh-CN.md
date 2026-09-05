@@ -104,8 +104,10 @@ Agent-Led 的默认主导关系是：**Agent 持续推进，用户在关键节�
 - 空白或 recovery 状态未经验证的设备，必须先配置 recovery，再执行首次应用 OTA。
 - 固定的 `sysmeta` 系统 NVS 保存设备身份、TCP pairing token、Factory Wi-Fi、
   Recovery OTA 状态和系统更新结果；应用 `nvs` 与这些系统数据分离。
-- `ota_0` 固定起始地址，后续分区表只能在同时提供可装入目标尺寸的应用镜像时
-  从其尾部回收空间；其余已声明分区保持 offset 和 size 不变。
+- System Update 只要求当前表和目标表中的 `otadata`、`phy_init`、`sysmeta`、
+  `factory` 和 `coredump` 分区名称、类型、子类型、offset、size 与 flags 严格相等；
+  `nvs`、`ota_0` 和应用数据分区可随目标固件调整。Recovery 必须先验证目标表，
+  再按目标分区描述写入应用和数据镜像，并在最后提交分区表。
 
 ### 2.8 统一设备操作与证据链
 

@@ -33,15 +33,10 @@ python mosaico.py system-update --project projects/gsp_hello
 ```
 
 The command updates this project's partition table as part of the transaction.
-It does not change the partition tables of other projects.
-
-An existing device whose current table still has the former 13 MiB `ota_0`
-needs two transactions because Recovery cannot write a data partition that is
-not present in its current table. Build the `system-update-bundle` target, apply
-`build/gsp_hello-layout-migration.irisfw`, then apply the complete project
-bundle. The intermediate application keeps ESP-Iris active while `ui_apps` is
-still empty. This migration is project-owned; it does not require changes to
-the shared `mosaico.py` CLI or Recovery firmware.
+Recovery 2.4.0 or newer validates the shared recovery-critical partitions,
+then uses this target table to write `ota_0` and `ui_apps`. Therefore the same
+single command works whether the device currently runs `hello_world` or
+`gsp_hello`; no intermediate layout-migration bundle is needed.
 
 The build fetches a standalone `gspc` if `GSPC_EXECUTABLE` is unset and writes
 `build/ui_apps.bin`. The application keeps the enter-Recovery RPC active before
