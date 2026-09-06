@@ -47,18 +47,25 @@ def pack_partition_image(bundle_path: Path, output_path: Path, max_size: int) ->
         prefix=f".{output_path.name}.", dir=output_path.parent
     )
     try:
-        os.fchmod(descriptor, 0o644)
-        with os.fdopen(descriptor, "wb") as handle:
+        handle = os.fdopen(descriptor, "wb")
+        descriptor = None  # The file object now owns the descriptor.
+        with handle:
+            if callable(getattr(os, "fchmod", None)):
+                os.fchmod(handle.fileno(), 0o644)
+            else:
+                # Windows has no fchmod; chmod enables writing on the temp file.
+                os.chmod(temporary_name, 0o644)
             handle.write(image)
             handle.flush()
             os.fsync(handle.fileno())
         os.replace(temporary_name, output_path)
-    except BaseException:
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
         try:
             os.unlink(temporary_name)
         except FileNotFoundError:
             pass
-        raise
 
 
 def _integer(value: str) -> int:
