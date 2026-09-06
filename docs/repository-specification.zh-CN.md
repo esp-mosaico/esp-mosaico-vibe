@@ -106,6 +106,7 @@ Agent-Led 的默认主导关系是：**Agent 持续推进，用户在关键节�
   Recovery OTA 状态和系统更新结果；应用 `nvs` 与这些系统数据分离。
 - System Update 只要求当前表和目标表中的 `otadata`、`phy_init`、`sysmeta`、
   `factory` 和 `coredump` 分区名称、类型、子类型、offset、size 与 flags 严格相等；
+  这些分区与 Flash 前置保留区共同限制在前 2 MiB 内；
   `nvs`、`ota_0` 和应用数据分区可随目标固件调整。Recovery 必须先验证目标表，
   再按目标分区描述写入应用和数据镜像，并在最后提交分区表。
 

@@ -28,8 +28,8 @@ IMMUTABLE_LAYOUT = {
     "otadata": Partition("data", "ota", 0x9000, 0x2000, ""),
     "phy_init": Partition("data", "phy", 0xB000, 0x1000, ""),
     "sysmeta": Partition("data", "nvs", 0xC000, 0x14000, ""),
-    "factory": Partition("app", "factory", 0x20000, 0x200000, ""),
-    "coredump": Partition("data", "coredump", 0x220000, 0xD0000, ""),
+    "factory": Partition("app", "factory", 0x20000, 0x1C0000, ""),
+    "coredump": Partition("data", "coredump", 0x1E0000, 0x20000, ""),
 }
 
 
@@ -163,7 +163,7 @@ def main() -> int:
     manifest = {
         "schema": "esp-iris-system-update/v1",
         "release": args.release,
-        "minimum_recovery_version": "2.4.0-recovery",
+        "minimum_recovery_version": "2.5.0-recovery",
         "target": {"chip_id": 0x20, "flash_size": 16 * 1024 * 1024},
         "target_layout_sha256": target_layout,
         "components": components,
