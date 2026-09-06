@@ -148,6 +148,7 @@ partitions without explicit user authorization.
 
 - `projects/hello_world` — reference application for new developer projects.
 - `projects/gsp_hello` — GSP Hello World for PC simulation and device installation.
+- `tests/firmware/` — flashable device firmware used only by integration and acceptance tests.
 - `components/esp_mosaico_app_recovery` — normal-application Recovery entry and health support.
 - `submodule/esp-gsp/` — pinned ESP-GSP 1.1.0 (device prebuilts; sim/gspc fetched separately).
 - `tools/gsp-sim/` — packs scenes and runs the standalone ESP-GSP `sim`.

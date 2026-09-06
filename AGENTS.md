@@ -51,6 +51,8 @@ confirmation before clone or install.
 2. Use `projects/hello_world` as the reference application and create the new
    application under `projects/<project-name>`. For a GSP Hello World that
    runs on the PC simulator and on device, start from `projects/gsp_hello`.
+   Keep flashable test-only firmware under `tests/firmware/<fixture-name>`;
+   do not place test fixtures in `projects/`.
    The tools-owned Recovery project is an internal `mosaico.py recover`
    resource and is never a user application template.
 3. Read `skills/README.md`, then load only the `SKILL.md` files relevant to the

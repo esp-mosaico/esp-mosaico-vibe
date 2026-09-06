@@ -11,9 +11,9 @@ if(NOT SDKCONFIG_DEFAULTS)
 endif()
 
 set(EXTRA_COMPONENT_DIRS
-    "${CMAKE_CURRENT_LIST_DIR}/../../components/esp_mosaico_app_recovery")
+    "${CMAKE_CURRENT_LIST_DIR}/../../../components/esp_mosaico_app_recovery")
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(iris_acceptance VERSION 1.0.0)
 
-include(../../cmake/system_update.cmake)
+include(../../../cmake/system_update.cmake)

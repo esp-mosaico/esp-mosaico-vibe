@@ -125,6 +125,7 @@ ESP-Mosaico 只有一个 High-Speed USB 接口。正常固件和 Recovery 都会
 
 - `projects/hello_world`：新开发者工程使用的参考应用。
 - `projects/gsp_hello`：支持 PC 仿真和真机安装的 GSP Hello World。
+- `tests/firmware/`：仅供集成和验收测试使用的可烧录设备固件。
 - `components/esp_mosaico_app_recovery`：普通应用进入 Recovery 和健康确认支持。
 - `submodule/esp-gsp/`：固定的 ESP-GSP 1.1.0（设备预编译库；主机仿真器与 gspc 另行下载）。
 - `tools/gsp-sim/`：打包场景并运行独立的 ESP-GSP `sim`。

@@ -77,6 +77,7 @@ Agent-Led 的默认主导关系是：**Agent 持续推进，用户在关键节�
 - 每个用户应用创建在独立的 `projects/<project-name>` 目录中。
 - `projects/` 仅承载参考应用和用户应用；保留 Recovery 是
   `esp-mosaico-tools` 中只由 `mosaico.py recover` 使用的内部固件资源。
+- 仅供测试使用的可烧录设备固件位于 `tests/firmware/<fixture-name>`，不放入 `projects/`。
 - 参考应用通过 `components/esp_mosaico_app_recovery` 固化设备接入和
   recovery-first 契约。
 
@@ -172,6 +173,7 @@ Agent Orchestrator（统一控制面）
  ├── Recovery 执行：submodule/esp-mosaico-tools/firmware/recovery
  ├── 设备侧公共能力：submodule/esp-mosaico-tools/submodule/esp-iris
  ├── 应用执行：projects/hello_world / projects/<project-name>
+ ├── 测试固件：tests/firmware/<fixture-name>
  ├── 板级知识：submodule/esp-mosaico-bsp
  └── 设备操作：ESP-Iris CLI
         │
@@ -198,6 +200,7 @@ ESP-Mosaico 真实设备
 | 应用工程 | `projects/` | 容纳参考应用和用户应用 | 一个应用一个目录 |
 | 参考应用 | `projects/hello_world` | 提供显示、ESP-Iris 和 recovery-first 接入 | 可复制为具体用户应用 |
 | GSP 参考应用 | `projects/gsp_hello` | 提供可在 PC 仿真和真机运行的 GSP Hello World | 作为 GSP 应用起点 |
+| 测试固件 | `tests/firmware/` | 容纳集成和验收测试使用的可烧录设备固件 | 不作为用户应用模板 |
 | Recovery 工程 | `submodule/esp-mosaico-tools/firmware/recovery` | 提供固定的保留 Recovery、OTA writer 和系统恢复能力 | 与 `mosaico.py recover` 同版本维护，不承载普通应用代码 |
 | 应用恢复组件 | `components/esp_mosaico_app_recovery` | 提供正常应用进入 Recovery 和健康确认能力 | 仅供正常应用使用，不包含 OTA writer |
 | GSP 运行时 | `submodule/esp-gsp/` | 固定 espressif/esp-gsp 1.1.0 Git 子模块 | 固件与仿真共用同一 pin |

@@ -8,6 +8,11 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 TOOLS = ROOT / "submodule/esp-mosaico-tools"
 LAYOUT_ID = "mosaico-retained-recovery-2m-v1"
+NORMAL_FIRMWARE_PROJECTS = (
+    ROOT / "projects/hello_world",
+    ROOT / "tests/firmware/iris_acceptance",
+    ROOT / "projects/gsp_hello",
+)
 
 
 def partitions(path):
@@ -32,15 +37,15 @@ class RetainedRecoveryContractTests(unittest.TestCase):
         recovery = partitions(TOOLS / "firmware/recovery/partitions.csv")
         self.assertEqual(recovery["factory"], ("app", "factory", 0x20000, 0x1C0000, ""))
         self.assertEqual(recovery["coredump"], ("data", "coredump", 0x1E0000, 0x20000, ""))
-        for name in ("hello_world", "iris_acceptance", "gsp_hello"):
-            with self.subTest(project=name):
-                actual = partitions(ROOT / "projects" / name / "partitions.csv")
+        for project in NORMAL_FIRMWARE_PROJECTS:
+            with self.subTest(project=project.name):
+                actual = partitions(project / "partitions.csv")
                 for label in ("otadata", "phy_init", "sysmeta", "factory", "coredump"):
                     self.assertEqual(actual[label], recovery[label])
                 for label, entry in actual.items():
                     if label not in ("otadata", "phy_init", "sysmeta", "factory", "coredump"):
                         self.assertGreaterEqual(entry[2], 0x200000)
-                if name != "gsp_hello":
+                if project.name != "gsp_hello":
                     self.assertEqual(actual, recovery)
 
     def test_firmware_identity_matches_host_expectation(self):
@@ -52,8 +57,8 @@ class RetainedRecoveryContractTests(unittest.TestCase):
         self.assertEqual(len(expectations), 1)
         expectation = expectations[0]
         self.assertEqual(expectation["layout_id"], LAYOUT_ID)
-        configs = [(ROOT / "projects" / name / "sdkconfig.application.defaults", 1)
-                   for name in ("hello_world", "iris_acceptance", "gsp_hello")]
+        configs = [(project / "sdkconfig.application.defaults", 1)
+                   for project in NORMAL_FIRMWARE_PROJECTS]
         configs.append((TOOLS / "firmware/recovery/sdkconfig.recovery.defaults", 2))
         for path, role in configs:
             with self.subTest(config=str(path)):
