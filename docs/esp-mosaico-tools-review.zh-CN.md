@@ -252,4 +252,4 @@ tools 可见测试只有 test_cli.py/test_workspace.py，未见其独立 CI 工�
 
 本轮对 tools 的配套改动仅涉及 IRIS-P03 的产品兼容性契约对接，以及用户新增授权的独立 USB Serial/JTAG Recovery 路由。`mosaico.py recover --recovery-port ...` 保留主设备及独立端点的维护 lease、受控完整 Recovery bundle 写入和主 Device ID/新 Boot/目标 Recovery 的回验；它不新增全 Flash 擦除，也不隐含承诺单分区 Recovery 更新。
 
-此前 COM14 接到错误设备，相关失败不能用于目标板验收；当前正确目标正由根任务重做。最终硬件结果见 [ESP-Iris 修复与验收报告](esp-iris-fix-acceptance.zh-CN.md#实机结果待根追加)。上述对接不表示本文 MOS 编号全部或自动修复；原始基线证据继续保留。IRIS-A01、P01、I04、I05 继续属于设计规划内。
+此前 COM14 接到错误设备，相关失败不能用于目标板验收；正确目标已通过 COM8 完成 Recovery 更新与正常应用闭环。最终硬件结果见 [ESP-Iris 修复与验收报告](esp-iris-fix-acceptance.zh-CN.md)。上述对接不表示本文 MOS 编号全部或自动修复；原始基线证据继续保留。IRIS-A01、P01、I04、I05 继续属于设计规划内。

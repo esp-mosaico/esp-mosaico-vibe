@@ -12,7 +12,8 @@
 `IRIS_READY ... mode=normal writer=0`、`IRIS_OTA_HEALTHY` 和
 `ACCEPTANCE_ALIVE service=0x6a02`。安装后须记录同一 Device ID 的
 normal → Recovery → normal、新 Boot ID、目标 ELF SHA 和 healthy 证据。
-这些是待执行的验收步骤，不表示本目录已经完成实机验收。
+这些是可重复执行的验收步骤；2026-09-06 的目标板实跑结果见
+[修复与验收报告](../../docs/esp-iris-fix-acceptance.zh-CN.md)。
 
 ## 专用 RPC
 

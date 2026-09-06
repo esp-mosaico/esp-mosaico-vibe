@@ -155,4 +155,5 @@ The 2026-09-05 assessments cover architecture, protocol, implementation, tests,
 and the changes needed for a default ESP32 programming and debugging workflow:
 
 - [ESP-Iris assessment (Chinese)](docs/esp-iris-review.zh-CN.md)
+- [ESP-Iris fixes and acceptance (Chinese)](docs/esp-iris-fix-acceptance.zh-CN.md)
 - [esp-mosaico-tools assessment (Chinese)](docs/esp-mosaico-tools-review.zh-CN.md)
