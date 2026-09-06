@@ -2,6 +2,9 @@
 
 评估日期：2026-09-05。配套文档：[esp-mosaico-tools 评估](esp-mosaico-tools-review.zh-CN.md)。
 
+
+> 后续修复说明（2026-09-06）：本文保留 2026-09-05 原始基线、反例与当时结论，不将历史“未修改/未构建”陈述用于描述当前修复状态。11 项实现与主机回归已完成；最终正确目标设备的实机验收仍在重做，见 [修复与验收报告](esp-iris-fix-acceptance.zh-CN.md)。A01、P01、I04、I05 继续保留在设计规划内。
+
 ## 1. 结论与适用边界
 
 ESP-Iris 已有成为统一设备开发入口的基础：二进制分帧、稳定 Device ID、Boot ID、日志与事件、崩溃证据、RPC、OTA、文件服务，以及同一 Gateway 下的 CLI 和 Web 工作台。建议继续以它作为统一控制与观测层建设，但当前版本尚不适合直接宣布为整个 ESP32 产品族的默认生产级烧录与调试基线。
@@ -69,6 +72,8 @@ flowchart LR
 
 ### IRIS-A02 · P1 · 服务回调仍与控制链路共享执行时间
 
+**修复状态（2026-09-06）：实现及主机回归已完成；最终实机结果待补齐。** 详见 [IRIS-A02 验收说明](esp-iris-fix-acceptance.zh-CN.md#iris-a02)。下文保留原评估证据。
+
 **源码确认，性能影响待测。** RPC handler 在 Iris worker 内同步调用，deadline 在 handler 返回后才判断；OTA DATA 的 Flash 写入也在 worker 中执行。[esp_iris_services.c](../submodule/esp-mosaico-tools/submodule/esp-iris/components/esp_iris/src/esp_iris_services.c)，`handle_rpc` L1099–1110、`handle_ota` L1679–1680。它不能中断阻塞 handler，也不能保证 deadline 之前业务没有产生副作用。
 
 **方向。** 将短时控制 handler 与耗时任务分开；慢操作经有界 job 队列执行，Flash 写入使用专门 worker，控制线程只处理协议和进度。为取消规定“可取消”和“已进入提交”的边界。按 minimal、service、recovery 配置裁剪媒体、文件及网络依赖；当前 [CMakeLists.txt](../submodule/esp-mosaico-tools/submodule/esp-iris/components/esp_iris/CMakeLists.txt) 即使部分功能关闭仍列出多项公共依赖，需实测 disabled/minimal 的最终体积和 RAM。
@@ -91,6 +96,8 @@ flowchart LR
 
 ### IRIS-P02 · P1 · 单 TCP 配置缺少未握手连接的主动释放
 
+**修复状态（2026-09-06）：实现及主机回归已完成；最终实机结果待补齐。** 详见 [IRIS-P02 验收说明](esp-iris-fix-acceptance.zh-CN.md#iris-p02)。下文保留原评估证据。
+
 **源码确认。** [esp_iris_transport.c](../submodule/esp-mosaico-tools/submodule/esp-iris/components/esp_iris/src/esp_iris_transport.c) L132 只对未 committed 候选执行 claim timeout，而 L166 在仅启用一个传输时立即将物理连接标记 committed。TCP listener 对已有 client 时的新连接直接关闭。
 
 **影响。** 在 TCP-only 配置下，一个保持连接却不发 HELLO_ACK 的客户端可占住唯一会话；多传输仲裁的超时设计没有覆盖这个配置。SO_KEEPALIVE 不等于握手期限。
@@ -99,6 +106,8 @@ flowchart LR
 
 ### IRIS-P03 · P1 · Recovery 身份依赖命名推断，兼容性信息不足
 
+**修复状态（2026-09-06）：实现及主机回归已完成；最终实机结果待补齐。** 详见 [IRIS-P03 验收说明](esp-iris-fix-acceptance.zh-CN.md#iris-p03)。下文保留原评估证据。
+
 **复现。** [hub.py](../submodule/esp-mosaico-tools/submodule/esp-iris/components/esp_iris/tools/iris_gateway/hub.py) L27–34 通过 project/version 中的 `recovery`、`normal` 等子串推断模式。输入项目名 `recovery-analysis-app`、版本 `1.0.0` 会得到 `recovery`。这是命名推断的反例，不是本次发现了误烧设备。
 
 **方向。** 在可扩展 TLV 中定义显式 firmware role、产品协议版本、chip/board、布局摘要、Recovery ABI、健康策略版本及安全能力。缺少新字段的旧固件使用明确兼容路径，不能把推断值提升为已验证身份。保留 Device ID、Boot ID、Session ID 的现有含义。
@@ -106,6 +115,8 @@ flowchart LR
 **验收。** 任意合法项目名称不改变固件角色；旧 Gateway/新固件、新 Gateway/旧 Recovery 的支持组合有版本矩阵，未知必需能力在写入前被拒绝。
 
 ### IRIS-P04 · P1 · 设备请求去重只覆盖有限情况
+
+**修复状态（2026-09-06）：实现及主机回归已完成；最终实机结果待补齐。** 详见 [IRIS-P04 验收说明](esp-iris-fix-acceptance.zh-CN.md#iris-p04)。下文保留原评估证据。
 
 **源码确认。** `handle_rpc` 只比较 `last_rpc_request_id`，设备接收分发未统一检查输入 sequence；因此会话内 A、B、再次 A 的顺序不能依靠当前机制保证 A 只执行一次。[esp_iris_services.c](../submodule/esp-mosaico-tools/submodule/esp-iris/components/esp_iris/src/esp_iris_services.c) L1064–1071；[esp_iris.c](../submodule/esp-mosaico-tools/submodule/esp-iris/components/esp_iris/src/esp_iris.c) L488–518。
 
@@ -117,6 +128,8 @@ flowchart LR
 
 ### IRIS-P05 · P1 · HTTP operation ID 没有绑定请求身份
 
+**修复状态（2026-09-06）：实现及主机回归已完成；最终实机结果待补齐。** 详见 [IRIS-P05 验收说明](esp-iris-fix-acceptance.zh-CN.md#iris-p05)。下文保留原评估证据。
+
 **复现。** [operations.py](../submodule/esp-mosaico-tools/submodule/esp-iris/components/esp_iris/tools/iris_gateway/operations.py) 的 `submit`/`execute` 遇到已有 operation ID 直接复用记录，没有比较 device、action 和 params。内存 GatewayStore 验证中，先提交 device-a 的 OTA，再用相同 ID 提交 device-b 的 restart，得到 device-a 的旧 OTA 成功结果，第二个回调没有执行。
 
 **影响。** 幂等重试变成错误结果复用；多设备脚本或客户端 ID 管理错误会得到具有误导性的成功记录。此结论不依赖外部攻击。
@@ -124,6 +137,8 @@ flowchart LR
 **方向与验收。** 持久化规范化请求摘要，至少绑定 device_id、action、artifact/hash、参数和适用的调用者边界。同 ID 同摘要返回原记录；同 ID 不同摘要返回 409 Conflict。并发首次提交也应通过数据库约束实现同一规则。
 
 ### IRIS-P06 · P1 · 更新失败、结果未知和事后核对没有完全闭合
+
+**修复状态（2026-09-06）：实现及主机回归已完成；最终实机结果待补齐。** 详见 [IRIS-P06 验收说明](esp-iris-fix-acceptance.zh-CN.md#iris-p06)。下文保留原评估证据。
 
 **复现与源码确认。** `closed_loop_ota` 在 45 秒内未看到新 boot 的 HEALTHY 时抛出 `RuntimeError`；OperationManager 将其写为 `failed`，尽管新镜像可能已启动。[gateway.py](../submodule/esp-mosaico-tools/submodule/esp-iris/components/esp_iris/tools/iris_gateway/gateway.py) L833–847；[operations.py](../submodule/esp-mosaico-tools/submodule/esp-iris/components/esp_iris/tools/iris_gateway/operations.py) L353–368。用同一异常调用原 OperationManager 已复现该分类。
 
@@ -137,6 +152,8 @@ flowchart LR
 
 ### IRIS-I01 · P1 · RPC 超长响应错误分支仍继续复制
 
+**修复状态（2026-09-06）：实现及主机回归已完成；最终实机结果待补齐。** 详见 [IRIS-I01 验收说明](esp-iris-fix-acceptance.zh-CN.md#iris-i01)。下文保留原评估证据。
+
 **C 函数级桩复现。** [esp_iris_services.c](../submodule/esp-mosaico-tools/submodule/esp-iris/components/esp_iris/src/esp_iris_services.c) L1105–1119：`response_size > CONFIG_ESP_IRIS_RPC_BODY_BYTES` 时只设置错误码，没有清零或提前退出，随后仍用该长度执行 memcpy。
 
 本次提取原 `handle_rpc` 函数体，以 1024 字节容量、回调报告 1025 字节验证；插桩捕获到 `copy_requested=1025`。为避免真实非法读取，插桩拦截了这次复制。它证明错误控制流存在，不是板端 exploit 复现。更大错误长度还可能超过 RX 缓冲区。
@@ -145,6 +162,8 @@ flowchart LR
 
 ### IRIS-I02 · P1 · 同一 read 中多个短请求可能只返回一个响应
 
+**修复状态（2026-09-06）：实现及主机回归已完成；最终实机结果待补齐。** 详见 [IRIS-I02 验收说明](esp-iris-fix-acceptance.zh-CN.md#iris-i02)。下文保留原评估证据。
+
 **C 函数级桩复现。** `queue_frame` 只允许一个待发送帧，TX 非空即拒绝；`feed_rx` 会连续处理同一输入缓冲区里的所有帧，而多个 handler 忽略入队错误。[esp_iris.c](../submodule/esp-mosaico-tools/submodule/esp-iris/components/esp_iris/src/esp_iris.c) L107–133、L520–544、L660–663。
 
 本次使用真实 codec、原 `feed_rx` 和 `queue_frame`，用 PING 响应分发桩输入两个合法短帧：76 字节输入解出 2 个请求，仅入队 1 个响应，另 1 个被拒绝。该验证未包含完整固件调度和 USB 驱动。标准主机多数请求串行执行会降低触发概率，但 TCP/USB 的 read 分组不能成为协议正确性的前提。
@@ -152,6 +171,8 @@ flowchart LR
 **修复与验收。** 使用有界响应队列，或在 TX 产生后暂停解析并保留未消费输入；不能静默丢弃必须响应的请求。将相同帧序列按每字节、任意分块、多个帧合并输入，比较响应集合与顺序；加入写背压和 CREDIT 混合请求。
 
 ### IRIS-I03 · P2 · 主机发送 sequence 没有 u32 回绕
+
+**修复状态（2026-09-06）：实现及主机回归已完成；最终实机结果待补齐。** 详见 [IRIS-I03 验收说明](esp-iris-fix-acceptance.zh-CN.md#iris-i03)。下文保留原评估证据。
 
 **复现。** [session.py](../submodule/esp-mosaico-tools/submodule/esp-iris/components/esp_iris/tools/iris_gateway/session.py) L206 直接累加 sequence，而 encode_frame 要求 u32。将计数设为 `0xffffffff` 后发送 PING，原函数抛出 `ProtocolError: sequence does not fit in u32`。接收侧已使用模 2³² 比较，request ID 也已有回绕，发送侧需要一致。
 
@@ -183,6 +204,8 @@ flowchart LR
 
 ### IRIS-T01 · P1 · Windows 与声明的 Python 3.8 支持缺少完整回归
 
+**修复状态（2026-09-06）：实现及主机回归已完成；最终实机结果待补齐。** 详见 [IRIS-T01 验收说明](esp-iris-fix-acceptance.zh-CN.md#iris-t01)。下文保留原评估证据。
+
 本次结果如下；失败和排除项没有计入通过率：
 
 | 执行内容 | 结果 | 解释 |
@@ -201,6 +224,8 @@ flowchart LR
 **方向。** Windows、Linux、macOS 至少覆盖当前支持的 Python 基线及主力版本；将 POSIX 专用测试明确标记，将平台无关部分保留在所有平台；C host fixture 支持 PE/DLL 和 ELF 的导出差异。异步测试必须有总体期限和可靠 teardown。
 
 ### IRIS-T02 · P1 · 当前 HIL、CI 与资源预算不足以证明全产品族成熟度
+
+**修复状态（2026-09-06）：实现及主机回归已完成；最终实机结果待补齐。** 详见 [IRIS-T02 验收说明](esp-iris-fix-acceptance.zh-CN.md#iris-t02)。下文保留原评估证据。
 
 已有 [2026-08-31 实机报告](../submodule/esp-mosaico-tools/submodule/esp-iris/components/esp_iris/TEST_REPORT_2026-08-31.md) 记录 ESP32-S31 的 20 个场景取得通过证据，但它对应 `3fe1619f737a`，且包含全量运行与修复后定向复测的合并结果，不能当作本次 HEAD 的一次全量通过。
 
