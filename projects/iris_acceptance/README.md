@@ -6,6 +6,11 @@
 使用 `iris_ota_support_start()` 保留 enter-Recovery RPC、System Inventory，
 启动约 3 秒后由原有组件自动报告 healthy。
 
+当前采用固定系统前缀 2 MiB 的 `mosaico-retained-recovery-2m-v1` 契约；
+Recovery 分区为 1.75 MiB。此前验收报告记录的是旧布局，不能作为当前布局的
+实机验收证据。旧布局设备须先完成保留数据的产品迁移，不能直接安装本构建；
+普通安装仍校验实际分区表摘要。
+
 从仓库根目录通过 `python mosaico.py install --project projects/iris_acceptance`
 安装；空白或未验证设备须先执行 `python mosaico.py recover`。
 使用 `python mosaico.py monitor --timeout 20` 观察
