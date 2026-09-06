@@ -27,7 +27,7 @@ ota_0,app,ota_0,0x300000,0xc00000,
 ui_apps,data,0x40,0xf00000,0x100000,
 """
 
-LEGACY_PARTITIONS = PARTITIONS.replace(
+HELLO_WORLD_PARTITIONS = PARTITIONS.replace(
     "ota_0,app,ota_0,0x300000,0xc00000,\nui_apps,data,0x40,0xf00000,0x100000,\n",
     "ota_0,app,ota_0,0x300000,0xd00000,\n",
 )
@@ -76,7 +76,7 @@ class PrepareSystemUpdateTests(unittest.TestCase):
             self.assertEqual(data["target_offset"], 0xF00000)
             self.assertEqual(data["file"], "ui_apps.bin")
             self.assertEqual((stage / "ui_apps.bin").read_bytes(), b"ui apps")
-            self.assertEqual(manifest["schema"], "esp-iris-system-update/v2")
+            self.assertEqual(manifest["schema"], "esp-iris-system-update/v1")
             self.assertNotIn("source_layout_sha256", manifest)
             self.assertEqual(manifest["minimum_recovery_version"], "2.4.0-recovery")
             self.assertEqual(
@@ -171,7 +171,7 @@ class PrepareSystemUpdateTests(unittest.TestCase):
                 with mock.patch.object(sys, "argv", arguments), expected_error:
                     MODULE.main()
 
-    def test_preserves_legacy_layout_for_projects_without_ui_partition(self) -> None:
+    def test_stages_project_without_optional_data_partition(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             partition_csv = root / "partitions.csv"
@@ -179,7 +179,7 @@ class PrepareSystemUpdateTests(unittest.TestCase):
             application = root / "application.bin"
             bootloader = root / "bootloader.bin"
             stage = root / "stage"
-            partition_csv.write_text(LEGACY_PARTITIONS, encoding="utf-8")
+            partition_csv.write_text(HELLO_WORLD_PARTITIONS, encoding="utf-8")
             partition_table.write_bytes(b"partition table")
             application.write_bytes(b"application")
             bootloader.write_bytes(b"bootloader")
