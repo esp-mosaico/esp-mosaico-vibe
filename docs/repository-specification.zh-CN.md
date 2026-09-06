@@ -217,6 +217,7 @@ ESP-Mosaico 真实设备
 | `python mosaico.py list` | 查看设备清单 | 连接 Gateway 并列出在线及缓存离线设备的 Device ID、在线状态、固件身份、模式、连接方式和 Boot ID；`--details` 展开端点及能力信息 |
 | `python mosaico.py recover` | 初始化或恢复设备 | 使用评审基础包，完成后停留在 Recovery 就绪状态 |
 | `python mosaico.py install` | 安装普通应用 | 构建工程并通过 ESP-Iris 安装，不自动触发恢复 |
+| `python mosaico.py system-update` | 更新应用及系统内容 | 构建或复用完整 `.irisfw` bundle，通过 Recovery 一并校验并写入应用、bootloader、分区表及可选 `ui_apps` 数据镜像 |
 | `python mosaico.py monitor` | 查看设备日志 | 先显示保留日志，再持续跟随至用户结束 |
 
 构建 profile、启动基础产物和设备布局均属于 `mosaico.py` 的内部实现，不作为
@@ -227,9 +228,11 @@ ESP-Mosaico 真实设备
 ```text
 设备未知或 Recovery 未验证 ── recover ──► Recovery 就绪
                                               │
-                                              └── install ──► 正常应用健康运行
-                                                                     │
-                                                                     └── monitor
+                                              ├── install ────────► 正常应用健康运行
+                                              │                         │
+                                              └── system-update ────────┘
+                                                                        │
+                                                                        └── monitor
 ```
 
 闭环验收要求：保持同一 Device ID，各次启动产生新的 Boot ID，Recovery 服务

@@ -26,13 +26,14 @@
 
 ## 统一设备命令
 
-日常安装、日志和恢复统一通过仓库根目录的 `mosaico.py` 完成：
+日常安装、系统更新、日志和恢复统一通过仓库根目录的 `mosaico.py` 完成：
 
 ```sh
 python mosaico.py doctor
 python mosaico.py list
 python mosaico.py recover
 python mosaico.py install --project projects/<project>
+python mosaico.py system-update --project projects/<project>
 python mosaico.py monitor
 ```
 
@@ -79,6 +80,14 @@ python mosaico.py monitor --timeout 1 --grep __mosaico_host_smoke__
 `install` 只通过 **ESP-Iris Developer Gateway** 更新普通应用；设备未完成初始化
 时会明确提示先运行 `recover`，不会自动切换成底层烧录。`recover` 默认使用仓库
 内经过评审的 Recovery 基础包，并在完成后停留于 Recovery 就绪状态。
+
+`system-update` 用于应用之外还需同步更新系统内容的场景。指定 `--project` 时，
+命令会构建一个 `.irisfw` 完整更新包，其中包含普通应用、bootloader、分区表，
+以及工程声明的可选 `ui_apps` 数据镜像，再通过 Gateway 交给保留的 Recovery
+校验、写入并核对更新结果。只修改普通应用时使用 `install`；修改 GSP 场景、字体、
+图片、分区布局或 bootloader 时使用 `system-update`。已有完整更新包可通过
+`--bundle PATH` 复用；从 HTTP(S) 或 NAND 发起更新的流程及安全限制见
+[`Recovery 说明`](submodule/esp-mosaico-tools/firmware/recovery/README.md#recovery-从-https-拉取系统更新)。
 
 Recovery 仅支持 Gateway 本机执行。命令先准备完整基础包，再向本地 Gateway
 申请目标设备或物理 USB endpoint 的维护租约；ROM 模式或尚未完成 HELLO、但已被

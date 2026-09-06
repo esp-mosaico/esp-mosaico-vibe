@@ -31,13 +31,15 @@ that runs in the PC simulator and on the device.
 
 ## Unified device commands
 
-Use the repository-level product commands for installation, logs, and recovery:
+Use the repository-level product commands for installation, system updates,
+logs, and recovery:
 
 ```sh
 python mosaico.py doctor
 python mosaico.py list
 python mosaico.py recover
 python mosaico.py install --project projects/<project>
+python mosaico.py system-update --project projects/<project>
 python mosaico.py monitor
 ```
 
@@ -89,6 +91,17 @@ python mosaico.py monitor --timeout 1 --grep __mosaico_host_smoke__
 Gateway**. An uninitialized device is told to run `recover`; the command never
 silently falls back to a lower-level write. `recover` uses the reviewed bundle
 by default and leaves the device Recovery-ready.
+
+Use `system-update` when system content must change together with the
+application. With `--project`, it builds a complete `.irisfw` bundle containing
+the normal application, bootloader, partition table, and the project's optional
+`ui_apps` data image, then asks the retained Recovery service to validate and
+write it through Gateway and verifies the result. Use `install` for an
+application-only change; use `system-update` when changing GSP scenes, fonts,
+images, the partition layout, or the bootloader. Pass `--bundle PATH` to reuse
+an existing complete bundle. See the
+[Recovery documentation](submodule/esp-mosaico-tools/firmware/recovery/README.md#recovery-从-https-拉取系统更新)
+for HTTP(S) and NAND sources and their security constraints.
 
 Recovery is local-only. It prepares the complete bundle first, then asks the
 local Gateway for a maintenance lease on the target device or physical USB
