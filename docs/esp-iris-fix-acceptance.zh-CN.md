@@ -1,5 +1,7 @@
 # ESP-Iris 修复与验收报告
 
+> 历史验收记录：下文针对迁移前源码与旧分区布局。2026-09-06 随后的远端更新迁移引入了新 2 MiB 系统前缀，最新提交映射、构建验证及设备迁移边界见 [三仓库迁移报告](upstream-migration-20260906.zh-CN.md)。下文的旧实机结果不代表新版布局已在设备上验收。
+
 更新日期：2026-09-06。原始问题与基线见 [ESP-Iris 评估](esp-iris-review.zh-CN.md)；产品编排层边界见 [esp-mosaico-tools 评估](esp-mosaico-tools-review.zh-CN.md)。
 
 ## 交付状态与范围

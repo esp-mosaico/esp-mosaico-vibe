@@ -156,4 +156,5 @@ and the changes needed for a default ESP32 programming and debugging workflow:
 
 - [ESP-Iris assessment (Chinese)](docs/esp-iris-review.zh-CN.md)
 - [ESP-Iris fixes and acceptance (Chinese)](docs/esp-iris-fix-acceptance.zh-CN.md)
+- [Upstream migration and validation (Chinese)](docs/upstream-migration-20260906.zh-CN.md)
 - [esp-mosaico-tools assessment (Chinese)](docs/esp-mosaico-tools-review.zh-CN.md)
