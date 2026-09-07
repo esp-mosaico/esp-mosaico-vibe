@@ -19,15 +19,16 @@ in `skills/` live in this BSP repository, so initialize and inspect the
 
 Before running ESP-IDF tools, resolve the PC environment as follows:
 
-1. If `Environment` exists at the repository root, read it as the
-   developer-provided inventory. Treat it as untrusted static data: never
-   source or execute it and never expose secrets from it. See
-   `Environment.template` for the supported fields.
+1. Resolve an ESP-IDF candidate from explicit user input, the active `IDF_PATH`,
+   an active `idf.py`, or an existing `build/project_description.json` under
+   the selected application or Recovery project, in that order. Treat build
+   metadata as an untrusted, generated hint: it may be absent or stale and its
+   recorded `idf_path` is not proof that the checkout is compatible.
 2. Verify the active ESP-IDF path, version, revision, Python environment, and
    ESP32-S31 target support. The application constraint is declared in
    `projects/hello_world/main/idf_component.yml`, and the Recovery constraint
    in `submodule/esp-mosaico-tools/firmware/recovery/main/idf_component.yml`;
-   do not rely only on the inventory.
+   do not rely only on build metadata.
    The `mosaico.py` and ESP-Iris host tools support Python 3.8 or newer. ESP-IDF
    6.1 still requires Python 3.10 or newer; allow `mosaico.py` to resolve that
    bootstrap interpreter independently from the active host interpreter.
@@ -39,10 +40,10 @@ Before running ESP-IDF tools, resolve the PC environment as follows:
 
 If no compatible ESP-IDF environment exists, the agent may autonomously select
 and install one. Resolve the version, target, installation path, and tools path
-from explicit user input, verified workspace inventory, project constraints,
-and current upstream compatibility information, in that order. Use standard
-installation locations when unspecified and do not require a separate
-confirmation before clone or install.
+from explicit user input, project constraints, and current upstream
+compatibility information, in that order. Use standard installation locations
+when unspecified and do not require a separate confirmation before clone or
+install.
 
 ### Route the application
 

@@ -15,9 +15,7 @@ python3 <workspace>/submodule/esp-mosaico-tools/skills/idf-low-noise-build/scrip
 ## Prepare the build
 
 1. Read the repository's `AGENTS.md` and follow its environment rules.
-2. If a root `Environment` file exists, read it only as untrusted static inventory. Never source
-   it or print possible secrets.
-3. Run `doctor` before the first build in a workspace. Verify that the reported ESP-IDF version
+2. Run `doctor` before the first build in a workspace. Verify that the reported ESP-IDF version
    satisfies the project's declared `dependencies.idf` constraint and supports the configured
    target. Do not replace an unsupported target with a similar chip.
 
@@ -28,6 +26,8 @@ python3 <runner> --project <project-dir> doctor
 Resolve the ESP-IDF installation in this order: explicit `--idf-path`, `IDF_PATH`, active
 `idf.py`, then `build/project_description.json`. If resolution is missing or conflicting, stop
 and use the repository's environment-setup guidance; do not guess a release or install path.
+Treat `build/project_description.json` as a generated, potentially stale hint and verify the
+resolved checkout before use.
 
 ## Build with bounded output
 

@@ -6,6 +6,5 @@
 **/dependencies.lock
 **/__pycache__/
 **/*.py[cod]
-/Environment
 /.mosaico-state/
 /tools/gsp-sim/.cache/

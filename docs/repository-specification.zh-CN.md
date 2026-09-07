@@ -275,7 +275,7 @@ ESP-Mosaico 真实设备
 | ID | 功能要求 | 验收口径 |
 | --- | --- | --- |
 | FR-101 | 项目必须约束 ESP-IDF 版本 | `idf_component.yml` 声明 `idf >= 6.1` |
-| FR-102 | 环境解析必须验证真实工具链 | 若根目录存在 `Environment`，仅作为不可信静态清单读取；同时验证 IDF 路径、版本、revision、Python 环境及 ESP32-S31 支持 |
+| FR-102 | 环境解析必须验证真实工具链 | 可从显式参数、活动环境或已有 `build/project_description.json` 获取 IDF 候选；构建元数据仅作为可能缺失或过期的生成线索，同时验证实际 IDF 路径、版本、revision、Python 环境及 ESP32-S31 支持 |
 | FR-107 | 主机 CLI 必须支持 Python 3.8 或更新版本 | Gateway 隔离环境与当前解释器 major/minor 一致，单个条件锁自动选择兼容依赖 |
 | FR-108 | ESP-IDF Python 必须独立解析 | CLI 使用 Python 3.8/3.9 时，为 ESP-IDF 6.1 bootstrap 解析并验证 Python 3.10 或更新解释器；缺失时明确区分 CLI 与 ESP-IDF 的版本要求 |
 | FR-103 | `install` 必须解析和构建用户工程 | 当前工程优先；无法唯一选择时列出候选并退出 |

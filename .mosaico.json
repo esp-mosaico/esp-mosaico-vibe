@@ -3,7 +3,6 @@
   "workspace": {
     "projects_dir": "projects",
     "default_project": "projects/hello_world",
-    "environment_file": "Environment",
     "run_dir": ".codex-runs/mosaico"
   },
   "dependencies": {
