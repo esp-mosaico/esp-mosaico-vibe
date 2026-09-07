@@ -13,6 +13,10 @@ NORMAL_FIRMWARE_PROJECTS = (
     ROOT / "tests/firmware/iris_acceptance",
     ROOT / "projects/gsp_hello",
 )
+USER_EXAMPLE_PROJECTS = (
+    ROOT / "projects/hello_world",
+    ROOT / "projects/gsp_hello",
+)
 
 
 def partitions(path):
@@ -33,6 +37,13 @@ def defaults(path):
 
 
 class RetainedRecoveryContractTests(unittest.TestCase):
+    def test_user_examples_persist_core_dump_and_pre_crash_logs(self):
+        for project in USER_EXAMPLE_PROJECTS:
+            with self.subTest(project=project.name):
+                config = defaults(project / "sdkconfig.defaults")
+                self.assertEqual(config["CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH"], "y")
+                self.assertEqual(config["CONFIG_ESP_IRIS_LOG_RING_STORAGE_INTERNAL"], "y")
+
     def test_fixed_prefix_and_acceptance_layout_match_recovery(self):
         recovery = partitions(TOOLS / "firmware/recovery/partitions.csv")
         self.assertEqual(recovery["factory"], ("app", "factory", 0x20000, 0x1C0000, ""))
