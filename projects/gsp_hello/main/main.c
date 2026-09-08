@@ -2,24 +2,17 @@
 
 #include "board_display.h"
 #include "bsp/esp_mosaico.h"
-#include "bundle_gsp.h"
 #include "esp_gsp_esp_lcd.h"
 #include "esp_iris.h"
 #include "esp_log.h"
+#include "hello_ui.h"
 #include "iris_screen_mirror.h"
 #include "iris_ota_support.h"
 #include "nvs_flash.h"
 #include "ui_bundle.h"
 
 static const char *TAG = "gsp_hello";
-
-static void feed_load(esp_gsp_handle_t ui, void *user_ctx)
-{
-    static int32_t load;
-    (void)user_ctx;
-    load = (load + 5) % 101;
-    ESP_ERROR_CHECK(gsp_hello_load_set_value(ui, load));
-}
+static hello_ui_t s_hello;
 
 void app_main(void)
 {
@@ -53,9 +46,7 @@ void app_main(void)
 
     esp_gsp_handle_t ui;
     ESP_ERROR_CHECK(esp_gsp_esp_lcd_start(&app_config, &lcd, &ui));
-
-    void *load_timer = esp_gsp_timer_create(ui, 250, feed_load, NULL);
-    ESP_ERROR_CHECK(load_timer == NULL ? ESP_ERR_NO_MEM : ESP_OK);
+    ESP_ERROR_CHECK(hello_ui_init(ui, &s_hello));
 
     ESP_LOGI(TAG, "GSP Hello World ready at %dx%d RGB565",
              BSP_LCD_H_RES, BSP_LCD_V_RES);

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pack a GSP scene and run the standalone ESP-GSP simulator."""
+"""Run a GSP app preview. Defaults to sim_bridge when the project has pc/."""
 
 from __future__ import annotations
 
@@ -14,9 +14,38 @@ TOOLS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TOOLS_DIR.parents[1]
 GSP_ROOT = REPO_ROOT / "submodule" / "esp-gsp"
 DEFAULT_SCENE = REPO_ROOT / "projects" / "gsp_hello" / "ui" / "main.json"
+SIM_BRIDGE = GSP_ROOT / "tools" / "sim_bridge" / "run.py"
 
 sys.path.insert(0, str(TOOLS_DIR))
 from fetch_gspc import resolve_gspc, resolve_sim  # noqa: E402
+
+
+def find_pc_project(scene: Path) -> Path | None:
+    for parent in (scene.parent, *scene.parents):
+        pc = parent / "pc"
+        if (pc / "CMakeLists.txt").is_file():
+            return pc
+    return None
+
+
+def run_sim_bridge(pc: Path, *, headless: bool) -> int:
+    command = [
+        sys.executable,
+        str(SIM_BRIDGE),
+        "--project",
+        str(pc),
+        "--component-dir",
+        str(GSP_ROOT),
+        "--gspc",
+        str(resolve_gspc()),
+        "--host",
+        str(resolve_sim()),
+        "--build-dir",
+        str(REPO_ROOT / "build" / "sim_bridge" / pc.parent.name / pc.name),
+    ]
+    if headless:
+        command.append("--headless")
+    return subprocess.call(command)
 
 
 def pack_scene(scene: Path, output: Path, gspc: Path) -> None:
@@ -44,6 +73,11 @@ def main() -> int:
     )
     parser.add_argument("--headless", action="store_true")
     parser.add_argument("--interactive", action="store_true")
+    parser.add_argument(
+        "--scene-only",
+        action="store_true",
+        help="Skip sim_bridge and preview the packed scene without a native backend",
+    )
     parser.add_argument("--frames", type=int)
     parser.add_argument("--fps", type=int, default=60)
     parser.add_argument("--dump-ppm", type=Path)
@@ -67,6 +101,18 @@ def main() -> int:
     extra = list(args.sim_args)
     if extra and extra[0] == "--":
         extra = extra[1:]
+
+    pc = find_pc_project(scene)
+    use_bridge = (
+        not args.scene_only
+        and pc is not None
+        and scene.suffix != ".gspb"
+        and args.dump_ppm is None
+        and not extra
+        and SIM_BRIDGE.is_file()
+    )
+    if use_bridge:
+        return run_sim_bridge(pc, headless=args.headless)
 
     sim_args: list[str] = []
     if args.headless:

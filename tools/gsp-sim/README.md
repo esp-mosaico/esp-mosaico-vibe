@@ -1,11 +1,13 @@
 # ESP-GSP host simulator
 
-PC preview for GSP scenes on ESP-Mosaico. It packs JSON with the GSPC version
-recorded in `submodule/esp-gsp/.gspc_version` and runs the matching standalone
-**sim** binary from dl.espressif.com.
+PC preview for GSP applications on ESP-Mosaico. By default it uses
+`submodule/esp-gsp/tools/sim_bridge`: pack the scene, build a native Backend
+from portable UI C, and run the standalone **sim** with a Backend channel so
+timers and bind writes match the device.
 
-This wrapper is scene-only. It does not include Mosaic claw hub, Lua apps, or
-HTML review tooling.
+`--dump-ppm`, `--scene-only`, or extra `sim` flags after `--` fall back to
+scene-only `sim --bundle` (no application C). This wrapper does not include
+Mosaic claw hub, Lua apps, or HTML review tooling.
 
 ## Prerequisites
 
@@ -43,6 +45,7 @@ Pass a precompiled `.gspb` to skip `gspc`. Set `GSPC_EXECUTABLE` or
 Keep scene JSON under the application, typically `projects/<name>/ui/`.
 The reference demo is [`projects/gsp_hello`](../../projects/gsp_hello).
 Author at **480×480 RGB565** to match the CO5300 panel. Firmware should depend
-on `espressif/esp-gsp` `==1.1.0` (or `override_path` to `submodule/esp-gsp`).
+on `espressif/esp-gsp` `==1.2.0` (or `override_path` to `submodule/esp-gsp`).
+New apps need `pc/CMakeLists.txt` so `run.py` can default to `sim_bridge`.
 The tools-owned Recovery firmware remains LVGL-based and is not a GSP
 application template.

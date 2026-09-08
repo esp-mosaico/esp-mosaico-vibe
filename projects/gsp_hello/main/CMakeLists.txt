@@ -1,6 +1,7 @@
 idf_component_register(
     SRCS
         "main.c"
+        "hello_ui.c"
         "board_display.c"
         "iris_screen_mirror.c"
         "ui_bundle.c"
