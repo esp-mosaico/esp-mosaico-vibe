@@ -12,5 +12,5 @@ python-host:
   image: python:${PYTHON_VERSION}
   script:
     - python -m compileall -q mosaico.py tools/mosaico_cli
-    - python -m unittest discover -s tests/mosaico_cli -v
+    - python -m unittest discover -s tests -v
     - python mosaico.py --version

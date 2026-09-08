@@ -80,7 +80,7 @@ Run the tool tests and the same host compatibility smoke test from each native h
 
 ```sh
 python -m unittest discover -s submodule/esp-mosaico-tools/tests -v
-python -m unittest discover -s tests/mosaico_cli -v
+python -m unittest discover -s tests -v
 python mosaico.py --version
 python mosaico.py --json list
 python mosaico.py --json doctor
