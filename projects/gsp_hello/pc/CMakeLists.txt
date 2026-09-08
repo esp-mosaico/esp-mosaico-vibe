@@ -6,7 +6,6 @@ if(NOT ESP_GSP_COMPONENT_DIR AND DEFINED ENV{ESP_GSP_COMPONENT_DIR})
 endif()
 if(NOT ESP_GSP_COMPONENT_DIR)
     foreach(candidate IN ITEMS
-            "../../../submodule/esp-gsp"
             "../managed_components/espressif__esp-gsp")
         get_filename_component(candidate "${candidate}" ABSOLUTE)
         if(EXISTS "${candidate}/tools/sim_bridge/CMakeLists.txt")

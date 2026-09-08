@@ -2,7 +2,7 @@
 name: gsp-sim
 description: >
   Preview ESP-GSP apps on the PC with sim_bridge (default) plus the
-  standalone sim matching submodule/esp-gsp (espressif/esp-gsp 1.2.0).
+  standalone sim matching espressif/esp-gsp 1.2.0 from the Component Registry.
   Use when authoring or debugging GSP JSON/UI or portable C UI logic
   for ESP-Mosaico before flashing.
 ---
@@ -18,10 +18,25 @@ bars, lists, text updates) stay frozen at JSON defaults.
 
 ## Pin
 
-- Runtime: `submodule/esp-gsp` = **espressif/esp-gsp 1.2.0**
-- Bridge: `submodule/esp-gsp/tools/sim_bridge`
+- Runtime: **espressif/esp-gsp 1.2.0** from the ESP Component Registry
+- Bridge: `managed_components/espressif__esp-gsp/tools/sim_bridge`
 - Compiler: standalone `gspc` from `.gspc_version` (fetched by `fetch_gspc.py`)
 - Simulator: standalone `sim` matching the component version (`GSP_SIM_EXECUTABLE`)
+
+## First-time setup
+
+The first `sim_bridge` preview or firmware build needs
+`espressif/esp-gsp==1.2.0` in the application's `managed_components/`.
+From the application directory (for example `projects/gsp_hello`):
+
+```sh
+idf.py reconfigure
+```
+
+This downloads `managed_components/espressif__esp-gsp/` from the ESP
+Component Registry (gitignored). After that, `run.py` can find
+`sim_bridge` without `ESP_GSP_COMPONENT_DIR`. Repeat in each new GSP
+project. Scene-only `--dump-ppm` / `--scene-only` does not need this.
 
 ## Run
 
@@ -41,9 +56,9 @@ opens the official local browser preview (listen URL is printed as
 Call the component runner directly when you need extra bridge flags:
 
 ```sh
-python3 submodule/esp-gsp/tools/sim_bridge/run.py \
+python3 projects/gsp_hello/managed_components/espressif__esp-gsp/tools/sim_bridge/run.py \
   --project projects/gsp_hello/pc \
-  --component-dir submodule/esp-gsp \
+  --component-dir projects/gsp_hello/managed_components/espressif__esp-gsp \
   --gspc "$(python3 tools/gsp-sim/fetch_gspc.py)" \
   --host "$(python3 tools/gsp-sim/fetch_gspc.py --sim)"
 ```
@@ -95,8 +110,9 @@ New GSP apps copy `projects/gsp_hello/pc/` and point `gsp_add_backend`
 - Start from `projects/gsp_hello` for a sim + flash Hello World.
 - Put bind/timer/list/canvas logic in portable C (no IDF headers).
 - Always add `pc/CMakeLists.txt` so `run.py` defaults to `sim_bridge`.
-- Firmware depends on `espressif/esp-gsp` `==1.2.0` or
-  `override_path: ../../../submodule/esp-gsp`.
+- Firmware depends on `espressif/esp-gsp` `==1.2.0` via `idf_component.yml`.
+- First `sim_bridge` run or firmware build in a project: `idf.py reconfigure`
+  in that project directory to pull the component.
 - Do not import Mosaic claw hub, Lua runtime, or HTML review site into vibe.
 - `mosaico.py` is unchanged: device install still goes through Recovery/OTA.
 

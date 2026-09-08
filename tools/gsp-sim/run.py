@@ -12,12 +12,10 @@ from pathlib import Path
 
 TOOLS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TOOLS_DIR.parents[1]
-GSP_ROOT = REPO_ROOT / "submodule" / "esp-gsp"
 DEFAULT_SCENE = REPO_ROOT / "projects" / "gsp_hello" / "ui" / "main.json"
-SIM_BRIDGE = GSP_ROOT / "tools" / "sim_bridge" / "run.py"
 
 sys.path.insert(0, str(TOOLS_DIR))
-from fetch_gspc import resolve_gspc, resolve_sim  # noqa: E402
+from fetch_gspc import resolve_gsp_root, resolve_gspc, resolve_sim  # noqa: E402
 
 
 def find_pc_project(scene: Path) -> Path | None:
@@ -28,18 +26,22 @@ def find_pc_project(scene: Path) -> Path | None:
     return None
 
 
-def run_sim_bridge(pc: Path, *, headless: bool) -> int:
+def sim_bridge_script(gsp_root: Path) -> Path:
+    return gsp_root / "tools" / "sim_bridge" / "run.py"
+
+
+def run_sim_bridge(pc: Path, gsp_root: Path, *, headless: bool) -> int:
     command = [
         sys.executable,
-        str(SIM_BRIDGE),
+        str(sim_bridge_script(gsp_root)),
         "--project",
         str(pc),
         "--component-dir",
-        str(GSP_ROOT),
+        str(gsp_root),
         "--gspc",
-        str(resolve_gspc()),
+        str(resolve_gspc(gsp_root=gsp_root)),
         "--host",
-        str(resolve_sim()),
+        str(resolve_sim(gsp_root=gsp_root)),
         "--build-dir",
         str(REPO_ROOT / "build" / "sim_bridge" / pc.parent.name / pc.name),
     ]
@@ -92,27 +94,38 @@ def main() -> int:
         raise SystemExit(f"scene not found: {scene}")
     if args.headless and args.interactive:
         raise SystemExit("use either --headless or --interactive")
-    if not GSP_ROOT.is_dir():
-        raise SystemExit(
-            f"ESP-GSP submodule is missing at {GSP_ROOT}; "
-            "run git submodule update --init submodule/esp-gsp"
-        )
 
     extra = list(args.sim_args)
     if extra and extra[0] == "--":
         extra = extra[1:]
 
     pc = find_pc_project(scene)
+    gsp_root = resolve_gsp_root(pc.parent if pc is not None else None)
     use_bridge = (
         not args.scene_only
         and pc is not None
         and scene.suffix != ".gspb"
         and args.dump_ppm is None
         and not extra
-        and SIM_BRIDGE.is_file()
+        and gsp_root is not None
+        and sim_bridge_script(gsp_root).is_file()
     )
     if use_bridge:
-        return run_sim_bridge(pc, headless=args.headless)
+        return run_sim_bridge(pc, gsp_root, headless=args.headless)
+    if (
+        not args.scene_only
+        and pc is not None
+        and scene.suffix != ".gspb"
+        and args.dump_ppm is None
+        and not extra
+        and gsp_root is None
+    ):
+        raise SystemExit(
+            "espressif/esp-gsp is not installed. From the application "
+            "directory run `idf.py reconfigure` to pull "
+            "espressif/esp-gsp==1.2.0 from the ESP Component Registry, "
+            "or set ESP_GSP_COMPONENT_DIR."
+        )
 
     sim_args: list[str] = []
     if args.headless:

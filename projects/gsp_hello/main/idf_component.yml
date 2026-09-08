@@ -6,6 +6,4 @@ dependencies:
   esp_iris:
     version: "*"
     override_path: ../../../submodule/esp-mosaico-tools/submodule/esp-iris/components/esp_iris
-  espressif/esp-gsp:
-    version: "==1.2.0"
-    override_path: ../../../submodule/esp-gsp
+  espressif/esp-gsp: "==1.2.0"

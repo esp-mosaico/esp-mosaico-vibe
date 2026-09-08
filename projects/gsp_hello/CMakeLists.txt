@@ -31,7 +31,7 @@ if(NOT GSPC_EXECUTABLE)
     endif()
 endif()
 set(GSPC_EXECUTABLE "${GSPC_EXECUTABLE}" CACHE FILEPATH
-    "Standalone gspc compatible with the pinned ESP-GSP submodule")
+    "Standalone gspc compatible with the pinned espressif/esp-gsp component")
 set(ENV{GSPC_EXECUTABLE} "${GSPC_EXECUTABLE}")
 
 set(EXTRA_COMPONENT_DIRS

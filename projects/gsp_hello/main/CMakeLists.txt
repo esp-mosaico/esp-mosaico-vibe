@@ -33,7 +33,7 @@ gsp_add_bundle(${COMPONENT_LIB}
     DEPLOYABLE
     SYMBOL ${gsp_bundle_symbol})
 
-# ESP-GSP 1.1.0's helper always adds an embed assembly source. This project
+# ESP-GSP's helper always adds an embed assembly source. This project
 # consumes the deployable GSPB from ui_apps instead, so keep the generated
 # source as a build artifact but do not compile it into the application.
 set(gsp_bundle_dir

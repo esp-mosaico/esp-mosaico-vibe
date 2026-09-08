@@ -1,6 +1,6 @@
 # GSP Hello World
 
-Minimal ESP-GSP 1.1.0 application for ESP-Mosaico. The same scene is used by
+Minimal ESP-GSP 1.2.0 application for ESP-Mosaico. The same scene is used by
 the PC host simulator and packed as a deployable GSPB in the dedicated
 `ui_apps` Flash partition. The application maps and validates that bundle at
 startup instead of embedding it in `ota_0`.
