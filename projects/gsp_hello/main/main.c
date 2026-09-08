@@ -4,6 +4,7 @@
 #include "bsp/esp_mosaico.h"
 #include "bundle_gsp.h"
 #include "esp_gsp_esp_lcd.h"
+#include "esp_iris.h"
 #include "esp_log.h"
 #include "iris_screen_mirror.h"
 #include "iris_ota_support.h"
@@ -22,6 +23,7 @@ static void feed_load(esp_gsp_handle_t ui, void *user_ctx)
 
 void app_main(void)
 {
+    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_iris_boot_probe());
     ESP_ERROR_CHECK(nvs_flash_init());
 
     /* Keep Recovery reachable even when the external UI image is absent or

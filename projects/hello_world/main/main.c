@@ -2,6 +2,7 @@
 
 #include "bsp/esp_mosaico.h"
 #include "esp_check.h"
+#include "esp_iris.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -39,6 +40,7 @@ static esp_err_t hello_world_ui_start(void)
 
 void app_main(void)
 {
+    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_iris_boot_probe());
     ESP_ERROR_CHECK(nvs_flash_init());
     ESP_ERROR_CHECK(hello_world_ui_start());
 

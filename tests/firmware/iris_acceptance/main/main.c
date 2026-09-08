@@ -84,6 +84,7 @@ static esp_err_t status_rpc(const esp_iris_rpc_request_t *request,
 
 void app_main(void)
 {
+    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_iris_boot_probe());
     ESP_ERROR_CHECK(nvs_flash_init());
     ESP_ERROR_CHECK(esp_iris_rpc_register(ACCEPTANCE_SERVICE_ID, 1, slow_rpc, NULL));
     ESP_ERROR_CHECK(esp_iris_rpc_register(ACCEPTANCE_SERVICE_ID, 2, oversized_rpc, NULL));
