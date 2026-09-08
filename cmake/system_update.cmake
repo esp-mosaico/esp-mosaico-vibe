@@ -1,7 +1,8 @@
 # Build the local, unsigned ESP-Iris System Update bundle used by
 # `python mosaico.py system-update --project projects/<application>`.
-# The application supplies its partition layout and binary; this module wires
-# the shared validation and staging step into the ESP-IDF build graph.
+# The application supplies its partition layout and binary; the retained
+# Recovery bootloader is intentionally not part of normal application updates.
+# It is installed and repaired only by `mosaico.py recover`.
 
 set(system_update_preparer
     "${CMAKE_CURRENT_LIST_DIR}/../tools/prepare_system_update.py")
@@ -44,8 +45,6 @@ if(system_update_python)
             --partition-table
                 "${CMAKE_BINARY_DIR}/partition_table/partition-table.bin"
             --application "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.bin"
-            --bootloader
-                "${CMAKE_BINARY_DIR}/bootloader/bootloader.bin"
             ${system_update_preparer_args}
             --stage-dir "${system_update_stage_dir}"
             --release "${PROJECT_VERSION}"
@@ -55,7 +54,7 @@ if(system_update_python)
             --output "${system_update_bundle}"
         DEPENDS "${system_update_preparer}"
                 "${system_update_partition_csv}"
-                "${system_update_iris_tool}" app bootloader
+                "${system_update_iris_tool}" app
                 partition_table_bin ${system_update_dependencies}
         BYPRODUCTS "${system_update_bundle}"
         COMMENT "Building application + data + system update bundle"

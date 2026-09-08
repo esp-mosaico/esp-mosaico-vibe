@@ -37,6 +37,17 @@ def defaults(path):
 
 
 class RetainedRecoveryContractTests(unittest.TestCase):
+    def test_user_example_system_updates_preserve_recovery_bootloader(self):
+        system_update_rule = (ROOT / "cmake/system_update.cmake").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotIn("--bootloader", system_update_rule)
+        self.assertNotIn("app bootloader", system_update_rule)
+        for project in USER_EXAMPLE_PROJECTS:
+            with self.subTest(project=project.name):
+                cmake = (project / "CMakeLists.txt").read_text(encoding="utf-8")
+                self.assertIn("include(../../cmake/system_update.cmake)", cmake)
+
     def test_user_examples_persist_core_dump_and_pre_crash_logs(self):
         for project in USER_EXAMPLE_PROJECTS:
             with self.subTest(project=project.name):

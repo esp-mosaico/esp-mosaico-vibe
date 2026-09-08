@@ -12,7 +12,6 @@ from pathlib import Path
 from typing import NamedTuple
 
 PARTITION_TABLE_REGION_BYTES = 0x1000
-BOOTLOADER_OFFSET = 0x2000
 PARTITION_TABLE_OFFSET = 0x8000
 
 
@@ -85,7 +84,6 @@ def main() -> int:
     parser.add_argument("--partition-csv", type=Path, required=True)
     parser.add_argument("--partition-table", type=Path, required=True)
     parser.add_argument("--application", type=Path, required=True)
-    parser.add_argument("--bootloader", type=Path, required=True)
     parser.add_argument("--ui-apps", type=Path)
     parser.add_argument("--stage-dir", type=Path, required=True)
     parser.add_argument("--release", required=True)
@@ -116,16 +114,12 @@ def main() -> int:
 
     target_layout = _layout_sha256(args.partition_table)
     _require_image(args.application, "application", ota_partition.size)
-    _require_image(
-        args.bootloader, "bootloader", PARTITION_TABLE_OFFSET - BOOTLOADER_OFFSET
-    )
     if args.ui_apps is not None:
         _require_image(args.ui_apps, "ui_apps", ui_partition.size)
 
     stage_dir = args.stage_dir.resolve()
     stage_dir.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(args.application, stage_dir / "ota_0.bin")
-    shutil.copyfile(args.bootloader, stage_dir / "bootloader.bin")
     shutil.copyfile(args.partition_table, stage_dir / "partition-table.bin")
     if args.ui_apps is not None:
         shutil.copyfile(args.ui_apps, stage_dir / "ui_apps.bin")
@@ -139,12 +133,6 @@ def main() -> int:
         },
         {
             "id": 2,
-            "kind": "bootloader",
-            "target_offset": BOOTLOADER_OFFSET,
-            "file": "bootloader.bin",
-        },
-        {
-            "id": 3,
             "kind": "application",
             "target_offset": ota_partition.offset,
             "file": "ota_0.bin",
@@ -153,7 +141,7 @@ def main() -> int:
     if args.ui_apps is not None:
         components.append(
             {
-                "id": 4,
+                "id": 3,
                 "kind": "data",
                 "target_offset": ui_partition.offset,
                 "file": "ui_apps.bin",

@@ -40,13 +40,11 @@ class PrepareSystemUpdateTests(unittest.TestCase):
             partition_csv = root / "partitions.csv"
             partition_table = root / "partition-table.bin"
             application = root / "application.bin"
-            bootloader = root / "bootloader.bin"
             ui_apps = root / "ui_apps.bin"
             stage = root / "stage"
             partition_csv.write_text(PARTITIONS, encoding="utf-8")
             partition_table.write_bytes(b"partition table")
             application.write_bytes(b"application")
-            bootloader.write_bytes(b"bootloader")
             ui_apps.write_bytes(b"ui apps")
 
             arguments = [
@@ -57,8 +55,6 @@ class PrepareSystemUpdateTests(unittest.TestCase):
                 str(partition_table),
                 "--application",
                 str(application),
-                "--bootloader",
-                str(bootloader),
                 "--ui-apps",
                 str(ui_apps),
                 "--stage-dir",
@@ -81,8 +77,9 @@ class PrepareSystemUpdateTests(unittest.TestCase):
             self.assertEqual(manifest["minimum_recovery_version"], "2.5.0-recovery")
             self.assertEqual(
                 [item["kind"] for item in manifest["components"]],
-                ["partition_table", "bootloader", "application", "data"],
+                ["partition_table", "application", "data"],
             )
+            self.assertFalse((stage / "bootloader.bin").exists())
 
     def test_accepts_changes_outside_immutable_contract(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -100,7 +97,6 @@ class PrepareSystemUpdateTests(unittest.TestCase):
             )
             (root / "partition-table.bin").write_bytes(b"partition table")
             (root / "application.bin").write_bytes(b"application")
-            (root / "bootloader.bin").write_bytes(b"bootloader")
             (root / "ui_apps.bin").write_bytes(b"ui apps")
             arguments = [
                 "prepare_system_update.py",
@@ -110,8 +106,6 @@ class PrepareSystemUpdateTests(unittest.TestCase):
                 str(root / "partition-table.bin"),
                 "--application",
                 str(root / "application.bin"),
-                "--bootloader",
-                str(root / "bootloader.bin"),
                 "--ui-apps",
                 str(root / "ui_apps.bin"),
                 "--stage-dir",
@@ -160,8 +154,6 @@ class PrepareSystemUpdateTests(unittest.TestCase):
                     str(root / "partition-table.bin"),
                     "--application",
                     str(root / "application.bin"),
-                    "--bootloader",
-                    str(root / "bootloader.bin"),
                     "--stage-dir",
                     str(root / "stage"),
                     "--release",
@@ -177,12 +169,10 @@ class PrepareSystemUpdateTests(unittest.TestCase):
             partition_csv = root / "partitions.csv"
             partition_table = root / "partition-table.bin"
             application = root / "application.bin"
-            bootloader = root / "bootloader.bin"
             stage = root / "stage"
             partition_csv.write_text(HELLO_WORLD_PARTITIONS, encoding="utf-8")
             partition_table.write_bytes(b"partition table")
             application.write_bytes(b"application")
-            bootloader.write_bytes(b"bootloader")
 
             arguments = [
                 "prepare_system_update.py",
@@ -192,8 +182,6 @@ class PrepareSystemUpdateTests(unittest.TestCase):
                 str(partition_table),
                 "--application",
                 str(application),
-                "--bootloader",
-                str(bootloader),
                 "--stage-dir",
                 str(stage),
                 "--release",
@@ -205,8 +193,9 @@ class PrepareSystemUpdateTests(unittest.TestCase):
             manifest = json.loads((stage / "manifest.json").read_text(encoding="utf-8"))
             self.assertEqual(
                 [item["kind"] for item in manifest["components"]],
-                ["partition_table", "bootloader", "application"],
+                ["partition_table", "application"],
             )
+            self.assertFalse((stage / "bootloader.bin").exists())
 
 
 if __name__ == "__main__":
