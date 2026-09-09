@@ -4,8 +4,9 @@ PC preview for GSP scenes on ESP-Mosaico. It packs JSON with the GSPC version
 recorded in `submodule/esp-gsp/.gspc_version` and runs the matching standalone
 **sim** binary from dl.espressif.com.
 
-This wrapper is scene-only. It does not include Mosaic claw hub, Lua apps, or
-HTML review tooling.
+This wrapper packs scenes and can attach a project `sim_backend.py` on the
+official application-backend channel. It does not include Mosaic claw hub,
+Lua apps, or HTML review tooling.
 
 ## Prerequisites
 
@@ -28,6 +29,10 @@ python3 tools/gsp-sim/run.py --interactive
 ```
 
 The default scene is [`projects/gsp_hello/ui/main.json`](../../projects/gsp_hello/ui/main.json).
+If the project contains `sim_backend.py`, `run.py` attaches it as the
+application backend (firmware timers such as the Hello World load bar).
+Use `--no-backend` to skip it, or `--backend path/to/script.py` to pick one.
+
 Preview another scene:
 
 ```sh
