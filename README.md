@@ -52,10 +52,17 @@ BSP, ESP-Iris, and build paths. Initialize the tool checkout with:
 git submodule update --init --recursive submodule/esp-mosaico-tools
 ```
 
-`list` connects to the Gateway and prints Device IDs, online state, connection
+`list` connects to the Gateway and prints eFuse-MAC-derived Device IDs, the raw
+hardware MAC, online state, connection
 type, firmware identity, mode, and Boot ID. It includes cached offline devices;
 use `list --details` for endpoint, ESP-IDF version, Session ID, and capabilities,
 or `list --json` for the complete Gateway record.
+
+When upgrading from legacy ESP-Iris firmware, each device changes once from its
+old NVS-stored random Device ID to the hardware-derived Device ID. Refresh saved
+selectors with `python mosaico.py list`; old operation history remains attached
+to the offline legacy ID. Upgrade retained Recovery and normal firmware
+together so both modes use the same identity scheme.
 
 The CLI supports native Linux and macOS shells plus Windows PowerShell and
 Command Prompt; WSL and Git Bash are not required. Use Python 3.8 or newer,
