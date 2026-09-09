@@ -53,6 +53,7 @@ void app_main(void)
 
     esp_gsp_handle_t ui;
     ESP_ERROR_CHECK(esp_gsp_esp_lcd_start(&app_config, &lcd, &ui));
+    ESP_ERROR_CHECK(iris_screen_mirror_attach(ui));
 
     void *load_timer = esp_gsp_timer_create(ui, 250, feed_load, NULL);
     ESP_ERROR_CHECK(load_timer == NULL ? ESP_ERR_NO_MEM : ESP_OK);

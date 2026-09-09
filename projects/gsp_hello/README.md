@@ -7,6 +7,11 @@ startup instead of embedding it in `ota_0`.
 
 Factory remains the LVGL Recovery template.
 
+The ESP-Iris screen backend keeps no full-frame allocation while mirroring is
+idle. A mirror or screenshot request allocates its coherent RGB565 shadow and
+capture frames in PSRAM, forces one complete GSP repaint, and releases both
+frames on close, stop, or disconnect.
+
 ## Simulate
 
 From the vibe repository root:
