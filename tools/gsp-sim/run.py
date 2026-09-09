@@ -30,6 +30,28 @@ def sim_bridge_script(gsp_root: Path) -> Path:
     return gsp_root / "tools" / "sim_bridge" / "run.py"
 
 
+def requests_sim_bridge(
+    *,
+    scene: Path,
+    pc: Path | None,
+    scene_only: bool,
+    dump_ppm: Path | None,
+    extra: list[str],
+    frames: int | None,
+    fps: int | None,
+) -> bool:
+    """Return whether the CLI arguments select the application backend."""
+    return (
+        not scene_only
+        and pc is not None
+        and scene.suffix != ".gspb"
+        and dump_ppm is None
+        and not extra
+        and frames is None
+        and fps is None
+    )
+
+
 def run_sim_bridge(pc: Path, gsp_root: Path, *, headless: bool) -> int:
     command = [
         sys.executable,
@@ -81,7 +103,7 @@ def main() -> int:
         help="Skip sim_bridge and preview the packed scene without a native backend",
     )
     parser.add_argument("--frames", type=int)
-    parser.add_argument("--fps", type=int, default=60)
+    parser.add_argument("--fps", type=int)
     parser.add_argument("--dump-ppm", type=Path)
     parser.add_argument(
         "sim_args",
@@ -100,32 +122,27 @@ def main() -> int:
         extra = extra[1:]
 
     pc = find_pc_project(scene)
-    gsp_root = resolve_gsp_root(pc.parent if pc is not None else None)
-    use_bridge = (
-        not args.scene_only
-        and pc is not None
-        and scene.suffix != ".gspb"
-        and args.dump_ppm is None
-        and not extra
-        and gsp_root is not None
-        and sim_bridge_script(gsp_root).is_file()
+    bridge_requested = requests_sim_bridge(
+        scene=scene,
+        pc=pc,
+        scene_only=args.scene_only,
+        dump_ppm=args.dump_ppm,
+        extra=extra,
+        frames=args.frames,
+        fps=args.fps,
     )
-    if use_bridge:
-        return run_sim_bridge(pc, gsp_root, headless=args.headless)
-    if (
-        not args.scene_only
-        and pc is not None
-        and scene.suffix != ".gspb"
-        and args.dump_ppm is None
-        and not extra
-        and gsp_root is None
-    ):
-        raise SystemExit(
-            "espressif/esp-gsp is not installed. From the application "
-            "directory run `idf.py reconfigure` to pull "
-            "espressif/esp-gsp==1.2.0 from the ESP Component Registry, "
-            "or set ESP_GSP_COMPONENT_DIR."
-        )
+    if bridge_requested:
+        assert pc is not None
+        gsp_root = resolve_gsp_root(pc.parent)
+        if gsp_root is None:
+            raise SystemExit(
+                "espressif/esp-gsp is not installed. From the application "
+                "directory run `idf.py reconfigure` to pull "
+                "espressif/esp-gsp==1.2.0 from the ESP Component Registry, "
+                "or set ESP_GSP_COMPONENT_DIR."
+            )
+        if sim_bridge_script(gsp_root).is_file():
+            return run_sim_bridge(pc, gsp_root, headless=args.headless)
 
     sim_args: list[str] = []
     if args.headless:
@@ -136,8 +153,7 @@ def main() -> int:
         sim_args.extend(["--frames", "0"])
     if args.frames is not None:
         sim_args.extend(["--frames", str(args.frames)])
-    if args.fps:
-        sim_args.extend(["--fps", str(args.fps)])
+    sim_args.extend(["--fps", str(args.fps if args.fps is not None else 60)])
     if args.dump_ppm is not None:
         dump = args.dump_ppm.expanduser().resolve()
         dump.parent.mkdir(parents=True, exist_ok=True)

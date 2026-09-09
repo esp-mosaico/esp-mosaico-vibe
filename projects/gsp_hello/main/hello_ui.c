@@ -28,7 +28,7 @@ esp_gsp_err_t hello_ui_init(esp_gsp_handle_t ui, hello_ui_t *state)
 
 void hello_ui_deinit(esp_gsp_handle_t ui, hello_ui_t *state)
 {
-    if (state && state->timer) {
+    if (ui && state && state->timer) {
         (void)esp_gsp_timer_delete(ui, state->timer);
         state->timer = NULL;
     }

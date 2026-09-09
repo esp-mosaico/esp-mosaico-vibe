@@ -16,5 +16,5 @@ void gsp_bridge_app_deinit(esp_gsp_handle_t ui)
 {
     hello_ui_deinit(ui, &state);
     fprintf(stderr, "hello_backend: load=%d, last_error=%d\n",
-            (int)state.load, state.last_error);
+            (int)state.load, (int)state.last_error);
 }

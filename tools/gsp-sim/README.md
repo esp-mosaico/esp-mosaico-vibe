@@ -5,9 +5,9 @@ PC preview for GSP applications on ESP-Mosaico. By default it uses
 build a native Backend from portable UI C, and run the standalone **sim**
 with a Backend channel so timers and bind writes match the device.
 
-`--dump-ppm`, `--scene-only`, or extra `sim` flags after `--` fall back to
-scene-only `sim --bundle` (no application C). This wrapper does not include
-Mosaic claw hub, Lua apps, or HTML review tooling.
+`--dump-ppm`, `--scene-only`, `--frames`, an explicit `--fps`, or extra `sim`
+flags after `--` fall back to scene-only `sim --bundle` (no application C).
+This wrapper does not include Mosaic claw hub, Lua apps, or HTML review tooling.
 
 ## Prerequisites
 

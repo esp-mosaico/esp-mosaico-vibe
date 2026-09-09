@@ -74,8 +74,8 @@ python3 tools/gsp-sim/run.py --interactive --scene-only
 python3 tools/gsp-sim/run.py projects/<name>/ui/main.json --interactive -- --drag 80 360 400 360
 ```
 
-`--dump-ppm`, `--scene-only`, a `.gspb` input, or extra flags after `--`
-all skip `sim_bridge`.
+`--dump-ppm`, `--scene-only`, `--frames`, an explicit `--fps`, a `.gspb` input,
+or extra flags after `--` all skip `sim_bridge`.
 
 ## How sim_bridge works
 
