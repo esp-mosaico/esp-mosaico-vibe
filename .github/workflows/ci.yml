@@ -1,0 +1,237 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ESP_IDF_VERSION: v6.1
+  ESP_IDF_REVISION: fff9895c82d744c7237be8847347bdd1b07c6643
+  EIM_VERSION: v0.19.0
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  host-tests:
+    name: Host / ${{ matrix.os }} / Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-22.04
+          - macos-15-intel
+          - windows-2022
+        python:
+          - "3.8"
+          - "3.12"
+
+    steps:
+      - name: Check out repository and submodules
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Make MinGW compiler available
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: '"C:\msys64\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append'
+
+      - name: Install CI dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements-ci.txt
+
+      - name: Create test result directory
+        run: python -c "from pathlib import Path; Path('test-results').mkdir(exist_ok=True)"
+
+      - name: Compile Python sources
+        run: >-
+          python -m compileall -q
+          mosaico.py
+          tools
+          submodule/esp-mosaico-tools/tools/mosaico_cli
+
+      - name: Test workspace
+        run: >-
+          python -m pytest -q tests
+          --ignore=tests/firmware
+          --junitxml=test-results/workspace.xml
+
+      - name: Test ESP-Mosaico tools
+        if: runner.os != 'Windows'
+        run: >-
+          python -m pytest -q submodule/esp-mosaico-tools/tests
+          --junitxml=test-results/tools.xml
+
+      - name: Test ESP-Mosaico tools on Windows
+        if: runner.os == 'Windows'
+        run: >-
+          python -m pytest -q submodule/esp-mosaico-tools/tests
+          --ignore=submodule/esp-mosaico-tools/tests/test_http_update_authorization_host.py
+          --junitxml=test-results/tools.xml
+
+      - name: Check repository launcher
+        run: python mosaico.py --version
+
+      - name: Upload host test results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: host-${{ matrix.os }}-python-${{ matrix.python }}
+          path: test-results/*.xml
+          if-no-files-found: error
+          retention-days: 14
+
+  firmware-builds:
+    name: Firmware / ${{ matrix.name }}
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: hello-world
+            project: projects/hello_world
+          - name: gsp-hello
+            project: projects/gsp_hello
+          - name: iris-acceptance
+            project: tests/firmware/iris_acceptance
+          - name: recovery
+            project: submodule/esp-mosaico-tools/firmware/recovery
+
+    steps:
+      - name: Check out repository and submodules
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Create build log directory
+        shell: bash
+        run: mkdir -p "$RUNNER_TEMP/idf-logs/${{ matrix.name }}"
+
+      - name: Install ESP-IDF v6.1
+        uses: espressif/install-esp-idf-action@8fc05d1470d5591417e7a3707a1f2bec178db4ae # v1
+        with:
+          version: ${{ env.ESP_IDF_VERSION }}
+          path: /tmp/esp/idf
+          tools-path: /tmp/esp
+          eim-version: ${{ env.EIM_VERSION }}
+
+      - name: Verify pinned ESP-IDF revision
+        shell: bash
+        run: |
+          if [[ -z "${IDF_PATH:-}" ]]; then
+            echo "ESP-IDF installer did not export IDF_PATH"
+            exit 1
+          fi
+          actual_revision="$(git -C "$IDF_PATH" rev-parse HEAD)"
+          if [[ "$actual_revision" != "$ESP_IDF_REVISION" ]]; then
+            echo "Expected ESP-IDF revision: $ESP_IDF_REVISION"
+            echo "Actual ESP-IDF revision:   $actual_revision"
+            exit 1
+          fi
+          idf.py --version
+
+      - name: Verify ESP-IDF environment
+        shell: bash
+        run: >-
+          python3 submodule/esp-mosaico-tools/skills/idf-low-noise-build/scripts/idf_low_noise_build.py
+          --project "${{ matrix.project }}"
+          doctor
+
+      - name: Build firmware
+        shell: bash
+        run: >-
+          python3 submodule/esp-mosaico-tools/skills/idf-low-noise-build/scripts/idf_low_noise_build.py
+          --project "${{ matrix.project }}"
+          --log-dir "$RUNNER_TEMP/idf-logs/${{ matrix.name }}"
+          build
+
+      - name: Build GSP PC bridge and render scene
+        if: matrix.name == 'gsp-hello'
+        shell: bash
+        run: |
+          gsp_root="$GITHUB_WORKSPACE/projects/gsp_hello/managed_components/espressif__esp-gsp"
+          gspc="$(python3 tools/gsp-sim/fetch_gspc.py)"
+          cmake \
+            -S projects/gsp_hello/pc \
+            -B "$RUNNER_TEMP/gsp-pc-build" \
+            -D "ESP_GSP_COMPONENT_DIR=$gsp_root" \
+            -D "GSPC_EXECUTABLE=$gspc"
+          cmake --build "$RUNNER_TEMP/gsp-pc-build"
+          python3 tools/gsp-sim/run.py \
+            --headless \
+            --dump-ppm "$RUNNER_TEMP/gsp-hello.ppm"
+          python3 - "$RUNNER_TEMP/gsp-hello.ppm" <<'PY'
+          from pathlib import Path
+          import sys
+
+          image = Path(sys.argv[1]).read_bytes()
+          header = image.split(maxsplit=4)[:4]
+          if header != [b"P6", b"480", b"480", b"255"]:
+              raise SystemExit(f"unexpected PPM header: {header!r}")
+          PY
+
+      - name: Upload firmware build logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: firmware-${{ matrix.name }}-logs
+          path: ${{ runner.temp }}/idf-logs/${{ matrix.name }}/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload firmware artifacts
+        if: success()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: firmware-${{ matrix.name }}
+          path: |
+            ${{ matrix.project }}/build/*.bin
+            ${{ matrix.project }}/build/*.elf
+            ${{ matrix.project }}/build/*.map
+            ${{ matrix.project }}/build/*.irisfw
+            ${{ matrix.project }}/build/sdkconfig
+            ${{ matrix.project }}/build/bootloader/*.bin
+            ${{ matrix.project }}/build/partition_table/*.bin
+            ${{ runner.temp }}/gsp-hello.ppm
+          if-no-files-found: error
+          retention-days: 14
+
+  required:
+    name: required
+    if: always()
+    needs:
+      - host-tests
+      - firmware-builds
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every CI job
+        shell: bash
+        env:
+          HOST_RESULT: ${{ needs.host-tests.result }}
+          FIRMWARE_RESULT: ${{ needs.firmware-builds.result }}
+        run: |
+          if [[ "$HOST_RESULT" != "success" || "$FIRMWARE_RESULT" != "success" ]]; then
+            echo "Host tests: $HOST_RESULT"
+            echo "Firmware builds: $FIRMWARE_RESULT"
+            exit 1
+          fi

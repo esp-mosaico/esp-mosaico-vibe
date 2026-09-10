@@ -2,6 +2,8 @@
 
 [English](README.md) | [中文](README_CN.md)
 
+[![CI](https://github.com/esp-mosaico/esp-mosaico-vibe/actions/workflows/ci.yml/badge.svg)](https://github.com/esp-mosaico/esp-mosaico-vibe/actions/workflows/ci.yml)
+
 This repository is the **Agent-led human-Agent collaborative development entry
 point purpose-built for ESP-Mosaico**. It gives the Agent a unified engineering
 workspace and device channel.
@@ -83,16 +85,46 @@ Host state follows platform conventions: `$XDG_STATE_HOME/esp-mosaico` (or
 `~/.local/state/esp-mosaico`) on Linux, `~/Library/Application Support/esp-mosaico`
 on macOS, and `%LOCALAPPDATA%\esp-mosaico` on Windows.
 
-Run the tool tests and the same host compatibility smoke test from each native host:
+Install the CI test dependencies and run the deterministic host checks locally with:
 
 ```sh
-python -m unittest discover -s submodule/esp-mosaico-tools/tests -v
-python -m unittest discover -s tests -v
+python -m pip install -r requirements-ci.txt
+python -m pytest -q submodule/esp-mosaico-tools/tests
+python -m pytest -q tests --ignore=tests/firmware
 python mosaico.py --version
+```
+
+The Recovery HTTP authorization host test is POSIX-only. On Windows, pass
+`--ignore=submodule/esp-mosaico-tools/tests/test_http_update_authorization_host.py`
+to the tools test command. Device-aware host smoke checks remain manual:
+
+```sh
 python mosaico.py --json list
 python mosaico.py --json doctor
 python mosaico.py monitor --timeout 1 --grep __mosaico_host_smoke__
 ```
+
+## Continuous integration
+
+The [GitHub Actions workflow](.github/workflows/ci.yml) runs for pull requests,
+pushes to `main`, and manual dispatches. It tests Python 3.8 and 3.12 on native
+Linux, macOS, and Windows runners, then builds `hello_world`, `gsp_hello`, the
+ESP-Iris acceptance firmware, and retained Recovery on GitHub-hosted
+`ubuntu-22.04` runners. Each firmware job installs the pinned ESP-IDF v6.1
+revision with Espressif's official EIM-based setup action before the low-noise
+environment check and build. The GSP job also compiles the PC bridge and renders
+a 480×480 headless frame. Test reports, build logs, and successful firmware
+artifacts are retained for 14 days.
+
+Firmware CI needs no self-hosted runner or repository secret. GitHub supplies a
+fresh hosted VM for every matrix job; the workflow installs ESP-IDF v6.1,
+CMake, Ninja, the C toolchain, and ESP32-S31 preview support there. The runner
+must be able to reach GitHub, the ESP Component Registry, and Espressif download
+sites.
+
+CI never discovers, flashes, or controls a physical device and does not publish
+a release. Configure `CI / required` as the required `main` branch protection
+check after the first successful workflow run.
 
 `install` updates normal applications only through the **ESP-Iris Developer
 Gateway**. An uninitialized device is told to run `recover`; the command never

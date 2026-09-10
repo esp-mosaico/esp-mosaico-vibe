@@ -2,6 +2,8 @@
 
 [English](README.md) | [中文](README_CN.md)
 
+[![CI](https://github.com/esp-mosaico/esp-mosaico-vibe/actions/workflows/ci.yml/badge.svg)](https://github.com/esp-mosaico/esp-mosaico-vibe/actions/workflows/ci.yml)
+
 本仓库是为 ESP-Mosaico 定制的 **Agent 主导（Agent-Led）人机协同开发统一入口**。
 它为 Agent 提供统一的工程能力与设备通道。
 
@@ -71,16 +73,42 @@ ESP-IDF，以及由 `submodule/esp-mosaico-tools` 递归锁定的 ESP-Iris。Gat
 `~/Library/Application Support/esp-mosaico`，Windows 使用
 `%LOCALAPPDATA%\esp-mosaico`。
 
-在每种原生主机上运行相同的兼容性冒烟测试：
+安装 CI 测试依赖，并在本机运行可重复的主机检查：
 
 ```sh
-python -m unittest discover -s submodule/esp-mosaico-tools/tests -v
-python -m unittest discover -s tests/mosaico_cli -v
+python -m pip install -r requirements-ci.txt
+python -m pytest -q submodule/esp-mosaico-tools/tests
+python -m pytest -q tests --ignore=tests/firmware
 python mosaico.py --version
+```
+
+Recovery HTTP 授权主机测试只支持 POSIX；Windows 运行 Tools 测试时需添加
+`--ignore=submodule/esp-mosaico-tools/tests/test_http_update_authorization_host.py`。
+依赖设备和主机环境的冒烟检查仍由开发者按需运行：
+
+```sh
 python mosaico.py --json list
 python mosaico.py --json doctor
 python mosaico.py monitor --timeout 1 --grep __mosaico_host_smoke__
 ```
+
+## 持续集成
+
+[GitHub Actions 工作流](.github/workflows/ci.yml)在 Pull Request、`main` 分支
+push 和手动触发时运行。主机矩阵在原生 Linux、macOS、Windows 上测试 Python
+3.8 和 3.12；固件矩阵在 GitHub 托管的 `ubuntu-22.04` runner 上构建
+`hello_world`、`gsp_hello`、ESP-Iris 验收固件和保留 Recovery。每个固件任务
+先用乐鑫官方的 EIM 安装 Action 安装固定的 ESP-IDF v6.1 revision，再执行
+low-noise 环境检查和构建。GSP 任务还会编译 PC bridge，并渲染一张 480×480
+的无界面帧。测试报告、构建日志和成功生成的固件产物保留 14 天。
+
+固件 CI 不再需要自托管 runner 或仓库 secret。GitHub 为每个矩阵任务提供全新的
+托管虚拟机，工作流在其中安装 ESP-IDF v6.1、CMake、Ninja、C 工具链和
+ESP32-S31 preview 支持。runner 只需能够访问 GitHub、ESP Component Registry
+和乐鑫下载站。
+
+CI 不发现、烧录或控制真机，也不发布正式 Release。首次流水线成功后，在 `main`
+分支保护规则中把 `CI / required` 配置为必选检查。
 
 `install` 只通过 **ESP-Iris Developer Gateway** 更新普通应用；设备未完成初始化
 时会明确提示先运行 `recover`，不会自动切换成底层烧录。`recover` 默认使用仓库
