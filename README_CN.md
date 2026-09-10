@@ -45,9 +45,14 @@ python mosaico.py monitor
 git submodule update --init --recursive submodule/esp-mosaico-tools
 ```
 
-`list` 会连接 Gateway，列出 Device ID、在线状态、连接方式、固件身份、运行模式和
-Boot ID，并保留 Gateway 缓存中的离线设备。使用 `list --details` 查看 endpoint、
+`list` 会连接 Gateway，列出由出厂 eFuse Base MAC 派生的 Device ID、原始硬件
+MAC、在线状态、连接方式、固件身份、运行模式和 Boot ID，并保留 Gateway 缓存中的离线设备。使用 `list --details` 查看 endpoint、
 ESP-IDF 版本、Session ID 和能力列表，或使用 `list --json` 查看完整 Gateway 记录。
+
+从旧版 ESP-Iris 升级时，每台设备会从原先保存在 NVS 中的随机 Device ID 一次性
+切换为硬件派生 Device ID。请用 `python mosaico.py list` 刷新保存的选择器；旧操作
+历史仍保留在离线的旧 ID 下。保留 Recovery 与普通应用应一起升级，确保两种模式
+采用相同的身份规则。
 
 CLI 支持 Linux、macOS 原生终端，以及 Windows PowerShell 和 CMD，不依赖 WSL
 或 Git Bash。主机 CLI 最低支持 Python 3.8，并使用满足工作区工程约束的

@@ -46,6 +46,7 @@ void app_main(void)
 
     esp_gsp_handle_t ui;
     ESP_ERROR_CHECK(esp_gsp_esp_lcd_start(&app_config, &lcd, &ui));
+    ESP_ERROR_CHECK(iris_screen_mirror_attach(ui));
     ESP_ERROR_CHECK(hello_ui_init(ui, &s_hello));
 
     ESP_LOGI(TAG, "GSP Hello World ready at %dx%d RGB565",
