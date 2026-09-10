@@ -25,7 +25,7 @@ and read only the relevant `SKILL.md` guides.
 
 GSP applications can preview 480×480 scenes on the PC before flashing. Use
 [`tools/gsp-sim`](tools/gsp-sim/README.md) with the pinned
-**espressif/esp-gsp 1.1.0** submodule (`submodule/esp-gsp`).
+**espressif/esp-gsp 1.2.0** component from the ESP Component Registry.
 Start from [`projects/gsp_hello`](projects/gsp_hello) for a GSP Hello World
 that runs in the PC simulator and on the device.
 
@@ -157,7 +157,7 @@ partitions without explicit user authorization.
 - `projects/gsp_hello` — GSP Hello World for PC simulation and device installation.
 - `tests/firmware/` — flashable device firmware used only by integration and acceptance tests.
 - `components/esp_mosaico_app_recovery` — normal-application Recovery entry and health support.
-- `submodule/esp-gsp/` — pinned ESP-GSP 1.1.0 (device prebuilts; sim/gspc fetched separately).
+- `espressif/esp-gsp==1.2.0` — remote ESP-GSP component (device prebuilts via the registry; sim/gspc fetched separately).
 - `tools/gsp-sim/` — packs scenes and runs the standalone ESP-GSP `sim`.
 - `submodule/esp-mosaico-tools/` — pinned repository-local implementation of
   `mosaico.py`, its internal Recovery firmware, and its nested pinned ESP-Iris

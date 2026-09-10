@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Cache standalone GSPC / GSP simulator releases for the pinned ESP-GSP submodule."""
+"""Cache standalone GSPC / GSP simulator releases for pinned espressif/esp-gsp."""
 
 from __future__ import annotations
 
@@ -16,26 +16,63 @@ from pathlib import Path
 
 TOOLS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TOOLS_DIR.parents[1]
-GSP_ROOT = REPO_ROOT / "submodule" / "esp-gsp"
+MANAGED_GSP = "espressif__esp-gsp"
+PINNED_GSP_VERSION = "1.2.0"
+PINNED_GSPC_VERSION = "0.3.0"
 LICENSE_NAME = "THIRD_PARTY_LICENSES.txt"
 
 
-def gspc_version() -> str:
-    marker = GSP_ROOT / ".gspc_version"
-    if marker.is_file():
-        text = marker.read_text(encoding="utf-8").strip()
-        if text:
-            return text
-    return "0.2.8"
+def _managed_gsp_dir(project_dir: Path) -> Path:
+    return project_dir / "managed_components" / MANAGED_GSP
 
 
-def gsp_component_version() -> str:
-    manifest = GSP_ROOT / "idf_component.yml"
-    if manifest.is_file():
-        for line in manifest.read_text(encoding="utf-8").splitlines():
-            if line.startswith("version:"):
-                return line.split(":", 1)[1].strip().strip("'\"")
-    return "1.1.0"
+def resolve_gsp_root(project_dir: Path | None = None) -> Path | None:
+    """Locate the downloaded espressif/esp-gsp component, if present."""
+    configured = os.environ.get("ESP_GSP_COMPONENT_DIR")
+    if configured:
+        path = Path(configured).expanduser()
+        if path.is_dir():
+            return path
+
+    candidates: list[Path] = []
+    if project_dir is not None:
+        project = project_dir.resolve()
+        candidates.append(_managed_gsp_dir(project))
+        if project.name == "pc":
+            candidates.append(_managed_gsp_dir(project.parent))
+    candidates.append(_managed_gsp_dir(REPO_ROOT / "projects" / "gsp_hello"))
+
+    seen: set[Path] = set()
+    for candidate in candidates:
+        resolved = candidate.resolve()
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        if (resolved / "idf_component.yml").is_file():
+            return resolved
+    return None
+
+
+def gspc_version(gsp_root: Path | None = None) -> str:
+    root = gsp_root or resolve_gsp_root()
+    if root is not None:
+        marker = root / ".gspc_version"
+        if marker.is_file():
+            text = marker.read_text(encoding="utf-8").strip()
+            if text:
+                return text
+    return PINNED_GSPC_VERSION
+
+
+def gsp_component_version(gsp_root: Path | None = None) -> str:
+    root = gsp_root or resolve_gsp_root()
+    if root is not None:
+        manifest = root / "idf_component.yml"
+        if manifest.is_file():
+            for line in manifest.read_text(encoding="utf-8").splitlines():
+                if line.startswith("version:"):
+                    return line.split(":", 1)[1].strip().strip("'\"")
+    return PINNED_GSP_VERSION
 
 
 def host_os_arch() -> tuple[str, str]:
@@ -159,19 +196,25 @@ def resolve_release(
     return binary
 
 
-def resolve_gspc(cache_dir: Path | None = None) -> Path:
+def resolve_gspc(
+    cache_dir: Path | None = None,
+    gsp_root: Path | None = None,
+) -> Path:
     return resolve_release(
         product="gspc",
-        version=gspc_version(),
+        version=gspc_version(gsp_root),
         env_var="GSPC_EXECUTABLE",
         cache_dir=cache_dir,
     )
 
 
-def resolve_sim(cache_dir: Path | None = None) -> Path:
+def resolve_sim(
+    cache_dir: Path | None = None,
+    gsp_root: Path | None = None,
+) -> Path:
     return resolve_release(
         product="sim",
-        version=gsp_component_version(),
+        version=gsp_component_version(gsp_root),
         env_var="GSP_SIM_EXECUTABLE",
         cache_dir=cache_dir,
     )

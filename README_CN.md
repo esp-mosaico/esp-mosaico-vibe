@@ -20,7 +20,7 @@
 
 使用 GSP 绘制界面的工程可先在 PC 上预览 480×480 场景，再烧录真机。入口是
 [`tools/gsp-sim`](tools/gsp-sim/README.md)，固定使用
-**espressif/esp-gsp 1.1.0**（`submodule/esp-gsp`）。
+**espressif/esp-gsp 1.2.0**（ESP 组件仓库远程依赖）。
 需要同时支持 PC 仿真和真机运行的 GSP Hello World，可从
 [`projects/gsp_hello`](projects/gsp_hello) 开始。
 
@@ -132,7 +132,7 @@ ESP-Mosaico 只有一个 High-Speed USB 接口。正常固件和 Recovery 都会
 - `projects/gsp_hello`：支持 PC 仿真和真机安装的 GSP Hello World。
 - `tests/firmware/`：仅供集成和验收测试使用的可烧录设备固件。
 - `components/esp_mosaico_app_recovery`：普通应用进入 Recovery 和健康确认支持。
-- `submodule/esp-gsp/`：固定的 ESP-GSP 1.1.0（设备预编译库；主机仿真器与 gspc 另行下载）。
+- `espressif/esp-gsp==1.2.0`：远程 ESP-GSP 组件（设备预编译库由组件仓库拉取；主机仿真器与 gspc 另行下载）。
 - `tools/gsp-sim/`：打包场景并运行独立的 ESP-GSP `sim`。
 - `submodule/esp-mosaico-tools/`：固定版本的仓库本地 `mosaico.py` 实现及其
   内置 Recovery 固件和嵌套锁定的 ESP-Iris 固件/主机运行时，无需全局安装 CLI。
