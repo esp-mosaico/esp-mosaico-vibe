@@ -100,12 +100,13 @@ python mosaico.py monitor --timeout 1 --grep __mosaico_host_smoke__
 push 和手动触发时运行。主机矩阵在原生 Linux、macOS、Windows 上测试 Python
 3.8 和 3.12；固件矩阵在 GitHub 托管的 `ubuntu-22.04` runner 上构建
 `hello_world`、`gsp_hello`、ESP-Iris 验收固件和保留 Recovery。每个固件任务
-先递归检出固定的 ESP-IDF v6.1 revision，并用 ESP-IDF 官方 `install.sh` 安装
-工具链，再执行 low-noise 环境检查和构建。GSP 任务还会编译 PC bridge，并渲染
-一张 480×480 的无界面帧。测试报告、构建日志和成功生成的固件产物保留 14 天。
+先递归检出 6.2 开发线上的固定 ESP-IDF revision
+`7b9cc1ac79f865983f59bb8ff3ff43eb74ff1dbe`，并用 ESP-IDF 官方 `install.sh`
+安装工具链，再执行 low-noise 环境检查和构建。GSP 任务还会编译 PC bridge，并
+渲染一张 480×480 的无界面帧。测试报告、构建日志和成功生成的固件产物保留 14 天。
 
 固件 CI 不再需要自托管 runner 或仓库 secret。GitHub 为每个矩阵任务提供全新的
-托管虚拟机，工作流在其中安装 ESP-IDF v6.1、CMake、Ninja、C 工具链和
+托管虚拟机，工作流在其中安装固定的 ESP-IDF revision、CMake、Ninja、C 工具链和
 ESP32-S31 preview 支持。runner 只需能够访问 GitHub、ESP Component Registry
 和乐鑫下载站。
 

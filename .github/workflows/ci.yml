@@ -13,8 +13,7 @@ permissions:
   contents: read
 
 env:
-  ESP_IDF_VERSION: v6.1
-  ESP_IDF_REVISION: fff9895c82d744c7237be8847347bdd1b07c6643
+  ESP_IDF_REVISION: 7b9cc1ac79f865983f59bb8ff3ff43eb74ff1dbe
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -139,7 +138,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Check out ESP-IDF v6.1
+      - name: Check out pinned ESP-IDF revision
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: espressif/esp-idf
@@ -233,7 +232,15 @@ jobs:
             ${{ matrix.project }}/build/sdkconfig
             ${{ matrix.project }}/build/bootloader/*.bin
             ${{ matrix.project }}/build/partition_table/*.bin
-            ${{ runner.temp }}/gsp-hello.ppm
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload GSP screenshot
+        if: success() && matrix.name == 'gsp-hello'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: firmware-${{ matrix.name }}-screenshot
+          path: ${{ runner.temp }}/gsp-hello.ppm
           if-no-files-found: error
           retention-days: 14
 

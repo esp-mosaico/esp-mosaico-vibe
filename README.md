@@ -112,17 +112,18 @@ The [GitHub Actions workflow](.github/workflows/ci.yml) runs for pull requests,
 pushes to `main`, and manual dispatches. It tests Python 3.8 and 3.12 on native
 Linux, macOS, and Windows runners, then builds `hello_world`, `gsp_hello`, the
 ESP-Iris acceptance firmware, and retained Recovery on GitHub-hosted
-`ubuntu-22.04` runners. Each firmware job installs the pinned ESP-IDF v6.1
-revision with ESP-IDF's official `install.sh` before the low-noise environment
-check and build. The GSP job also compiles the PC bridge and renders a 480×480
-headless frame. Test reports, build logs, and successful firmware artifacts are
-retained for 14 days.
+`ubuntu-22.04` runners. Each firmware job installs ESP-IDF revision
+`7b9cc1ac79f865983f59bb8ff3ff43eb74ff1dbe` from the 6.2 development line with
+ESP-IDF's official `install.sh` before the low-noise environment check and
+build. The GSP job also compiles the PC bridge and renders a 480×480 headless
+frame. Test reports, build logs, and successful firmware artifacts are retained
+for 14 days.
 
 Firmware CI needs no self-hosted runner or repository secret. GitHub supplies a
-fresh hosted VM for every matrix job; the workflow installs ESP-IDF v6.1,
-CMake, Ninja, the C toolchain, and ESP32-S31 preview support there. The runner
-must be able to reach GitHub, the ESP Component Registry, and Espressif download
-sites.
+fresh hosted VM for every matrix job; the workflow installs the pinned ESP-IDF
+revision, CMake, Ninja, the C toolchain, and ESP32-S31 preview support there. The
+runner must be able to reach GitHub, the ESP Component Registry, and Espressif
+download sites.
 
 CI never discovers, flashes, or controls a physical device and does not publish
 a release. Configure `CI / required` as the required `main` branch protection
