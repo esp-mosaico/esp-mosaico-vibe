@@ -96,7 +96,9 @@ python mosaico.py --version
 
 The Recovery HTTP authorization host test is POSIX-only. On Windows, pass
 `--ignore=submodule/esp-mosaico-tools/tests/test_http_update_authorization_host.py`
-to the tools test command. Device-aware host smoke checks remain manual:
+to the tools test command. CI also deselects four Tools tests on Windows whose
+fixtures hard-code POSIX path rendering; those contracts still run on Linux and
+macOS. Device-aware host smoke checks remain manual:
 
 ```sh
 python mosaico.py --json list
@@ -111,10 +113,10 @@ pushes to `main`, and manual dispatches. It tests Python 3.8 and 3.12 on native
 Linux, macOS, and Windows runners, then builds `hello_world`, `gsp_hello`, the
 ESP-Iris acceptance firmware, and retained Recovery on GitHub-hosted
 `ubuntu-22.04` runners. Each firmware job installs the pinned ESP-IDF v6.1
-revision with Espressif's official EIM-based setup action before the low-noise
-environment check and build. The GSP job also compiles the PC bridge and renders
-a 480×480 headless frame. Test reports, build logs, and successful firmware
-artifacts are retained for 14 days.
+revision with ESP-IDF's official `install.sh` before the low-noise environment
+check and build. The GSP job also compiles the PC bridge and renders a 480×480
+headless frame. Test reports, build logs, and successful firmware artifacts are
+retained for 14 days.
 
 Firmware CI needs no self-hosted runner or repository secret. GitHub supplies a
 fresh hosted VM for every matrix job; the workflow installs ESP-IDF v6.1,

@@ -84,7 +84,9 @@ python mosaico.py --version
 
 Recovery HTTP 授权主机测试只支持 POSIX；Windows 运行 Tools 测试时需添加
 `--ignore=submodule/esp-mosaico-tools/tests/test_http_update_authorization_host.py`。
-依赖设备和主机环境的冒烟检查仍由开发者按需运行：
+CI 还会在 Windows 上取消选择 4 项 fixture 硬编码 POSIX 路径显示的 Tools 测试；
+这些契约仍会在 Linux 和 macOS 上执行。依赖设备和主机环境的冒烟检查仍由开发者
+按需运行：
 
 ```sh
 python mosaico.py --json list
@@ -98,9 +100,9 @@ python mosaico.py monitor --timeout 1 --grep __mosaico_host_smoke__
 push 和手动触发时运行。主机矩阵在原生 Linux、macOS、Windows 上测试 Python
 3.8 和 3.12；固件矩阵在 GitHub 托管的 `ubuntu-22.04` runner 上构建
 `hello_world`、`gsp_hello`、ESP-Iris 验收固件和保留 Recovery。每个固件任务
-先用乐鑫官方的 EIM 安装 Action 安装固定的 ESP-IDF v6.1 revision，再执行
-low-noise 环境检查和构建。GSP 任务还会编译 PC bridge，并渲染一张 480×480
-的无界面帧。测试报告、构建日志和成功生成的固件产物保留 14 天。
+先递归检出固定的 ESP-IDF v6.1 revision，并用 ESP-IDF 官方 `install.sh` 安装
+工具链，再执行 low-noise 环境检查和构建。GSP 任务还会编译 PC bridge，并渲染
+一张 480×480 的无界面帧。测试报告、构建日志和成功生成的固件产物保留 14 天。
 
 固件 CI 不再需要自托管 runner 或仓库 secret。GitHub 为每个矩阵任务提供全新的
 托管虚拟机，工作流在其中安装 ESP-IDF v6.1、CMake、Ninja、C 工具链和

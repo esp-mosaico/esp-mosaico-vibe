@@ -15,7 +15,6 @@ permissions:
 env:
   ESP_IDF_VERSION: v6.1
   ESP_IDF_REVISION: fff9895c82d744c7237be8847347bdd1b07c6643
-  EIM_VERSION: v0.19.0
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -75,15 +74,24 @@ jobs:
 
       - name: Test ESP-Mosaico tools
         if: runner.os != 'Windows'
+        env:
+          TMPDIR: ${{ runner.temp }}
         run: >-
           python -m pytest -q submodule/esp-mosaico-tools/tests
           --junitxml=test-results/tools.xml
 
       - name: Test ESP-Mosaico tools on Windows
         if: runner.os == 'Windows'
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
         run: >-
           python -m pytest -q submodule/esp-mosaico-tools/tests
           --ignore=submodule/esp-mosaico-tools/tests/test_http_update_authorization_host.py
+          --deselect=submodule/esp-mosaico-tools/tests/test_cli.py::GatewayTests::test_local_system_update_builds_and_submits_atomic_bundle
+          --deselect=submodule/esp-mosaico-tools/tests/test_cli.py::HostCompatibilityTests::test_idf_environment_uses_idf_python_without_a_shell
+          --deselect=submodule/esp-mosaico-tools/tests/test_cli.py::HostCompatibilityTests::test_python38_runtime_hands_idf_to_a_newer_python
+          --deselect=submodule/esp-mosaico-tools/tests/test_cli.py::RecoveryCommandTests::test_idf_wrapper_reports_bounded_cmake_diagnostic
           --junitxml=test-results/tools.xml
 
       - name: Check repository launcher
@@ -126,13 +134,28 @@ jobs:
         shell: bash
         run: mkdir -p "$RUNNER_TEMP/idf-logs/${{ matrix.name }}"
 
-      - name: Install ESP-IDF v6.1
-        uses: espressif/install-esp-idf-action@8fc05d1470d5591417e7a3707a1f2bec178db4ae # v1
+      - name: Set up ESP-IDF Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
-          version: ${{ env.ESP_IDF_VERSION }}
-          path: /tmp/esp/idf
-          tools-path: /tmp/esp
-          eim-version: ${{ env.EIM_VERSION }}
+          python-version: "3.12"
+
+      - name: Check out ESP-IDF v6.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: espressif/esp-idf
+          ref: ${{ env.ESP_IDF_REVISION }}
+          path: .idf/esp-idf
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Install ESP-IDF tools
+        shell: bash
+        run: |
+          export IDF_PATH="$GITHUB_WORKSPACE/.idf/esp-idf"
+          export IDF_TOOLS_PATH="$RUNNER_TEMP/espressif"
+          "$IDF_PATH/install.sh" all
+          echo "IDF_PATH=$IDF_PATH" >> "$GITHUB_ENV"
+          echo "IDF_TOOLS_PATH=$IDF_TOOLS_PATH" >> "$GITHUB_ENV"
 
       - name: Verify pinned ESP-IDF revision
         shell: bash
