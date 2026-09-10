@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from contextlib import ExitStack
 import importlib.util
 from pathlib import Path
 import sys
@@ -15,14 +18,23 @@ SPEC.loader.exec_module(MODULE)
 
 class GspSimRunTests(unittest.TestCase):
     def run_main(self, *arguments: str) -> tuple[int, list[str]]:
-        with (
-            mock.patch.object(sys, "argv", [str(MODULE_PATH), *arguments]),
-            mock.patch.object(MODULE, "resolve_gsp_root") as resolve_gsp_root,
-            mock.patch.object(MODULE, "resolve_gspc", return_value=Path("/tmp/gspc")),
-            mock.patch.object(MODULE, "resolve_sim", return_value=Path("/tmp/sim")),
-            mock.patch.object(MODULE, "pack_scene"),
-            mock.patch.object(MODULE.subprocess, "call", return_value=0) as call,
-        ):
+        with ExitStack() as contexts:
+            contexts.enter_context(
+                mock.patch.object(sys, "argv", [str(MODULE_PATH), *arguments])
+            )
+            resolve_gsp_root = contexts.enter_context(
+                mock.patch.object(MODULE, "resolve_gsp_root")
+            )
+            contexts.enter_context(
+                mock.patch.object(MODULE, "resolve_gspc", return_value=Path("/tmp/gspc"))
+            )
+            contexts.enter_context(
+                mock.patch.object(MODULE, "resolve_sim", return_value=Path("/tmp/sim"))
+            )
+            contexts.enter_context(mock.patch.object(MODULE, "pack_scene"))
+            call = contexts.enter_context(
+                mock.patch.object(MODULE.subprocess, "call", return_value=0)
+            )
             result = MODULE.main()
 
         resolve_gsp_root.assert_not_called()
@@ -47,21 +59,33 @@ class GspSimRunTests(unittest.TestCase):
         self.assertEqual(command[command.index("--fps") + 1], "60")
 
     def test_default_preview_requires_component_for_sim_bridge(self) -> None:
-        with (
-            mock.patch.object(sys, "argv", [str(MODULE_PATH), "--headless"]),
-            mock.patch.object(MODULE, "resolve_gsp_root", return_value=None),
-        ):
+        with ExitStack() as contexts:
+            contexts.enter_context(
+                mock.patch.object(sys, "argv", [str(MODULE_PATH), "--headless"])
+            )
+            contexts.enter_context(
+                mock.patch.object(MODULE, "resolve_gsp_root", return_value=None)
+            )
             with self.assertRaisesRegex(SystemExit, "esp-gsp is not installed"):
                 MODULE.main()
 
     def test_default_preview_still_uses_sim_bridge(self) -> None:
         component = Path("/tmp/esp-gsp")
-        with (
-            mock.patch.object(sys, "argv", [str(MODULE_PATH), "--headless"]),
-            mock.patch.object(MODULE, "resolve_gsp_root", return_value=component),
-            mock.patch.object(MODULE, "sim_bridge_script", return_value=MODULE_PATH),
-            mock.patch.object(MODULE, "run_sim_bridge", return_value=7) as run_bridge,
-        ):
+        with ExitStack() as contexts:
+            contexts.enter_context(
+                mock.patch.object(sys, "argv", [str(MODULE_PATH), "--headless"])
+            )
+            contexts.enter_context(
+                mock.patch.object(MODULE, "resolve_gsp_root", return_value=component)
+            )
+            contexts.enter_context(
+                mock.patch.object(
+                    MODULE, "sim_bridge_script", return_value=MODULE_PATH
+                )
+            )
+            run_bridge = contexts.enter_context(
+                mock.patch.object(MODULE, "run_sim_bridge", return_value=7)
+            )
             result = MODULE.main()
 
         self.assertEqual(result, 7)
