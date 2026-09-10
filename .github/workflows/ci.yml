@@ -170,7 +170,6 @@ jobs:
             echo "Actual ESP-IDF revision:   $actual_revision"
             exit 1
           fi
-          idf.py --version
 
       - name: Verify ESP-IDF environment
         shell: bash
