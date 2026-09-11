@@ -14,8 +14,10 @@ CONFIG_FACTORY_RECOVERY_BOOT_GPIO=7
 CONFIG_FACTORY_RECOVERY_BOOT_DEBOUNCE_MS=50
 
 # USB High-Speed is owned by ESP-Iris. Device installation and logs go through
-# the repository's mosaico.py commands.
-CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+# the repository's mosaico.py commands. Keep the console on UART and avoid the
+# built-in USB Serial/JTAG controller.
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y
+# CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG is not set
 CONFIG_ESP_CONSOLE_SECONDARY_NONE=y
 CONFIG_ESP_IRIS_TRANSPORT_USB=y
 CONFIG_ESP_IRIS_TRANSPORT_TCP=y

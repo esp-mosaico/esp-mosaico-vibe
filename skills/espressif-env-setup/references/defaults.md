@@ -180,8 +180,8 @@ git ls-remote --tags https://github.com/espressif/esp-idf.git
 |-----|--------|----------------|------|
 | **ESP-IDF（独立）** | `YOUR_IDF_VERSION` | **在维护线各最新稳定 tag（现查）**；「你定」→ 服务期最新稳定 tag | 仅 `esp-idf.md`；见上文专节 |
 | **ESP-IDF（独立）** | `YOUR_TARGET_CHIP` | `esp32` | 仅独立 IDF |
-| **共用** | 默认父目录 | Windows `C:\esp`；Linux/macOS `~/esp` | **ESP-IDF / ESP-AT / ESP-ADF 相同**；主动询问时须说明这一点 |
-| **共用** | 默认工具链目录 | Windows `%USERPROFILE%\.espressif`；Linux/macOS `~/.espressif` | Phase 0 **须询问**；不指定则告知该默认并等确认后再 install；见 [placeholders.md § IDF_TOOLS_PATH](placeholders.md#your_tools_path--idf_tools_path) |
+| **共用** | 默认父目录 | Windows `C:\esp`；Linux/macOS `~/esp` | **ESP-IDF / ESP-AT / ESP-ADF 相同**；未指定时告知完整路径并自主使用 |
+| **共用** | 默认工具链目录 | Windows `%USERPROFILE%\.espressif`；Linux/macOS `~/.espressif` | 未指定时告知该默认并自主 install，无需单独确认；见 [placeholders.md § IDF_TOOLS_PATH](placeholders.md#your_tools_path--idf_tools_path) |
 | **ESP-AT** | 芯片 / `YOUR_PLATFORM` | **无默认**；仅上表七款 | 见「ESP-AT：支持芯片与默认版本」 |
 | **ESP-AT** | `YOUR_AT_VERSION` | 该芯片行的「推荐的 AT 固件」 | **不要**默认 `master` |
 | **ESP-ADF** | `YOUR_ADF_VERSION` | `master` | 仅 `master` / `release/v2.x`；**Phase 0 须两档都展示**，禁止只推 v2.x |

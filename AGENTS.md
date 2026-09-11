@@ -57,8 +57,11 @@ install.
    The utilities-owned Recovery project is an internal `mosaico.py recover`
    resource and is never a user application template.
 3. Read `skills/README.md`, then load only the `SKILL.md` files relevant to the
-   requested capabilities. For GSP UI work, load `skills/gsp-sim/SKILL.md` and
-   preview with `python3 tools/gsp-sim/run.py` (sim_bridge by default) using
+   requested capabilities. UI applications may use LVGL or GSP; prefer GSP
+   when it fits the product, use its simulator to produce rendering evidence,
+   and follow the constraints of the selected UI framework. For GSP UI work,
+   load `skills/gsp-sim/SKILL.md` and preview with
+   `python3 tools/gsp-sim/run.py` (sim_bridge by default) using
    **espressif/esp-gsp 1.2.0** from the ESP Component Registry.
    Do not import Mosaic claw hub/runtime into this repository.
 4. Component repositories and supporting project material are Git submodules.
@@ -94,9 +97,15 @@ IDs, a ready Recovery service, and a healthy application.
   discovery.
 - Do not call ESP-Iris or ESP-IDF device-write commands directly; `mosaico.py`
   owns Gateway lifecycle, evidence capture, device selection, and validation.
-- Do not open the device USB/serial session directly while the Gateway owns
-  it. ESP-Mosaico has one High-Speed USB interface, and both normal and
-  factory-recovery firmware assign it to ESP-Iris.
+- Avoid USB Serial/JTAG for application flashing and monitoring. Do not adopt
+  a BSP example's direct USB Serial/JTAG workflow as the product workflow.
+- ESP-Mosaico has one High-Speed USB interface. Recovery always assigns it to
+  ESP-Iris. A normal application must also assign it to ESP-Iris unless the
+  application's product function explicitly requires High-Speed USB. Such an
+  application must document the exception and preserve an ESP-Iris-supported
+  device-operation and recovery path through another available transport.
+- Do not open a device USB or serial session directly while the Gateway owns
+  that interface.
 - Tell the developer how to open the Gateway Web workbench when observation is
   useful. Confirm that the CLI and Web workbench show the same Device ID, Boot
   ID, and operation records.
