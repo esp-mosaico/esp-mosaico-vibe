@@ -6,7 +6,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-TOOLS = ROOT / "submodule/esp-mosaico-tools"
+TOOLS = ROOT / "submodule/esp-mosaico-utils/esp-mosaico-recovery"
 LAYOUT_ID = "mosaico-retained-recovery-2m-v1"
 NORMAL_FIRMWARE_PROJECTS = (
     ROOT / "projects/hello_world",

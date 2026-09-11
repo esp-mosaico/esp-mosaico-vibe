@@ -63,7 +63,7 @@ jobs:
           python -m compileall -q
           mosaico.py
           tools
-          submodule/esp-mosaico-tools/tools/mosaico_cli
+          submodule/esp-mosaico-utils/esp-mosaico-recovery/tools/mosaico_cli
 
       - name: Test workspace
         run: >-
@@ -76,7 +76,7 @@ jobs:
         env:
           TMPDIR: ${{ runner.temp }}
         run: >-
-          python -m pytest -q submodule/esp-mosaico-tools/tests
+          python -m pytest -q submodule/esp-mosaico-utils/esp-mosaico-recovery/tests
           --junitxml=test-results/tools.xml
 
       - name: Test ESP-Mosaico tools on Windows
@@ -85,12 +85,12 @@ jobs:
           TEMP: ${{ runner.temp }}
           TMP: ${{ runner.temp }}
         run: >-
-          python -m pytest -q submodule/esp-mosaico-tools/tests
-          --ignore=submodule/esp-mosaico-tools/tests/test_http_update_authorization_host.py
-          --deselect=submodule/esp-mosaico-tools/tests/test_cli.py::GatewayTests::test_local_system_update_builds_and_submits_atomic_bundle
-          --deselect=submodule/esp-mosaico-tools/tests/test_cli.py::HostCompatibilityTests::test_idf_environment_uses_idf_python_without_a_shell
-          --deselect=submodule/esp-mosaico-tools/tests/test_cli.py::HostCompatibilityTests::test_python38_runtime_hands_idf_to_a_newer_python
-          --deselect=submodule/esp-mosaico-tools/tests/test_cli.py::RecoveryCommandTests::test_idf_wrapper_reports_bounded_cmake_diagnostic
+          python -m pytest -q submodule/esp-mosaico-utils/esp-mosaico-recovery/tests
+          --ignore=submodule/esp-mosaico-utils/esp-mosaico-recovery/tests/test_http_update_authorization_host.py
+          --deselect=submodule/esp-mosaico-utils/esp-mosaico-recovery/tests/test_cli.py::GatewayTests::test_local_system_update_builds_and_submits_atomic_bundle
+          --deselect=submodule/esp-mosaico-utils/esp-mosaico-recovery/tests/test_cli.py::HostCompatibilityTests::test_idf_environment_uses_idf_python_without_a_shell
+          --deselect=submodule/esp-mosaico-utils/esp-mosaico-recovery/tests/test_cli.py::HostCompatibilityTests::test_python38_runtime_hands_idf_to_a_newer_python
+          --deselect=submodule/esp-mosaico-utils/esp-mosaico-recovery/tests/test_cli.py::RecoveryCommandTests::test_idf_wrapper_reports_bounded_cmake_diagnostic
           --junitxml=test-results/tools.xml
 
       - name: Check repository launcher
@@ -120,7 +120,7 @@ jobs:
           - name: iris-acceptance
             project: tests/firmware/iris_acceptance
           - name: recovery
-            project: submodule/esp-mosaico-tools/firmware/recovery
+            project: submodule/esp-mosaico-utils/esp-mosaico-recovery/firmware/recovery
 
     steps:
       - name: Check out repository and submodules
@@ -173,14 +173,14 @@ jobs:
       - name: Verify ESP-IDF environment
         shell: bash
         run: >-
-          python3 submodule/esp-mosaico-tools/skills/idf-low-noise-build/scripts/idf_low_noise_build.py
+          python3 submodule/esp-mosaico-utils/esp-mosaico-recovery/skills/idf-low-noise-build/scripts/idf_low_noise_build.py
           --project "${{ matrix.project }}"
           doctor
 
       - name: Build firmware
         shell: bash
         run: >-
-          python3 submodule/esp-mosaico-tools/skills/idf-low-noise-build/scripts/idf_low_noise_build.py
+          python3 submodule/esp-mosaico-utils/esp-mosaico-recovery/skills/idf-low-noise-build/scripts/idf_low_noise_build.py
           --project "${{ matrix.project }}"
           --log-dir "$RUNNER_TEMP/idf-logs/${{ matrix.name }}"
           build

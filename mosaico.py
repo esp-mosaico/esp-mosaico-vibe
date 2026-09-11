@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Repository-local launcher for the pinned ESP-Mosaico tools submodule."""
+"""Repository-local launcher for the pinned ESP-Mosaico utilities submodule."""
 
 from __future__ import annotations
 
@@ -8,12 +8,13 @@ import sys
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parent
-TOOLS_ROOT = REPOSITORY_ROOT / "submodule" / "esp-mosaico-tools"
+UTILS_ROOT = REPOSITORY_ROOT / "submodule" / "esp-mosaico-utils"
+TOOLS_ROOT = UTILS_ROOT / "esp-mosaico-recovery"
 PACKAGE_ROOT = TOOLS_ROOT / "tools"
 if not (PACKAGE_ROOT / "mosaico_cli" / "cli.py").is_file():
     print(
-        "mosaico: the esp-mosaico-tools submodule is unavailable; run "
-        "'git submodule update --init submodule/esp-mosaico-tools'.",
+        "mosaico: the esp-mosaico-utils submodule is unavailable; run "
+        "'git submodule update --init submodule/esp-mosaico-utils'.",
         file=sys.stderr,
     )
     raise SystemExit(3)

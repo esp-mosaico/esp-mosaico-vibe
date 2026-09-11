@@ -8,7 +8,8 @@ import unittest
 
 
 REPOSITORY = Path(__file__).resolve().parents[2]
-TOOL_ROOT = REPOSITORY / "submodule" / "esp-mosaico-tools"
+UTILS_ROOT = REPOSITORY / "submodule" / "esp-mosaico-utils"
+TOOL_ROOT = UTILS_ROOT / "esp-mosaico-recovery"
 sys.path.insert(0, str(TOOL_ROOT / "tools"))
 
 from mosaico_cli.project import resolve_project
@@ -22,7 +23,7 @@ class ToolSubmoduleIntegrationTests(unittest.TestCase):
         self.assertEqual(workspace.root, REPOSITORY)
         self.assertEqual(
             workspace.esp_iris_path,
-            TOOL_ROOT / "submodule" / "esp-iris",
+            UTILS_ROOT / "ESP-Iris",
         )
         self.assertEqual(
             workspace.build_runner,

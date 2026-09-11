@@ -18,7 +18,7 @@ change is required.
 Use [`projects/hello_world`](projects/hello_world) as the reference application.
 Create each new application as its own directory under `projects/`.
 The retained Recovery firmware is an internal resource of the pinned
-`esp-mosaico-tools` submodule and is used only by `mosaico.py recover`.
+`esp-mosaico-utils` submodule and is used only by `mosaico.py recover`.
 
 Component repositories and other project material are provided as Git
 submodules. Load or initialize only the submodules required by the current
@@ -45,13 +45,13 @@ python mosaico.py system-update --project projects/<project>
 python mosaico.py monitor
 ```
 
-The root launcher delegates to the pinned `submodule/esp-mosaico-tools`
-checkout; the CLI is not installed into the active Python environment. The
+The root launcher delegates to `esp-mosaico-recovery` in the pinned
+`submodule/esp-mosaico-utils` checkout; the CLI is not installed into the active Python environment. The
 workspace-owned [`.mosaico.json`](.mosaico.json) declares project, Recovery,
 BSP, ESP-Iris, and build paths. Initialize the tool checkout with:
 
 ```sh
-git submodule update --init --recursive submodule/esp-mosaico-tools
+git submodule update --init submodule/esp-mosaico-utils
 ```
 
 `list` connects to the Gateway and prints eFuse-MAC-derived Device IDs, the raw
@@ -69,7 +69,7 @@ together so both modes use the same identity scheme.
 The CLI supports native Linux and macOS shells plus Windows PowerShell and
 Command Prompt; WSL and Git Bash are not required. Use Python 3.8 or newer,
 an ESP-IDF checkout satisfying the workspace project version constraint, and
-the ESP-Iris checkout pinned recursively by `submodule/esp-mosaico-tools`. The
+the ESP-Iris checkout pinned alongside Recovery by `submodule/esp-mosaico-utils`. The
 Gateway environment is prepared for the active Python major/minor version, and
 the PEP 508 markers in ESP-Iris's `components/esp_iris/tools/requirements.lock`
 select compatible packages automatically. ESP-IDF 6.1 still requires Python
@@ -89,13 +89,13 @@ Install the CI test dependencies and run the deterministic host checks locally w
 
 ```sh
 python -m pip install -r requirements-ci.txt
-python -m pytest -q submodule/esp-mosaico-tools/tests
+python -m pytest -q submodule/esp-mosaico-utils/esp-mosaico-recovery/tests
 python -m pytest -q tests --ignore=tests/firmware
 python mosaico.py --version
 ```
 
 The Recovery HTTP authorization host test is POSIX-only. On Windows, pass
-`--ignore=submodule/esp-mosaico-tools/tests/test_http_update_authorization_host.py`
+`--ignore=submodule/esp-mosaico-utils/esp-mosaico-recovery/tests/test_http_update_authorization_host.py`
 to the tools test command. CI also deselects four Tools tests on Windows whose
 fixtures hard-code POSIX path rendering; those contracts still run on Linux and
 macOS. Device-aware host smoke checks remain manual:
@@ -142,7 +142,7 @@ write it through Gateway and verifies the result. Use `install` for an
 application-only change; use `system-update` when changing GSP scenes, fonts,
 images, the partition layout, or the bootloader. Pass `--bundle PATH` to reuse
 an existing complete bundle. See the
-[Recovery documentation](submodule/esp-mosaico-tools/firmware/recovery/README.md#recovery-从-https-拉取系统更新)
+[Recovery documentation](submodule/esp-mosaico-utils/esp-mosaico-recovery/firmware/recovery/README.md#recovery-从-https-拉取系统更新)
 for HTTP(S) and NAND sources and their security constraints.
 
 Recovery is local-only. It prepares the complete bundle first, then asks the
@@ -194,8 +194,8 @@ partitions without explicit user authorization.
 - `components/esp_mosaico_app_recovery` — normal-application Recovery entry and health support.
 - `espressif/esp-gsp==1.2.0` — remote ESP-GSP component (device prebuilts via the registry; sim/gspc fetched separately).
 - `tools/gsp-sim/` — packs scenes and runs the standalone ESP-GSP `sim`.
-- `submodule/esp-mosaico-tools/` — pinned repository-local implementation of
-  `mosaico.py`, its internal Recovery firmware, and its nested pinned ESP-Iris
+- `submodule/esp-mosaico-utils/` — pinned utilities monorepo containing the
+  `esp-mosaico-recovery` CLI/firmware and the sibling `ESP-Iris`
   firmware/host runtime; no global CLI installation is required.
 - `skills/` — task-oriented integration guides for agents and humans. See
   [`skills/README.md`](skills/README.md).
