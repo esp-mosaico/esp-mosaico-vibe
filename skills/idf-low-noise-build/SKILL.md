@@ -5,11 +5,11 @@ description: Run low-noise ESP-IDF builds while preserving complete logs and ext
 
 # IDF Low-Noise Build
 
-Use the runner pinned in `submodule/esp-mosaico-tools`. Resolve the tool submodule from the
+Use the runner pinned in `submodule/esp-mosaico-utils/esp-mosaico-recovery`. Resolve the utilities submodule from the
 workspace root; do not depend on a globally installed `esp-idf-debug` skill.
 
 ```text
-python3 <workspace>/submodule/esp-mosaico-tools/skills/idf-low-noise-build/scripts/idf_low_noise_build.py
+python3 <workspace>/submodule/esp-mosaico-utils/esp-mosaico-recovery/skills/idf-low-noise-build/scripts/idf_low_noise_build.py
 ```
 
 ## Prepare the build

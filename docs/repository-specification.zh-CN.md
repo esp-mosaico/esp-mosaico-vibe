@@ -7,9 +7,9 @@
 | 目标硬件 | ESP-Mosaico 开发板（ESP32-S31） |
 | 软件基线 | ESP-IDF 6.1 或更高版本，并具备 ESP32-S31 目标支持 |
 | 参考应用 | `projects/hello_world` |
-| Recovery 工程 | `submodule/esp-mosaico-tools/firmware/recovery` |
+| Recovery 工程 | `submodule/esp-mosaico-utils/esp-mosaico-recovery/firmware/recovery` |
 | 板级能力来源 | `submodule/esp-mosaico-bsp` Git 子模块 |
-| 设备运维入口 | 根目录 `mosaico.py`、固定版本的 `submodule/esp-mosaico-tools` 和 ESP-Iris Developer Gateway |
+| 设备运维入口 | 根目录 `mosaico.py`、固定版本的 `submodule/esp-mosaico-utils` 和 ESP-Iris Developer Gateway |
 | 文档状态 | 产品定义与当前工程基线 |
 
 **仓库定义：ESP-Mosaico 定制的 Agent 主导（Agent-Led）人机协同开发统一入口。**
@@ -76,7 +76,7 @@ Agent-Led 的默认主导关系是：**Agent 持续推进，用户在关键节�
 - 以 `projects/hello_world` 作为参考应用。
 - 每个用户应用创建在独立的 `projects/<project-name>` 目录中。
 - `projects/` 仅承载参考应用和用户应用；保留 Recovery 是
-  `esp-mosaico-tools` 中只由 `mosaico.py recover` 使用的内部固件资源。
+  `esp-mosaico-utils/esp-mosaico-recovery` 中只由 `mosaico.py recover` 使用的内部固件资源。
 - 仅供测试使用的可烧录设备固件位于 `tests/firmware/<fixture-name>`，不放入 `projects/`。
 - 参考应用通过 `components/esp_mosaico_app_recovery` 固化设备接入和
   recovery-first 契约。
@@ -170,8 +170,8 @@ Agent 按可审查规则持续执行闭环，直到功能通过真机验证。
 Agent Orchestrator（统一控制面）
  ├── 规则与上下文：AGENTS.md / docs/
  ├── 能力路由：skills/
- ├── Recovery 执行：submodule/esp-mosaico-tools/firmware/recovery
- ├── 设备侧公共能力：submodule/esp-mosaico-tools/submodule/esp-iris
+ ├── Recovery 执行：submodule/esp-mosaico-utils/esp-mosaico-recovery/firmware/recovery
+ ├── 设备侧公共能力：submodule/esp-mosaico-utils/ESP-Iris
  ├── 应用执行：projects/hello_world / projects/<project-name>
  ├── 测试固件：tests/firmware/<fixture-name>
  ├── 板级知识：submodule/esp-mosaico-bsp
@@ -201,12 +201,12 @@ ESP-Mosaico 真实设备
 | 参考应用 | `projects/hello_world` | 提供显示、ESP-Iris 和 recovery-first 接入 | 可复制为具体用户应用 |
 | GSP 参考应用 | `projects/gsp_hello` | 提供可在 PC 仿真和真机运行的 GSP Hello World | 作为 GSP 应用起点 |
 | 测试固件 | `tests/firmware/` | 容纳集成和验收测试使用的可烧录设备固件 | 不作为用户应用模板 |
-| Recovery 工程 | `submodule/esp-mosaico-tools/firmware/recovery` | 提供固定的保留 Recovery、OTA writer 和系统恢复能力 | 与 `mosaico.py recover` 同版本维护，不承载普通应用代码 |
+| Recovery 工程 | `submodule/esp-mosaico-utils/esp-mosaico-recovery/firmware/recovery` | 提供固定的保留 Recovery、OTA writer 和系统恢复能力 | 与 `mosaico.py recover` 同版本维护，不承载普通应用代码 |
 | 应用恢复组件 | `components/esp_mosaico_app_recovery` | 提供正常应用进入 Recovery 和健康确认能力 | 仅供正常应用使用，不包含 OTA writer |
 | GSP 运行时 | `espressif/esp-gsp==1.2.0` | 通过 ESP 组件仓库拉取的远程组件 | 固件与仿真共用同一 pin |
 | GSP 主机仿真 | `tools/gsp-sim/` | 用独立 `sim` 预览场景 JSON | 不引入 claw hub/runtime |
 | 板级子模块 | `submodule/esp-mosaico-bsp` | 提供 BSP、扩展模块、交互/网络组件和示例 | 按任务初始化和检查 |
-| 工具子模块 | `submodule/esp-mosaico-tools` | 提供统一 CLI、构建 runner、Recovery 固件，并递归锁定 ESP-Iris | 主仓库只固定 tools；Iris 由 tools 的嵌套 gitlink 唯一固定 |
+| 工具子模块 | `submodule/esp-mosaico-utils` | 提供统一 CLI、构建 runner、Recovery 固件和 ESP-Iris | 主仓库只固定一个 utilities gitlink；Recovery 与 Iris 来自同一 revision |
 | 任务指南 | `skills/` | 提供环境安装、构建等任务化说明 | 只加载相关指南 |
 | 用户文档 | `docs/` | 面向开发者说明工作流、规格和应用文档 | 不放 Agent 私有工具 |
 | 产品工具 | `mosaico.py`、`.mosaico.json` | 启动固定的工具子模块并提供工作区配置 | 不依赖 `.agents/` 私有资产 |

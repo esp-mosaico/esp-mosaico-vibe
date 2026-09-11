@@ -1,3 +1,3 @@
--r submodule/esp-mosaico-tools/submodule/esp-iris/components/esp_iris/tools/requirements.lock
+-r submodule/esp-mosaico-utils/ESP-Iris/components/esp_iris/tools/requirements.lock
 pytest>=8,<8.4 ; python_version < "3.9"
 pytest>=8,<9 ; python_version >= "3.9"

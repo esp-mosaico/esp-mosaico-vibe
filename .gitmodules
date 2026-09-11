@@ -1,6 +1,6 @@
 [submodule "bsp"]
 	path = submodule/esp-mosaico-bsp
 	url = https://github.com/esp-mosaico/esp-mosaico-bsp
-[submodule "submodule/esp-mosaico-tools"]
-	path = submodule/esp-mosaico-tools
-	url = https://github.com/lisir233/esp-mosaico-tools.git
+[submodule "submodule/esp-mosaico-utils"]
+	path = submodule/esp-mosaico-utils
+	url = git@github.com:esp-mosaico/esp-mosaico-utils.git

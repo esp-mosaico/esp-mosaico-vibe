@@ -31,7 +31,7 @@
 #endif
 
 #if CONFIG_ESP_IRIS_OTA
-#error "The ESP-Iris OTA writer belongs only in the tools-owned Recovery firmware"
+#error "The ESP-Iris OTA writer belongs only in the utilities-owned Recovery firmware"
 #endif
 
 #define OTA_SERVICE_ID          0x1200U

@@ -14,7 +14,7 @@
 
 以 [`projects/hello_world`](projects/hello_world) 为参考应用，在 `projects/`
 目录下为每个新应用创建独立目录。保留 Recovery 固件是固定版本
-`esp-mosaico-tools` 子模块的内部资源，只由 `mosaico.py recover` 使用。
+`esp-mosaico-utils` 子模块的内部资源，只由 `mosaico.py recover` 使用。
 
 组件仓库和其他项目资料通过 Git 子模组提供。只加载或初始化当前任务所需的
 子模组。实现功能前，先查看 [`skills/README.md`](skills/README.md)，并按需读取
@@ -39,12 +39,12 @@ python mosaico.py system-update --project projects/<project>
 python mosaico.py monitor
 ```
 
-根目录启动器会转发到固定版本的 `submodule/esp-mosaico-tools`，不会把 CLI
+根目录启动器会转发到固定版本的 `submodule/esp-mosaico-utils/esp-mosaico-recovery`，不会把 CLI
 安装到当前 Python 环境。[`.mosaico.json`](.mosaico.json) 由主仓库维护，声明
 工程、Recovery、BSP、ESP-Iris 和构建工具路径。首次使用先初始化工具子模块：
 
 ```sh
-git submodule update --init --recursive submodule/esp-mosaico-tools
+git submodule update --init submodule/esp-mosaico-utils
 ```
 
 `list` 会连接 Gateway，列出由出厂 eFuse Base MAC 派生的 Device ID、原始硬件
@@ -58,7 +58,7 @@ ESP-IDF 版本、Session ID 和能力列表，或使用 `list --json` 查看完�
 
 CLI 支持 Linux、macOS 原生终端，以及 Windows PowerShell 和 CMD，不依赖 WSL
 或 Git Bash。主机 CLI 最低支持 Python 3.8，并使用满足工作区工程约束的
-ESP-IDF，以及由 `submodule/esp-mosaico-tools` 递归锁定的 ESP-Iris。Gateway
+ESP-IDF，以及由 `submodule/esp-mosaico-utils` 与 Recovery 并列锁定的 ESP-Iris。Gateway
 会按当前激活 Python 的 major/minor 自动准备隔离环境，ESP-Iris 的
 `components/esp_iris/tools/requirements.lock` 中的 PEP 508
 条件会自动选择兼容依赖。ESP-IDF 6.1 仍要求 Python 3.10 或更新版本；当 CLI
@@ -77,13 +77,13 @@ ESP-IDF，以及由 `submodule/esp-mosaico-tools` 递归锁定的 ESP-Iris。Gat
 
 ```sh
 python -m pip install -r requirements-ci.txt
-python -m pytest -q submodule/esp-mosaico-tools/tests
+python -m pytest -q submodule/esp-mosaico-utils/esp-mosaico-recovery/tests
 python -m pytest -q tests --ignore=tests/firmware
 python mosaico.py --version
 ```
 
 Recovery HTTP 授权主机测试只支持 POSIX；Windows 运行 Tools 测试时需添加
-`--ignore=submodule/esp-mosaico-tools/tests/test_http_update_authorization_host.py`。
+`--ignore=submodule/esp-mosaico-utils/esp-mosaico-recovery/tests/test_http_update_authorization_host.py`。
 CI 还会在 Windows 上取消选择 4 项 fixture 硬编码 POSIX 路径显示的 Tools 测试；
 这些契约仍会在 Linux 和 macOS 上执行。依赖设备和主机环境的冒烟检查仍由开发者
 按需运行：
@@ -123,7 +123,7 @@ CI 不发现、烧录或控制真机，也不发布正式 Release。首次流水
 校验、写入并核对更新结果。只修改普通应用时使用 `install`；修改 GSP 场景、字体、
 图片、分区布局或 bootloader 时使用 `system-update`。已有完整更新包可通过
 `--bundle PATH` 复用；从 HTTP(S) 或 NAND 发起更新的流程及安全限制见
-[`Recovery 说明`](submodule/esp-mosaico-tools/firmware/recovery/README.md#recovery-从-https-拉取系统更新)。
+[`Recovery 说明`](submodule/esp-mosaico-utils/esp-mosaico-recovery/firmware/recovery/README.md#recovery-从-https-拉取系统更新)。
 
 Recovery 仅支持 Gateway 本机执行。命令先准备完整基础包，再向本地 Gateway
 申请目标设备或物理 USB endpoint 的维护租约；ROM 模式或尚未完成 HELLO、但已被
@@ -165,8 +165,8 @@ ESP-Mosaico 只有一个 High-Speed USB 接口。正常固件和 Recovery 都会
 - `components/esp_mosaico_app_recovery`：普通应用进入 Recovery 和健康确认支持。
 - `espressif/esp-gsp==1.2.0`：远程 ESP-GSP 组件（设备预编译库由组件仓库拉取；主机仿真器与 gspc 另行下载）。
 - `tools/gsp-sim/`：打包场景并运行独立的 ESP-GSP `sim`。
-- `submodule/esp-mosaico-tools/`：固定版本的仓库本地 `mosaico.py` 实现及其
-  内置 Recovery 固件和嵌套锁定的 ESP-Iris 固件/主机运行时，无需全局安装 CLI。
+- `submodule/esp-mosaico-utils/`：固定版本的工具单仓，包含
+  `esp-mosaico-recovery` CLI/固件和并列的 `ESP-Iris` 固件/主机运行时，无需全局安装 CLI。
 - `skills/`：面向 Agent 和开发者的任务集成指南，详见
   [`skills/README.md`](skills/README.md)。
 - `docs/`：面向用户的文档。

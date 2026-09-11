@@ -8,7 +8,7 @@ set(system_update_preparer
     "${CMAKE_CURRENT_LIST_DIR}/../tools/prepare_system_update.py")
 set(system_update_partition_csv "${PROJECT_SOURCE_DIR}/partitions.csv")
 set(system_update_iris_root
-    "${CMAKE_CURRENT_LIST_DIR}/../submodule/esp-mosaico-tools/submodule/esp-iris")
+    "${CMAKE_CURRENT_LIST_DIR}/../submodule/esp-mosaico-utils/ESP-Iris")
 set(system_update_iris_tool
     "${system_update_iris_root}/components/esp_iris/tools/esp_iris.py")
 set(system_update_stage_dir "${CMAKE_BINARY_DIR}/system-update")

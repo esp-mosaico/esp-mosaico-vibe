@@ -7,7 +7,7 @@
   },
   "dependencies": {
     "bsp": "submodule/esp-mosaico-bsp",
-    "esp_iris": "submodule/esp-mosaico-tools/submodule/esp-iris"
+    "esp_iris": "submodule/esp-mosaico-utils/ESP-Iris"
   },
   "build": {
     "runner": "builtin"
