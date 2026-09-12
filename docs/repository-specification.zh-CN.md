@@ -83,15 +83,17 @@ Agent-Led 的默认主导关系是：**Agent 持续推进，用户在关键节�
 
 ### 2.5 UI 设计与真机视觉闭环
 
-- Agent 基于设备显示与触摸约束实现 LVGL 界面。
+- 应用 UI 可选择 LVGL 或 GSP；满足产品需求时优先使用 GSP，并分别遵守所选框架的显示、触摸、内存和生命周期约束。
 - Recovery 固件通过 ESP-Iris 注册 RGB565 屏幕镜像后端，使开发者和 Agent 可在 Gateway 工作台观察恢复界面；具体应用按自身 UI 架构注册对应后端。
-- 使用 GSP 的应用在 PC 上通过 `tools/gsp-sim` 预览 480×480 场景；仿真运行时与组件仓库中的 **espressif/esp-gsp 1.2.0** 配套。
+- 使用 GSP 的应用在 PC 上通过 `tools/gsp-sim` 预览 480×480 场景并保存渲染效果；仿真运行时与组件仓库中的 **espressif/esp-gsp 1.2.0** 配套。
 - UI 调整与固件调试共享同一设备记录，减少人工往返。
 - 专项 Skill 可扩展视觉比较能力。具体应用负责定义验收基准。
 
 ### 2.6 ESP-Iris 下载、烧录与调试闭环
 
 - Agent 通过 ESP-Iris Developer Gateway 操作并观测设备。
+- 应用烧录和监控避免使用 USB Serial/JTAG。
+- Recovery 始终把唯一 High-Speed USB 交给 ESP-Iris；normal 除非产品功能本身明确使用 High-Speed USB，也应把该接口交给 ESP-Iris。例外应用必须记录接口归属，并通过其它可用传输保留 ESP-Iris 运维和恢复路径。
 - Gateway CLI 与 Web 工作台共享设备身份和操作记录。
 - Agent 根据设备实时状态选择正常 OTA、首次 recovery 配置或最后恢复路径，用户无需手工拼接命令。
 - 正常流程只要求用户连接 ESP-Mosaico；只有无法软件恢复时，才请求用户执行必要的按键和上下电动作。
@@ -300,8 +302,8 @@ ESP-Mosaico 真实设备
 
 | ID | 功能要求 | 验收口径 |
 | --- | --- | --- |
-| FR-221 | 应用 UI 必须基于真实板级显示约束实现 | 明确使用 480×480、RGB565、LVGL 和对应触摸能力，不套用未经适配的通用前端尺寸 |
-| FR-222 | UI 必须可通过 Gateway 观察 | ESP-Iris screen backend 可返回活动 LVGL 帧，工作台能够显示与设备一致的画面 |
+| FR-221 | 应用 UI 可选择 LVGL 或 GSP，适合时优先使用 GSP | 两种框架均遵守 480×480、RGB565、触摸、内存和生命周期约束；选择 GSP 时必须使用配套仿真器出具渲染效果，不套用未经适配的通用前端尺寸 |
+| FR-222 | UI 必须可通过 Gateway 观察 | ESP-Iris screen backend 可返回当前 UI 框架的活动 RGB565 帧，工作台能够显示与设备一致的画面 |
 | FR-223 | UI 迭代必须进入真机闭环 | 每个关键界面完成真机显示和交互验证 |
 | FR-224 | 调试证据必须支持多模态关联 | 同一次启动的日志、画面和设备状态可以关联 |
 | FR-225 | GSP 场景必须可在 PC 上用 pinned ESP-GSP 仿真 | `python3 tools/gsp-sim/run.py --headless --dump-ppm` 使用 `espressif/esp-gsp` 1.2.0 配套的独立 `sim` |
@@ -326,7 +328,7 @@ ESP-Mosaico 真实设备
 | --- | --- | --- |
 | FR-301 | 日常设备操作必须经 Gateway | ESP-Iris CLI 执行设备操作，Web 工作台观察同一记录 |
 | FR-302 | 每次操作必须查询实时设备身份 | 不使用缓存 Device ID/Boot ID 作为当前证据，操作前查询 live device/status |
-| FR-303 | Gateway 拥有 USB High-Speed 会话时不得直连串口 | normal 与 recovery 均由 ESP-Iris 使用唯一 High-Speed USB，会话不可并发占用 |
+| FR-303 | 避免 USB Serial/JTAG，并明确 High-Speed USB 所有权 | 应用烧录和监控不采用 USB Serial/JTAG；Recovery 始终将唯一 High-Speed USB 交给 ESP-Iris，normal 除产品功能明确使用该接口外也交给 ESP-Iris；例外应用记录接口归属并保留其它 ESP-Iris 运维/恢复路径，Gateway 拥有的接口不得被并发打开 |
 | FR-304 | 首次应用安装前必须验证 Recovery | 空白、缺失、版本不匹配或状态未知设备先运行 `recover` |
 | FR-305 | normal 固件必须通过 recovery-mode OTA 安装 | 运行 `python mosaico.py install`；更新完成后确认固件身份、健康状态和新 Boot ID |
 | FR-306 | 安装或恢复前必须保存故障证据 | 若存在有效 core dump，先保存结构化证据与原始日志 |
@@ -371,7 +373,7 @@ ESP-Mosaico 真实设备
 | 从创意快速制作实物原型 | Agent 将自然语言目标转化为工程、UI 和设备功能，持续构建部署到真机并根据反馈迭代 |
 | 新建 ESP-Mosaico 应用 | 从统一参考工程派生，继承目标、依赖和恢复契约 |
 | Agent 主导应用开发 | Agent 通过仓库规则、Skills、BSP 和设备证据持续推进实现与验证，用户在关键节点决策和验收 |
-| UI/交互快速迭代 | 基于 480×480 LVGL 与触摸能力实现界面，并通过 Gateway 屏幕观察完成真机视觉闭环 |
+| UI/交互快速迭代 | 在 LVGL 与 GSP 中选择合适框架，适合时优先 GSP 并出具仿真渲染效果，再通过 Gateway 屏幕观察完成真机视觉闭环 |
 | 固件候选版本验证 | 使用 candidate profile 与 recovery-mode OTA，在不覆盖保底镜像的情况下验证新版本 |
 | 远程/重复设备调试 | 通过 Gateway 获取日志、屏幕、Job、状态、重启与 core dump，并用 Device ID/Boot ID 关联 |
 | 更新失败恢复 | 运行 `python mosaico.py recover`，就绪后再运行 `install` |
@@ -425,7 +427,7 @@ Agent 遇到以下情况必须暂停，并向用户说明风险及所需输入�
 
 ### 7.4 已知技术约束
 
-1. ESP-Mosaico 只有一个 USB High-Speed 接口；Gateway 占用时，其他工具不得并发打开同一会话。
+1. ESP-Mosaico 只有一个 High-Speed USB 接口。Recovery 始终将其交给 ESP-Iris；normal 除产品功能明确需要该接口外也应交给 ESP-Iris。例外应用必须记录接口归属，并通过其它可用传输保留 ESP-Iris 运维和恢复路径；Gateway 占用某接口时，其他工具不得并发打开该接口。应用烧录和监控避免使用 USB Serial/JTAG。
 2. ESP32-S31 需要兼容的 ESP-IDF 预览目标支持，由统一命令解析和验证环境。
 3. 摄像头模块只支持左侧扩展槽，启用前必须核对扩展槽资源占用。
 4. 两个扩展槽共享 I2C 等资源；具体模块驱动持有插槽时要求独占，应用不得绕过模块管理器抢占引脚。

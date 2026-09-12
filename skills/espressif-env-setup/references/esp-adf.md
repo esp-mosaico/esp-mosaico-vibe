@@ -68,7 +68,7 @@ ESP-ADF（Espressif Audio Development Framework）在 ESP-IDF 之上提供音频
 
 ## Phase 0 — 占位符确认
 
-执行任何命令前，**主动询问**下列项；不得静默套用默认值而不告知。
+执行任何命令前解析下列项。分支、芯片、开发板等产品选择无法从用户输入或当前仓库约束确定时再询问；路径未指定时告知并自主使用默认值。
 路径拼装 / Iron Law → [placeholders.md § 父目录](placeholders.md#父目录-vs-仓库根目录) / [Iron Law](placeholders.md#the-iron-law)。
 ADF 分支默认与父目录 → [defaults.md § 当前默认值](defaults.md#当前默认值其它项) 中 ESP-ADF 行（**不要**通读 defaults 全文）。
 **IDF 须按上方兼容表校验；未通过不得进入 Phase 1。**
@@ -79,9 +79,9 @@ ADF 分支默认与父目录 → [defaults.md § 当前默认值](defaults.md#�
    - 客户明确说「不指定 / 你定」→ 告知将用默认 **`master`**，再请其确认。
    - 选定后**立即口头列出该分支支持的 IDF 范围**（见本文件兼容表）。
    - 简述差异：`master` = ADF v3 线、无内置 IDF、需 IDF ≥ v5.5.2；`release/v2.x` = 有内置 IDF（也可用外部）、IDF 仅 v5.1～v5.5。
-2. **安装父目录** — **必须主动询问**（[placeholders.md § 父目录](placeholders.md#父目录-vs-仓库根目录)）。
-   - 未提供 → 推荐共用默认父目录（Windows `C:\esp`；Linux/macOS `~/esp`），**说明该默认同样用于 ESP-IDF / ESP-AT**，并回显完整 `YOUR_ADF_INSTALL_PATH`；**等客户确认后**再继续。禁止静默采用默认。
-   - 已提供 → 拼完整路径并回显，确认后再克隆。
+2. **安装父目录**（[placeholders.md § 父目录](placeholders.md#父目录-vs-仓库根目录)）。
+   - 未提供 → 告知并自主使用共用默认父目录（Windows `C:\esp`；Linux/macOS `~/esp`），说明该默认同样用于 ESP-IDF / ESP-AT，并回显完整 `YOUR_ADF_INSTALL_PATH`；无需单独确认。
+   - 已提供 → 拼完整路径、回显并校验后使用。
 3. **目标芯片 / 开发板**
    - **`release/v2.x`（默认 `play_mp3_control`）：** 询问 `YOUR_TARGET_CHIP`（用于 `idf.py set-target`）。未提供则主动问，不得假设。
    - **`master`（默认 `play_music_control`）：** Phase 0 **不必**先猜芯片；Phase 2 按示例 README：`idf.py bmgr -l` → **把本机列表给客户确认开发板** → 再 `bmgr -b`（板选型会带上目标芯片）。客户若提前指定板名也可记下，但仍以实际 `bmgr -l` 列表为准。
@@ -115,7 +115,7 @@ ADF 分支默认与父目录 → [defaults.md § 当前默认值](defaults.md#�
    A) master —— ADF v3 开发线；无内置 IDF；需外部 IDF ≥ v5.5.2（含 v6.x）
    B) release/v2.x —— 有内置 IDF（也可用外部）；IDF 仅 release/v5.1～v5.5（勿用 v6）
    （若不指定，将默认 A) master，请确认）
-2) 安装父目录？未提供时可推荐 C:\esp 或 ~/esp（IDF / AT / ADF 共用默认父目录；完整路径如 C:\esp\esp-adf-master）；请确认或给出其它父目录后再继续
+2) 安装父目录：未指定时将自主使用 C:\esp 或 ~/esp（IDF / AT / ADF 共用默认父目录），并回显完整路径
 3) 芯片 / 开发板？
    - 若选 release/v2.x：芯片型号（如 esp32 / esp32s3）
    - 若选 master：可先不指定；编译前会 `idf.py bmgr -l` 列板，再请你选
@@ -123,7 +123,7 @@ ADF 分支默认与父目录 → [defaults.md § 当前默认值](defaults.md#�
    - 有：请提供路径（将按所选 ADF 兼容表校验）
    - 无：请指定要安装的 IDF 版本（须落在兼容表内）
      或（仅选了 release/v2.x 时）改选使用内置 esp-idf
-5) 工具链安装路径？不指定则默认 %USERPROFILE%\.espressif（Windows）或 ~/.espressif（Linux/macOS）；请确认后再安装工具链
+5) 工具链安装路径：未指定时将自主使用 %USERPROFILE%\.espressif（Windows）或 ~/.espressif（Linux/macOS）
 ```
 
 | 占位符 | 含义 | 确认规则 |
@@ -134,7 +134,7 @@ ADF 分支默认与父目录 → [defaults.md § 当前默认值](defaults.md#�
 | `YOUR_IDF_PATH` | 实际用于编译的 IDF 根目录 | 本地 / 新装 /（仅明确选内置时）ADF 内置 |
 | `YOUR_IDF_VERSION` | 需新装时的 IDF 版本 | **须落在兼容表内** |
 | `YOUR_PROJECT_PATH` | 默认示例工程 | 见下表 |
-| `YOUR_TOOLS_PATH` | 工具链路径 | **Phase 0 须问**；确认默认则不设 `IDF_TOOLS_PATH`；自定义则 install/export 前设置（[placeholders.md § IDF_TOOLS_PATH](placeholders.md#your_tools_path--idf_tools_path)） |
+| `YOUR_TOOLS_PATH` | 工具链路径 | 未指定时自主使用默认且不设 `IDF_TOOLS_PATH`；自定义则 install/export 前设置（[placeholders.md § IDF_TOOLS_PATH](placeholders.md#your_tools_path--idf_tools_path)） |
 
 ### 默认编译示例
 

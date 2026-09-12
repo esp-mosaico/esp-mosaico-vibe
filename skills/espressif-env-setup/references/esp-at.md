@@ -18,7 +18,7 @@ ESP-AT 是基于 ESP-IDF 的应用工程。每个模组在 `module_config/.../ID
 
 ## Phase 0 — 确认（克隆前）
 
-执行任何命令前，**主动询问**下列项；不得静默套用默认值而不告知。路径拼装与 Iron Law 见 [placeholders.md](placeholders.md)；芯片/版本规则见 [defaults.md § ESP-AT：支持芯片与默认版本](defaults.md#esp-at支持芯片与默认版本)。
+执行任何命令前解析下列项。芯片、版本、Module 等产品选择无法从用户输入或当前仓库约束确定时再询问；路径未指定时告知并自主使用默认值。路径拼装与 Iron Law 见 [placeholders.md](placeholders.md)；芯片/版本规则见 [defaults.md § ESP-AT：支持芯片与默认版本](defaults.md#esp-at支持芯片与默认版本)。
 
 **询问顺序（强制）：先芯片 → 再版本 → 再父目录 → 再工具链路径**（版本推荐依赖芯片；**禁止**先问版本并默认 `master`）。
 
@@ -34,13 +34,13 @@ ESP-AT 是基于 ESP-IDF 的应用工程。每个模组在 `module_config/.../ID
    - **禁止**未指定时默认 / 暗示「默认拉取 `master`」。仅客户明确要新功能时才用 `master`。
    - 未定芯片前**禁止**给出任何默认版本路径（如 `esp-at-master`）。
 
-3. **安装父目录** — **必须主动询问**（[placeholders.md § 父目录](placeholders.md#父目录-vs-仓库根目录)）。
-   - 未提供 → 推荐共用默认父目录（Windows `C:\esp`；Linux/macOS `~/esp`），**说明该默认同样用于 ESP-IDF / ESP-ADF**，并按**已确认的** `YOUR_AT_VERSION` 回显完整 `YOUR_AT_INSTALL_PATH`；**等客户确认后**再克隆。禁止静默采用默认。
-   - 已提供 → 拼完整路径并回显，确认后再克隆。
+3. **安装父目录**（[placeholders.md § 父目录](placeholders.md#父目录-vs-仓库根目录)）。
+   - 未提供 → 告知并自主使用共用默认父目录（Windows `C:\esp`；Linux/macOS `~/esp`），说明该默认同样用于 ESP-IDF / ESP-ADF，并按已确定的 `YOUR_AT_VERSION` 回显完整 `YOUR_AT_INSTALL_PATH`；无需单独确认。
+   - 已提供 → 拼完整路径、回显并校验后使用。
 
-4. **工具链路径** — **必须主动询问**（[placeholders.md § IDF_TOOLS_PATH](placeholders.md#your_tools_path--idf_tools_path)）。
-   - 未提供 → 告知默认（Windows `%USERPROFILE%\.espressif`；Linux/macOS `~/.espressif`），**等客户确认**后再装工具链。
-   - 已提供 → 回显并确认；之后 install/export 前设 `IDF_TOOLS_PATH`。
+4. **工具链路径**（[placeholders.md § IDF_TOOLS_PATH](placeholders.md#your_tools_path--idf_tools_path)）。
+   - 未提供 → 告知并自主使用默认（Windows `%USERPROFILE%\.espressif`；Linux/macOS `~/.espressif`），无需单独确认。
+   - 已提供 → 回显并校验；之后 install/export 前设 `IDF_TOOLS_PATH`。
 
 > **Module name** 与 **silence mode** 不要在 Phase 0 询问——须 **Phase 1 克隆完成后**读 CSV（Phase 1.5）。
 
@@ -50,8 +50,8 @@ ESP-AT 是基于 ESP-IDF 的应用工程。每个模组在 `module_config/.../ID
 开始搭建 ESP-AT 前请确认（请按顺序回复）：
 1) 芯片型号？（未指定时：粘贴 defaults.md § ESP-AT「向客户展示模板」全文，含序号与推荐固件）
 2) esp-at 版本？不指定则按你所选芯片的「推荐 AT 固件」安装；**不会**默认 master（仅你明确要求 master 时才用）
-3) 安装父目录？未提供时可推荐 C:\esp 或 ~/esp（IDF / AT / ADF 共用）；完整路径将在版本确认后回显（如 C:\esp\esp-at-v4.1.1.0）
-4) 工具链安装路径？不指定则默认 %USERPROFILE%\.espressif（Windows）或 ~/.espressif（Linux/macOS）；请确认后再安装工具链
+3) 安装父目录：未指定时将自主使用 C:\esp 或 ~/esp（IDF / AT / ADF 共用），并回显完整路径
+4) 工具链安装路径：未指定时将自主使用 %USERPROFILE%\.espressif（Windows）或 ~/.espressif（Linux/macOS）
 ```
 
 | 占位符 | 含义 | 确认规则 |
@@ -60,7 +60,7 @@ ESP-AT 是基于 ESP-IDF 的应用工程。每个模组在 `module_config/.../ID
 | `YOUR_AT_VERSION` | 分支或 tag | 未指定 → 该芯片「推荐的 AT 固件」；非默认 `master` |
 | `YOUR_AT_INSTALL_PATH` | esp-at 仓库根目录 | 父目录 + 命名规则（[placeholders.md § 父目录](placeholders.md#父目录-vs-仓库根目录)） |
 | `YOUR_MODULE` / `YOUR_SILENCE` | Module / silence | **Phase 1.5** 对话确认后写入 `build/module_info.json`；禁止猜测 |
-| `YOUR_TOOLS_PATH` | 工具链路径 | **Phase 0 须问**；确认默认则不设 `IDF_TOOLS_PATH`；自定义则 install/export 前设置 |
+| `YOUR_TOOLS_PATH` | 工具链路径 | 未指定时自主使用默认且不设 `IDF_TOOLS_PATH`；自定义则 install/export 前设置 |
 
 > **重新选择模组：** 删除 `build/module_info.json`（及可选 `sdkconfig`）后重走 Phase 1.5，再 `build.py install`。
 > **Windows：** 先按 [esp-idf-windows.md](esp-idf-windows.md) 第一步选定终端，全程固定。

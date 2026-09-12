@@ -20,7 +20,8 @@
 子模组。实现功能前，先查看 [`skills/README.md`](skills/README.md)，并按需读取
 相关的 `SKILL.md`，无需一次性加载全部资料。
 
-使用 GSP 绘制界面的工程可先在 PC 上预览 480×480 场景，再烧录真机。入口是
+应用界面可选择 LVGL 或 GSP；适合时优先使用 GSP，并先在 PC 上预览
+480×480 场景、保存渲染效果，再烧录真机。入口是
 [`tools/gsp-sim`](tools/gsp-sim/README.md)，固定使用
 **espressif/esp-gsp 1.2.0**（ESP 组件仓库远程依赖）。
 需要同时支持 PC 仿真和真机运行的 GSP Hello World，可从
@@ -138,8 +139,11 @@ Gateway 打开的 endpoint 也包含在内。只 detach 该 endpoint，其他设
 - Gateway 独占 USB 会话，并持久化结构化证据与原始日志；执行 OTA 前应先保存
   有效的 core dump。
 
-ESP-Mosaico 只有一个 High-Speed USB 接口。正常固件和 Recovery 都会把该接口
-交给 ESP-Iris，因此 Gateway 在两种模式下都独占该会话。
+避免使用 USB Serial/JTAG 进行应用烧录和监控。ESP-Mosaico 只有一个
+High-Speed USB 接口：Recovery 始终将其交给 ESP-Iris；normal 固件除非产品功能
+本身明确需要 High-Speed USB，也应将其交给 ESP-Iris。由产品功能占用该接口的
+normal 固件必须记录这一例外，并通过其它可用传输保留 ESP-Iris 设备运维和恢复
+路径。Gateway 拥有某个接口时，其它工具不得并发打开该接口。
 
 ### 最后恢复
 

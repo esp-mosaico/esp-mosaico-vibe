@@ -64,8 +64,8 @@ description: >
 - 🚩 子模块拉取仍用默认短 Shell 等待 → 须按 [common.md § Agent Shell 长任务等待](references/common.md#agent-shell-long-timeout) 把**当前工具**的等待/超时调到 ≥ 2h（Cursor 示例：`block_until_ms` ≥ 7200000）；`terminated ... 300000` 且还在 Cloning = 误杀，不是 Git 已失败
 - 🚩 独立 IDF clone 带 `--recursive` → 禁止；父仓与子模块分步，见 `common.md` § 第二步～第三步
 - 🚩 占位符原样进命令 / 父目录当 clone 目标 → [placeholders.md § 父目录](references/placeholders.md#父目录-vs-仓库根目录)
-- 🚩 未问父目录 / 未等确认就用默认路径 → 须主动询问，可推荐默认，**确认后再继续**
-- 🚩 未问工具链路径 / 未告知默认 `.espressif` 就 install → Phase 0 须问；不指定则告知默认并确认后再装（[placeholders.md § IDF_TOOLS_PATH](references/placeholders.md#your_tools_path--idf_tools_path)）
+- 🚩 缺少兼容环境且用户未指定安装路径时停下来等待确认 → 应告知将采用标准默认父目录并自主继续；用户已指定路径时优先使用并校验
+- 🚩 用户未指定工具链路径时停下来等待确认 → 应告知将采用默认 `.espressif` 并自主继续（[placeholders.md § IDF_TOOLS_PATH](references/placeholders.md#your_tools_path--idf_tools_path)）
 - 🚩 独立 IDF 未指定版本却只报一个缓存 tag / 不列在维护线与各线最新稳定 tag → 见 `defaults.md`；S31 勿默认 `v6.0.x`；**禁止**把 S31 改成 S3
 - 🚩 AT Phase 0 未贴支持芯片列表 / 默认 master → 见 `esp-at.md`：须编号列出芯片；版本用推荐固件 tag
 - 🚩 ADF 未做版本兼容 Gate / master 未按 README 选板 → 见 `esp-adf.md` Red Flags

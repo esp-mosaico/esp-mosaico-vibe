@@ -59,28 +59,27 @@ YOUR_*_INSTALL_PATH = <父目录> + 分隔符 + <按版本命名的文件夹>
 
 | 客户输入 | SDK + 版本 | 实际仓库路径（示例） |
 |----------|------------|----------------------|
-| （客户确认采用推荐默认） | IDF `v6.0.2` | Windows `C:\esp\esp-idf-v6.0.2`；Linux/macOS `~/esp/esp-idf-v6.0.2` |
+| （未指定，采用推荐默认） | IDF `v6.0.2` | Windows `C:\esp\esp-idf-v6.0.2`；Linux/macOS `~/esp/esp-idf-v6.0.2` |
 | `E:\esp` | IDF `v6.0.2` | `E:\esp\esp-idf-v6.0.2` |
 | `E:\esp` | AT `v4.1.1.0` | `E:\esp\esp-at-v4.1.1.0` |
 | `E:\esp` | ADF `release/v2.x` | `E:\esp\esp-adf-release-v2.x` |
 
-### 未提供父目录时（强制）
+### 未提供父目录时（自主采用默认）
 
 ```
 客户是否已给出父目录？
-├─ 是 → 按命名规则拼完整路径 → 回显 → 等客户确认 → 再 clone / install
-└─ 否 → 必须主动询问
-         → 推荐共用默认父目录（Windows `C:\esp`；Linux/macOS `~/esp`）
+├─ 是 → 按命名规则拼完整路径 → 回显并校验 → clone / install
+└─ 否 → 自主采用共用默认父目录（Windows `C:\esp`；Linux/macOS `~/esp`）
          → 说明：该默认父目录同时用于 ESP-IDF / ESP-AT / ESP-ADF
            （其下再按命名规则分子目录，如 esp-idf-… / esp-at-… / esp-adf-…）
          → 同时回显将拼出的完整仓库路径
-         → 等客户明确确认（接受推荐或给出其它父目录）后，才进入后续步骤
-         → 禁止静默采用默认、禁止未确认就 clone
+         → 无需单独确认，继续 clone / install
 ```
 
 推荐默认父目录数值见 [defaults.md § 当前默认值](defaults.md#当前默认值其它项)（IDF / AT / ADF **同一**默认父目录）。
 
-**禁止** `git clone ... E:\esp` 把仓库散落到父目录。Phase 0 **回显完整路径**并取得客户确认后再克隆。
+**禁止** `git clone ... E:\esp` 把仓库散落到父目录。Phase 0 必须
+**回显完整路径**；用户已指定时按指定值执行，未指定时按默认值自主继续。
 
 ### 命名规则（文件夹名）
 
@@ -109,22 +108,20 @@ YOUR_*_INSTALL_PATH = <父目录> + 分隔符 + <按版本命名的文件夹>
 | Windows | `%USERPROFILE%\.espressif`（如 `C:\Users\<用户名>\.espressif`） |
 | Linux / macOS | `~/.espressif` |
 
-### Phase 0 必须主动询问（IDF / AT / ADF 相同）
+### Phase 0 解析规则（IDF / AT / ADF 相同）
 
 ```
 客户是否已给出工具链路径？
-├─ 是 → 记为 YOUR_TOOLS_PATH（须满足路径要求）→ 回显 → 等确认
+├─ 是 → 记为 YOUR_TOOLS_PATH（须满足路径要求）→ 回显并校验
 │       → 之后每次 install / export 前先设 IDF_TOOLS_PATH=YOUR_TOOLS_PATH
-└─ 否 → 必须主动询问
-         → 告知将使用上表默认路径（并写出本机对应的完整默认路径）
+└─ 否 → 告知将使用上表默认路径（并写出本机对应的完整默认路径）
          → 说明：不指定则工具链装到该默认目录；指定则装到自定义目录
-         → 等客户明确确认（接受默认或给出其它路径）后，才进入 install
-         → 禁止静默跳过不问；禁止未确认就跑 install.sh / install.bat / install.ps1
+         → 无需单独确认，继续 install
 ```
 
 确认后的环境变量规则：
 
-- 客户**确认使用默认** → **不要设置** `IDF_TOOLS_PATH`（让脚本走默认目录）。
+- 用户未指定、使用默认 → **不要设置** `IDF_TOOLS_PATH`（让脚本走默认目录）。
 - 客户**指定了** `YOUR_TOOLS_PATH` → 每次 `install` / `export` 前都须**先**设 `IDF_TOOLS_PATH`，再跑脚本。`export` 不记住上次 session。
 
 ---

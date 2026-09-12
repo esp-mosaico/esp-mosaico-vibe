@@ -25,7 +25,8 @@ submodules. Load or initialize only the submodules required by the current
 task. Before implementing a feature, consult [`skills/README.md`](skills/README.md)
 and read only the relevant `SKILL.md` guides.
 
-GSP applications can preview 480×480 scenes on the PC before flashing. Use
+Applications may use LVGL or GSP. Prefer GSP when it fits the product, preview
+its 480×480 scenes on the PC, and preserve rendering evidence before flashing. Use
 [`tools/gsp-sim`](tools/gsp-sim/README.md) with the pinned
 **espressif/esp-gsp 1.2.0** component from the ESP Component Registry.
 Start from [`projects/gsp_hello`](projects/gsp_hello) for a GSP Hello World
@@ -161,9 +162,13 @@ submodule; a mismatch fails without terminating that Gateway.
 - The Gateway owns the USB session and persists both structured evidence and
   raw logs. Before OTA, preserve any valid core dump.
 
-ESP-Mosaico has one High-Speed USB interface. Both normal firmware and
-Recovery assign it to ESP-Iris, so the Gateway has exclusive
-ownership of the session in either mode.
+Avoid USB Serial/JTAG for application flashing and monitoring. ESP-Mosaico has
+one High-Speed USB interface: Recovery always assigns it to ESP-Iris, and
+normal firmware must do the same unless the product function explicitly needs
+High-Speed USB. A normal application that owns this interface must document the
+exception and retain an ESP-Iris device-operation and recovery path through
+another available transport. Other tools must not open an interface while the
+Gateway owns it.
 
 ### Last-resort recovery
 

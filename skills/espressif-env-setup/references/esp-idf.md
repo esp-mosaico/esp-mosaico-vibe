@@ -12,9 +12,9 @@
 
 ---
 
-## Phase 0 — 确认四项
+## Phase 0 — 解析四项
 
-执行任何命令前，**主动询问**下列项，并用实际值替换所有 `YOUR_*`（[placeholders.md § 占位符纪律](placeholders.md#占位符纪律)）。
+执行任何命令前解析下列项，并用实际值替换所有 `YOUR_*`（[placeholders.md § 占位符纪律](placeholders.md#占位符纪律)）。版本等产品选择在无法从用户输入或当前仓库约束确定时再询问；路径未指定时自主使用默认值。
 
 1. **`YOUR_IDF_VERSION`** — 分支或 tag。
    - 用户已指定 → 记下；若芯片特殊（如 **ESP32-S31**）仍对照 [defaults.md § ESP32-S31](defaults.md#独立-esp-idf-默认版本必须现查并展示在维护线) / [COMPATIBILITY_CN.md](https://github.com/espressif/esp-idf/blob/master/COMPATIBILITY_CN.md)。
@@ -24,11 +24,11 @@
      - **不必**等 `common.md` 第二步；禁止用缓存数字；禁止未确认就 clone。
 2. **`YOUR_TARGET_CHIP`** — 如 `esp32`、`esp32s3`、`esp32s31`。不指定则用 [defaults.md § 当前默认值](defaults.md#当前默认值其它项) 中 `esp32`。
    - 若为 **ESP32-S31**：按 defaults 专节；**禁止**当成 ESP32-S3 笔误去「纠正」；勿默认塞稳定 `v6.0.x`。
-3. **安装父目录** — **必须主动询问**（[placeholders.md § 父目录](placeholders.md#父目录-vs-仓库根目录)）。
-   - 未提供 → 推荐共用默认父目录（Windows `C:\esp`；Linux/macOS `~/esp`），**说明该默认同样用于 ESP-AT / ESP-ADF**；版本未定时可先问父目录，完整 `YOUR_INSTALL_PATH` 在版本确认后回显。禁止静默采用默认。
-   - 已提供 → 拼路径并回显，确认后再克隆。
-4. **工具链路径（`YOUR_TOOLS_PATH` / 默认 `.espressif`）** — **必须主动询问**（[placeholders.md § IDF_TOOLS_PATH](placeholders.md#your_tools_path--idf_tools_path)）。
-   - 未提供 → 告知默认并等确认；已提供 → 回显；自定义则 install/export 前设 `IDF_TOOLS_PATH`。
+3. **安装父目录**（[placeholders.md § 父目录](placeholders.md#父目录-vs-仓库根目录)）。
+   - 未提供 → 告知并自主使用共用默认父目录（Windows `C:\esp`；Linux/macOS `~/esp`），说明该默认同样用于 ESP-AT / ESP-ADF；版本确定后回显完整 `YOUR_INSTALL_PATH`，无需单独确认。
+   - 已提供 → 拼路径、回显并校验后使用。
+4. **工具链路径（`YOUR_TOOLS_PATH` / 默认 `.espressif`）**（[placeholders.md § IDF_TOOLS_PATH](placeholders.md#your_tools_path--idf_tools_path)）。
+   - 未提供 → 告知并自主使用默认路径，无需单独确认；已提供 → 回显并校验；自定义则 install/export 前设 `IDF_TOOLS_PATH`。
 
 **Phase 0 回复顺序（版本未指定时强制）：**
 ① Shell 现查（乐鑫 tags + 对照支持期限）→ ② **先贴完整版本列表**（defaults 展示模板）→ ③ 再问芯片（若未知）/ 父目录 / 工具链。
@@ -58,8 +58,8 @@
 （S31 时加一句：正式稳定支持预期 v6.1.1；此前请用 master / 预发布。）
 
 2) 目标芯片？（已告知则写「已确认为 …」）
-3) 安装父目录？（可推荐 C:\esp 或 ~/esp）
-4) 工具链路径？（默认 %USERPROFILE%\.espressif 或 ~/.espressif）
+3) 安装父目录：未指定时将自主使用 C:\esp 或 ~/esp，并回显完整路径
+4) 工具链路径：未指定时将自主使用 %USERPROFILE%\.espressif 或 ~/.espressif
 ```
 
 | 占位符 | 含义 |
@@ -67,7 +67,7 @@
 | `YOUR_IDF_VERSION` | 分支或 tag（未指定则展示在维护线 + 各线最新稳定 tag，[defaults.md § 独立 ESP-IDF](defaults.md#独立-esp-idf-默认版本必须现查并展示在维护线)） |
 | `YOUR_INSTALL_PATH` | 仓库根目录 = 父目录 + `esp-idf-<version>` |
 | `YOUR_TARGET_CHIP` | 目标芯片（默认见 [defaults.md § 当前默认值](defaults.md#当前默认值其它项)） |
-| `YOUR_TOOLS_PATH` | 工具链路径；**Phase 0 须问**；确认用默认则不设 `IDF_TOOLS_PATH`，自定义则每次 install/export 前设置（[placeholders.md § IDF_TOOLS_PATH](placeholders.md#your_tools_path--idf_tools_path)） |
+| `YOUR_TOOLS_PATH` | 工具链路径；未指定时自主使用默认且不设 `IDF_TOOLS_PATH`，自定义则每次 install/export 前设置（[placeholders.md § IDF_TOOLS_PATH](placeholders.md#your_tools_path--idf_tools_path)） |
 | `YOUR_PROJECT_PATH` | 默认 `YOUR_INSTALL_PATH/examples/get-started/hello_world` |
 
 > **Windows：** Phase 0 后立刻按 [esp-idf-windows.md](esp-idf-windows.md) 第一步选定终端，全程固定。

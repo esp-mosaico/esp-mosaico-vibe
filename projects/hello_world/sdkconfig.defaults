@@ -9,14 +9,17 @@ CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
 # Persist ESP-IDF Core Dumps and the bounded ESP-Iris pre-crash log ring in
 # the retained coredump partition after a panic.
 CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH=y
+CONFIG_APP_RETRIEVE_LEN_ELF_SHA=64
 CONFIG_ESP_IRIS_NVS_PARTITION_NAME="sysmeta"
 CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
 CONFIG_FACTORY_RECOVERY_BOOT_GPIO=7
 CONFIG_FACTORY_RECOVERY_BOOT_DEBOUNCE_MS=50
 
 # USB High-Speed is owned by ESP-Iris. Device installation and logs go through
-# the repository's mosaico.py commands.
-CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+# the repository's mosaico.py commands. Keep the console on UART and avoid the
+# built-in USB Serial/JTAG controller.
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y
+# CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG is not set
 CONFIG_ESP_CONSOLE_SECONDARY_NONE=y
 CONFIG_ESP_IRIS_TRANSPORT_USB=y
 CONFIG_ESP_IRIS_TRANSPORT_TCP=y
