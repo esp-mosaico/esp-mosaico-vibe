@@ -57,7 +57,15 @@ install.
    The utilities-owned Recovery project is an internal `mosaico.py recover`
    resource and is never a user application template.
 3. Read `skills/README.md`, then load only the `SKILL.md` files relevant to the
-   requested capabilities. UI applications may use LVGL or GSP; prefer GSP
+   requested capabilities. For new or existing device UI work, load
+   [`mosaico-ui`](skills/mosaico-ui/SKILL.md). Its three feedback loops are
+   design confirmation, simulator validation, and device validation; enter
+   where the current uncertainty lies and continue within the requested scope.
+   For unsettled designs, prefer rendered mockups and confirm the overall
+   style, layout, and main interactions with the user before implementation.
+   Reuse existing confirmation; route later problems to the responsible loop
+   and revalidate affected downstream behavior.
+   UI applications may use LVGL or GSP; prefer GSP
    when it fits the product, use its simulator to produce rendering evidence,
    and follow the constraints of the selected UI framework. For GSP UI work,
    load `skills/gsp-sim/SKILL.md` and preview with
