@@ -3,7 +3,7 @@
   "workspace": {
     "projects_dir": "projects",
     "default_project": "projects/hello_world",
-    "init_template": "projects/hello_world",
+    "init_template": "projects/hello_world/mosaico-template.json",
     "run_dir": ".codex-runs/mosaico"
   },
   "dependencies": {

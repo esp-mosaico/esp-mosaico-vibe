@@ -24,8 +24,9 @@ python mosaico.py init my_app
 python mosaico.py init another_app --dry-run
 ```
 
-`init` copies only the reference source files, sets the project name, and adjusts
-workspace dependency paths. It preserves the retained Recovery integration and
+`init` follows the workspace-owned [template description](projects/hello_world/mosaico-template.json)
+to copy reference sources, set the project name, and adjust dependency paths.
+Maintain the description alongside Hello World; the tools contain no application-specific rules. It preserves the retained Recovery integration and
 leaves `default_project` unchanged. It requires no ESP-IDF environment or device.
 Existing destinations are rejected. Use `--json` for automation, then install
 with `python mosaico.py install --project projects/my_app`.
