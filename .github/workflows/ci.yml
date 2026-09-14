@@ -115,6 +115,8 @@ jobs:
         include:
           - name: hello-world
             project: projects/hello_world
+          - name: init-generated
+            project: tests/firmware/init_smoke
           - name: gsp-hello
             project: projects/gsp_hello
           - name: iris-acceptance
@@ -169,6 +171,21 @@ jobs:
             echo "Actual ESP-IDF revision:   $actual_revision"
             exit 1
           fi
+
+      - name: Generate initialization build fixture
+        if: matrix.name == 'init-generated'
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path(".mosaico.json")
+          config = json.loads(path.read_text(encoding="utf-8"))
+          config["workspace"]["projects_dir"] = "tests/firmware"
+          path.write_text(json.dumps(config), encoding="utf-8")
+          PY
+          python3 mosaico.py init init_smoke
 
       - name: Verify ESP-IDF environment
         shell: bash

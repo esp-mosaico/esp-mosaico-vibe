@@ -74,6 +74,10 @@ Agent-Led 的默认主导关系是：**Agent 持续推进，用户在关键节�
 ### 2.4 模板化应用孵化
 
 - 以 `projects/hello_world` 作为参考应用。
+- 使用 `python mosaico.py init <name>` 创建应用；命令保留 Recovery 接入，
+  不复制构建产物、不覆盖已有目标，也不更改默认工程。支持 `--dry-run` 和 `--json`。
+- Hello World 与 `projects/hello_world/mosaico-template.json` 由主仓库共同维护；
+  工具子仓库只解释通用模板描述，不硬编码源文件列表或生成规则。
 - 每个用户应用创建在独立的 `projects/<project-name>` 目录中。
 - `projects/` 仅承载参考应用和用户应用；保留 Recovery 是
   `esp-mosaico-utils/esp-mosaico-recovery` 中只由 `mosaico.py recover` 使用的内部固件资源。
@@ -219,6 +223,7 @@ ESP-Mosaico 真实设备
 | 命令 | 用户语义 | 默认行为 |
 | --- | --- | --- |
 | `python mosaico.py doctor` | 检查主机开发环境 | 只检查 Python、ESP-IDF、ESP-Iris、状态目录和 USB 枚举，不构建或写设备 |
+| `python mosaico.py init <name>` | 创建普通应用工程 | 从工作区 Hello World 模板生成源文件并调整工程名和依赖路径；无需 ESP-IDF 或设备，已有目标报错 |
 | `python mosaico.py list` | 查看设备清单 | 连接 Gateway 并列出在线及缓存离线设备的 Device ID、在线状态、固件身份、模式、连接方式和 Boot ID；`--details` 展开端点及能力信息 |
 | `python mosaico.py recover` | 初始化或恢复设备 | 使用评审基础包，完成后停留在 Recovery 就绪状态 |
 | `python mosaico.py install` | 安装普通应用 | 构建工程并通过 ESP-Iris 安装，不自动触发恢复 |

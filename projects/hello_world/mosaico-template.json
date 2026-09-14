@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "paths": {
+    "app_recovery": {
+      "base": "workspace",
+      "path": "components/esp_mosaico_app_recovery"
+    },
+    "app_recovery_cmake": {
+      "base": "workspace",
+      "path": "components/esp_mosaico_app_recovery/CMakeLists.txt",
+      "required": "file"
+    },
+    "system_update": {
+      "base": "workspace",
+      "path": "cmake/system_update.cmake",
+      "required": "file"
+    },
+    "system_update_preparer": {
+      "base": "workspace",
+      "path": "tools/prepare_system_update.py",
+      "required": "file"
+    },
+    "bsp_component": {
+      "base": "bsp",
+      "path": "components/esp-mosaico-bsp"
+    },
+    "iris_component": {
+      "base": "esp_iris",
+      "path": "components/esp_iris"
+    },
+    "iris_root": {
+      "base": "esp_iris",
+      "path": "."
+    }
+  },
+  "files": [
+    {
+      "source": "CMakeLists.txt",
+      "replacements": [
+        {
+          "pattern": "^project\\(hello_world(?=[\\s)])",
+          "replacement": "project({{project_name}}"
+        },
+        {
+          "pattern": "set\\(EXTRA_COMPONENT_DIRS\\s+\"[^\"\\n]*esp_mosaico_app_recovery\"\\s*\\)",
+          "replacement": "set(EXTRA_COMPONENT_DIRS\n    \"${CMAKE_CURRENT_LIST_DIR}/{{app_recovery|cmake}}\")"
+        },
+        {
+          "pattern": "^include\\([^\\n)]*system_update\\.cmake\"?\\)",
+          "replacement": "set(MOSAICO_ESP_IRIS_ROOT \"${CMAKE_CURRENT_LIST_DIR}/{{iris_root|cmake}}\")\ninclude(\"${CMAKE_CURRENT_LIST_DIR}/{{system_update|cmake}}\")"
+        }
+      ]
+    },
+    {
+      "source": "README.md",
+      "replacements": [
+        {
+          "pattern": "^# ESP-Mosaico Hello World$",
+          "replacement": "# ESP-Mosaico {{project_name}}"
+        },
+        {
+          "pattern": "It is the reference normal\napplication: new projects should preserve its partition layout,",
+          "replacement": "It was created from the Hello World reference\napplication. Preserve its partition layout,"
+        },
+        {
+          "pattern": "^python mosaico\\.py install --project projects/hello_world$",
+          "replacement": "python mosaico.py install --project {{project_path|shell}}"
+        },
+        {
+          "pattern": "^python mosaico\\.py system-update --project projects/hello_world$",
+          "replacement": "python mosaico.py system-update --project {{project_path|shell}}"
+        }
+      ],
+      "append": "\nFor a blank or unverified device, initialize and verify retained Recovery\nfrom the workspace root before the first application install:\n\n```sh\npython mosaico.py recover\n```\n"
+    },
+    {
+      "source": "partitions.csv"
+    },
+    {
+      "source": "sdkconfig.defaults"
+    },
+    {
+      "source": "sdkconfig.application.defaults",
+      "replacements": [
+        {
+          "pattern": "^CONFIG_ESP_IRIS_USB_PRODUCT=\"[^\"\\n]*\"",
+          "replacement": "CONFIG_ESP_IRIS_USB_PRODUCT=\"ESP-Iris Mosaico {{project_name}}\""
+        }
+      ]
+    },
+    {
+      "source": "main/CMakeLists.txt"
+    },
+    {
+      "source": "main/idf_component.yml",
+      "replacements": [
+        {
+          "pattern": "^    override_path: \\.\\./\\.\\./\\.\\./submodule/esp-mosaico-bsp/components/esp-mosaico-bsp$",
+          "replacement": "    override_path: {{bsp_component|json}}"
+        },
+        {
+          "pattern": "^    override_path: \\.\\./\\.\\./\\.\\./submodule/esp-mosaico-utils/ESP-Iris/components/esp_iris$",
+          "replacement": "    override_path: {{iris_component|json}}"
+        }
+      ]
+    },
+    {
+      "source": "main/main.c",
+      "replacements": [
+        {
+          "pattern": "^static const char \\*TAG = \"hello_world\";",
+          "replacement": "static const char *TAG = \"{{project_name}}\";"
+        }
+      ]
+    }
+  ]
+}
