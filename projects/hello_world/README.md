@@ -22,3 +22,9 @@ python mosaico.py system-update --project projects/hello_world
 Use `python mosaico.py monitor --timeout 20` to observe the periodic log. USB
 and firmware operations remain owned by ESP-Iris; do not open the serial port
 directly.
+
+To read internal RAM, SPIRAM and each task's minimum remaining stack (bytes),
+run `python mosaico.py memory`. Use `python mosaico.py memory --follow` for a
+five-second polling interval, or `--interval 10` to change it. `--json` emits
+one JSON object per poll. Each poll scans task stacks on demand; a lower
+frequency reduces interference with time-sensitive work.
