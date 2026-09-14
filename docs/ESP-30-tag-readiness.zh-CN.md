@@ -202,3 +202,36 @@ Utils 已规定 `esp-iris-vX.Y.Z` 和 `esp-mosaico-tools-vX.Y.Z`，两个产品�
 该 IDF 工作目录有已有本地修改，因此此结果仅为本机构建验证，不作为干净发布构建证据。
 原始日志保存在 Recovery 项目内
 `.codex-runs/idf-low-noise-build/20260914-210648-build-3779630/raw.log`。
+
+## 后续实施：预置 Recovery 0.1 与预编译 Workbench
+
+维护者进一步要求更新预置包，并允许中断在线设备完成验证。当前预置包实际包含
+`0.1` Recovery 镜像；上一节“预置包仍为旧版本”的描述仅记录第一次源码修改阶段。
+
+- 新 Recovery 来自 Utils `c4316c6608402b1db375ddccd8d5b821b21b6c8b`，
+  镜像为 1,706,304 字节，SHA-256 为
+  `e0d48922eea6b15eab194a6e466b12b04f01180c72bc422d14c8dc545d334cb9`。
+  manifest 重新生成；旧包的 bootloader、分区表和初始 OTA 数据逐字节保留。
+- 修复版本检查只接受三段版本号的问题：`0.1` 等价于 `0.1.0`。
+  本次重命名保留旧 2.x 最低版本要求至 `2.8.5` 的兼容性，更高要求仍被拒绝；
+  针对边界、无效字符串、溢出和旧包兼容增加了 C 主机回归验证。
+- 自动 `recover --source current` 因设备未进入 ROM 模式而未能写入；
+  后续使用 `mosaico.py system-update` 的 Recovery 自更新路径完成验证。
+  最终 Recovery 版本、ELF hash 和健康状态均通过 Gateway 确认。
+  再使用原始 `cyber_ride` 更新包恢复应用，原包的 `2.5.0-recovery` 最低要求通过，
+  应用 ELF hash 与操作前完全一致，同一设备在各阶段获得新的 Boot ID。
+  有效 core dump 由 Gateway 保存，未擦除用户凭据或 NVS。
+- 本次验证实际运行于设备已有应用布局；完整基础包的 ROM 首次部署未重测。
+  构建仍使用带已有本地修改的 IDF，不宣称完成干净的可复现发布构建。
+- ESP-Iris 新增跟踪的 `tools/frontend/dist`（298,247 字节），Gateway 可直接提供
+  Workbench，无需用户安装 Node.js。修正两层 Git 忽略规则，CI 构建后检查 dist
+  与 Git 一致，防止源码和预编译前端不同步。
+- 修改后 194 项主仓库/Recovery 测试通过；前端 7 项单元测试、5 项浏览器测试通过，
+  1 项依赖专用硬件 fixture 的测试按条件跳过。实际设备另做只读 Web 验证。
+  Web 显示的 Device ID、Boot ID 和恢复操作记录与 CLI 一致，浏览器无运行错误，
+  截图保存为 `.codex-runs/esp-30-prebuilt/workbench-final.png`。
+  前端重复构建与提交文件一致，298,247 字节低于 409,600 字节预算，npm audit
+  报告 0 个漏洞。修正后的 Recovery 构建成功、0 个警告。
+
+本次原始日志、备份与结构化证据保存在 `.codex-runs/esp-30-prebuilt/`。
+该目录为本地证据，不随 Git 提交；正式发布仍需做长期归档。
