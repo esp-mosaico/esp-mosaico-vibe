@@ -67,7 +67,9 @@ class ToolSubmoduleIntegrationTests(unittest.TestCase):
         self.assertTrue(value["devices"])
 
     def test_launcher_initializes_real_reference_from_nested_workspace_directory(self) -> None:
-        with tempfile.TemporaryDirectory(prefix="mosaico init ") as temporary:
+        # Local component references must share a drive with the generated app;
+        # Windows CI puts the checkout on D: and the default temp directory on C:.
+        with tempfile.TemporaryDirectory(prefix="mosaico init ", dir=REPOSITORY) as temporary:
             root = Path(temporary).resolve()
             config = json.loads((REPOSITORY / ".mosaico.json").read_text(encoding="utf-8"))
             config["workspace"]["init_template"] = str(REPOSITORY / "projects/hello_world")
