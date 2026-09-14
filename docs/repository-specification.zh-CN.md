@@ -76,6 +76,8 @@ Agent-Led 的默认主导关系是：**Agent 持续推进，用户在关键节�
 - 以 `projects/hello_world` 作为参考应用。
 - 使用 `python mosaico.py init <name>` 创建应用；命令保留 Recovery 接入，
   不复制构建产物、不覆盖已有目标，也不更改默认工程。支持 `--dry-run` 和 `--json`。
+- Hello World 与 `projects/hello_world/mosaico-template.json` 由主仓库共同维护；
+  工具子仓库只解释通用模板描述，不硬编码源文件列表或生成规则。
 - 每个用户应用创建在独立的 `projects/<project-name>` 目录中。
 - `projects/` 仅承载参考应用和用户应用；保留 Recovery 是
   `esp-mosaico-utils/esp-mosaico-recovery` 中只由 `mosaico.py recover` 使用的内部固件资源。

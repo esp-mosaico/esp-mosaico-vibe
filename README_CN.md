@@ -23,7 +23,9 @@ python mosaico.py init my_app
 python mosaico.py init another_app --dry-run
 ```
 
-`init` 只生成源文件，更新工程名与依赖路径，保留 Recovery 接入，不更改默认工程。
+`init` 按主仓库的[模板描述](projects/hello_world/mosaico-template.json)生成源文件，
+更新工程名与依赖路径，保留 Recovery 接入，不更改默认工程。描述与 Hello World
+源码一起维护；工具子仓库不包含应用专用的生成规则。
 创建过程无需 ESP-IDF 环境或设备；目标已存在时直接报错。支持 `--json` 自动化输出。
 生成后使用 `python mosaico.py install --project projects/my_app` 显式选择新工程。
 详细用法见[工程初始化指南](docs/project-init.zh-CN.md)。

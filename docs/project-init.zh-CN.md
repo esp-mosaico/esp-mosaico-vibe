@@ -32,7 +32,7 @@ python mosaico.py init my_app --json
 
 ## 工程内容
 
-只生成以下八个源文件：
+本工作区的 Hello World 描述生成以下八个源文件：
 
 ```text
 projects/my_app/
@@ -65,20 +65,29 @@ projects/my_app/
   "workspace": {
     "projects_dir": "projects",
     "default_project": "projects/hello_world",
-    "init_template": "projects/hello_world"
+    "init_template": "projects/hello_world/mosaico-template.json"
   }
 }
 ```
 
-以上仅展示相关字段，保留配置中的其他字段。`init_template` 可省略，默认值为
-`projects/hello_world`，独立于 `default_project`。相对路径从配置文件所在目录
-解析。自定义模板需要保持 Hello World 的八文件结构以及工程名、TAG、README
-命令等待替换标记；不支持将 Recovery 固件作为普通应用模板。
+以上仅展示相关字段，保留配置中的其他字段。`init_template` 指向 JSON 描述文件，
+相对路径从配置文件所在目录解析。子仓库没有默认模板；未配置此字段时，其他命令
+正常使用，`init` 会提示补充配置。
 
-`projects_dir` 必须在工作区内部，可以包含多级目录。命令重新计算 BSP、
-ESP-Iris、`components/esp_mosaico_app_recovery` 和 `cmake/system_update.cmake`
-的引用路径。本地 BSP 和 ESP-Iris 路径来自配置中的 `dependencies`。
-共享组件与构建脚本仍由工作区维护，不会复制进新应用。
+Hello World 源码和 `projects/hello_world/mosaico-template.json` 均由主仓库维护。
+描述文件声明复制哪些文件、如何替换工程名和文案，以及共享资源的位置。主仓库
+改名、增加源文件或调整生成规则时，同步修改描述即可，无需改动工具子仓库。
+生成结果不会复制描述文件本身，也不需要将可编译的 Hello World 源码改成占位符模板。
+
+工具子仓库只维护通用描述格式、变量展开、路径与内容校验、文件创建和失败清理。
+描述中的 `files` 决定文件清单，`replacements`/`append` 决定文本变换，`paths`
+声明工作区或依赖目录中的资源。它不执行模板提供的脚本，也不假定 `main/main.c`
+或任何 README 原文。详细字段和示例见[模板格式规范](../submodule/esp-mosaico-utils/esp-mosaico-recovery/docs/project-template.md)。
+
+`projects_dir` 必须在工作区内部，可以包含多级目录。描述中的路径变量相对于
+每个生成文件的父目录计算；BSP 和 ESP-Iris 路径来自 `dependencies` 配置。
+Windows 上生成目录与引用的本地依赖须位于同一盘符。共享组件与构建脚本仍由
+工作区维护，不会复制进新应用。Recovery 固件不能作为普通应用模板。
 
 ## 构建与设备安装
 
