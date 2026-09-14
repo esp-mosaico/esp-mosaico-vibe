@@ -16,6 +16,18 @@
 目录下为每个新应用创建独立目录。保留 Recovery 固件是固定版本
 `esp-mosaico-utils` 子模块的内部资源，只由 `mosaico.py recover` 使用。
 
+在工作区根目录创建 Hello World 应用：
+
+```sh
+python mosaico.py init my_app
+python mosaico.py init another_app --dry-run
+```
+
+`init` 只生成源文件，更新工程名与依赖路径，保留 Recovery 接入，不更改默认工程。
+创建过程无需 ESP-IDF 环境或设备；目标已存在时直接报错。支持 `--json` 自动化输出。
+生成后使用 `python mosaico.py install --project projects/my_app` 显式选择新工程。
+详细用法见[工程初始化指南](docs/project-init.zh-CN.md)。
+
 组件仓库和其他项目资料通过 Git 子模组提供。只加载或初始化当前任务所需的
 子模组。实现功能前，先查看 [`skills/README.md`](skills/README.md)，并按需读取
 相关的 `SKILL.md`，无需一次性加载全部资料。
@@ -100,7 +112,7 @@ python mosaico.py monitor --timeout 1 --grep __mosaico_host_smoke__
 [GitHub Actions 工作流](.github/workflows/ci.yml)在 Pull Request、`main` 分支
 push 和手动触发时运行。主机矩阵在原生 Linux、macOS、Windows 上测试 Python
 3.8 和 3.12；固件矩阵在 GitHub 托管的 `ubuntu-22.04` runner 上构建
-`hello_world`、`gsp_hello`、ESP-Iris 验收固件和保留 Recovery。每个固件任务
+`hello_world`、由 `init` 生成的应用、`gsp_hello`、ESP-Iris 验收固件和保留 Recovery。每个固件任务
 先递归检出 6.2 开发线上的固定 ESP-IDF revision
 `7b9cc1ac79f865983f59bb8ff3ff43eb74ff1dbe`，并用 ESP-IDF 官方 `install.sh`
 安装工具链，再执行 low-noise 环境检查和构建。GSP 任务还会编译 PC bridge，并
