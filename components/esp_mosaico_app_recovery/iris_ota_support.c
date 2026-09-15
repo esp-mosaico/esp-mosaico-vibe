@@ -285,18 +285,8 @@ static void enter_recovery_task(void *arg)
     esp_restart();
 }
 
-static esp_err_t enter_recovery_rpc(const esp_iris_rpc_request_t *request,
-                                    uint8_t *response,
-                                    size_t response_capacity,
-                                    size_t *response_size, void *user_ctx)
+esp_err_t iris_ota_support_enter_recovery(void)
 {
-    (void)response;
-    (void)response_capacity;
-    (void)user_ctx;
-    if (request->payload_size != 0) {
-        return ESP_ERR_INVALID_SIZE;
-    }
-
     const esp_partition_t *running = esp_ota_get_running_partition();
     const esp_partition_t *factory = esp_partition_find_first(
         ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_FACTORY, NULL);
@@ -314,6 +304,24 @@ static esp_err_t enter_recovery_rpc(const esp_iris_rpc_request_t *request,
         (void)esp_ota_set_boot_partition(running);
         return ESP_ERR_NO_MEM;
     }
+
+    return ESP_OK;
+}
+
+static esp_err_t enter_recovery_rpc(const esp_iris_rpc_request_t *request,
+                                    uint8_t *response,
+                                    size_t response_capacity,
+                                    size_t *response_size, void *user_ctx)
+{
+    (void)response;
+    (void)response_capacity;
+    (void)user_ctx;
+    if (request->payload_size != 0) {
+        return ESP_ERR_INVALID_SIZE;
+    }
+
+    ESP_RETURN_ON_ERROR(iris_ota_support_enter_recovery(), TAG,
+                        "schedule factory recovery");
 
     *response_size = 0;
     return ESP_OK;
