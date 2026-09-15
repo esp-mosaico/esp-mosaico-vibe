@@ -37,6 +37,18 @@ def defaults(path):
 
 
 class RetainedRecoveryContractTests(unittest.TestCase):
+    def test_normal_app_reads_update_result_from_recovery_sysmeta(self):
+        source = (ROOT / "components/esp_mosaico_app_recovery/iris_ota_support.c").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn('#define SYSTEM_METADATA_PARTITION "sysmeta"', source)
+        self.assertIn(
+            "nvs_open_from_partition(SYSTEM_METADATA_PARTITION,\n"
+            "                                SYSTEM_UPDATE_NAMESPACE, NVS_READONLY",
+            source,
+        )
+        self.assertIn("nvs_flash_init_partition(SYSTEM_METADATA_PARTITION)", source)
+
     def test_user_example_system_updates_preserve_recovery_bootloader(self):
         system_update_rule = (ROOT / "cmake/system_update.cmake").read_text(
             encoding="utf-8"

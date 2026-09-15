@@ -40,6 +40,7 @@
 #define RECOVERY_SERVICE_ID     0x7FFFU
 #define ENTER_RECOVERY_METHOD   2U
 #define RECOVERY_OTA_NAMESPACE  "iris_ota_demo"
+#define SYSTEM_METADATA_PARTITION "sysmeta"
 #define SYSTEM_UPDATE_NAMESPACE "update"
 #define SYSTEM_UPDATE_RESULT_KEY "last_result"
 #define SYSTEM_METADATA_MAGIC   0x49535953U
@@ -147,7 +148,7 @@ static void system_inventory_load_last_result(
     esp_iris_system_inventory_t *inventory)
 {
     nvs_handle_t handle;
-    if (nvs_open_from_partition(CONFIG_ESP_IRIS_NVS_PARTITION_NAME,
+    if (nvs_open_from_partition(SYSTEM_METADATA_PARTITION,
                                 SYSTEM_UPDATE_NAMESPACE, NVS_READONLY,
                                 &handle) != ESP_OK) {
         return;
@@ -341,6 +342,7 @@ void iris_ota_support_start(void)
 {
     ESP_ERROR_CHECK(nvs_flash_init_partition(
         CONFIG_ESP_IRIS_NVS_PARTITION_NAME));
+    ESP_ERROR_CHECK(nvs_flash_init_partition(SYSTEM_METADATA_PARTITION));
     ESP_ERROR_CHECK(system_inventory_register());
     ESP_ERROR_CHECK(esp_iris_rpc_register(OTA_SERVICE_ID, OTA_STATE_METHOD_ID,
                                           state_rpc, NULL));
