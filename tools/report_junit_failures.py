@@ -23,7 +23,7 @@ def main() -> int:
                 continue
             name = "{}.{}".format(case.get("classname", "test"),
                                   case.get("name", "failure"))
-            message = problem.get("message") or problem.text or "test failed"
+            message = problem.text or problem.get("message") or "test failed"
             print("::error title={}::{}".format(escape(name), escape(message)))
     return 0
 

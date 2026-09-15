@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """Generate original deterministic chiptune cues for Sky Hop."""
+from __future__ import annotations
+
 from pathlib import Path
 import math
 import struct

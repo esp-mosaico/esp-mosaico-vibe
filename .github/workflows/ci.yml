@@ -69,6 +69,7 @@ jobs:
         run: >-
           python -m pytest -q tests
           --ignore=tests/firmware
+          -o junit_logging=all
           --junitxml=test-results/workspace.xml
 
       - name: Report workspace test failures
