@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mosaico Game Development"
+  short_description: "Build and validate ESP-Mosaico Raylib games"
+  default_prompt: "Create or extend an ESP-Mosaico game using the repository Game SDK and recovery-safe workflow."
