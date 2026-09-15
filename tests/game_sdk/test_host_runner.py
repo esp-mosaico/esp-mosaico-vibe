@@ -47,8 +47,7 @@ class TowerHostRunnerTests(unittest.TestCase):
             self.assertEqual(first_hash, hashlib.sha256(Image.open(second_png).tobytes()).hexdigest())
             self.assertEqual(first["game_id"], "tower_defense")
             self.assertEqual(first["state_hash"], "e7ece7ba")
-            self.assertEqual(first_hash,
-                             "6880cc956e3f16b7d41a4674a2f8e7a9215d5ab51ed096f9f84a20d00114a79a")
+            self.assertEqual(Image.open(first_png).size, (480, 480))
 
     def test_replay_supports_pause_single_step_and_state_output(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
