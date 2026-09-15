@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+import os
+import shutil
 import struct
 import subprocess
 import tempfile
@@ -14,7 +16,9 @@ class RaylibFastHostTests(unittest.TestCase):
     def test_extended_api_draws_and_matches_runtime_contract(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             temp = Path(directory)
-            executable = temp / "raylib-fast-test"
+            executable = temp / ("raylib-fast-test.exe" if os.name == "nt" else "raylib-fast-test")
+            compiler = shutil.which("cc") or shutil.which("gcc") or shutil.which("clang")
+            self.assertIsNotNone(compiler, "a C compiler is required")
             pixels = struct.pack("<12H", *range(1, 13))
             frame = struct.pack("<IHHHHhh", 0x12345678, 0, 0, 4, 3, 2, 1)
             (temp / "scale.atlas").write_bytes(
@@ -33,7 +37,7 @@ class RaylibFastHostTests(unittest.TestCase):
                             len(pixels), len(smooth_alpha)) + pixels + smooth_alpha
             )
             command = [
-                "cc", "-std=c11", "-Wall", "-Wextra", "-Werror",
+                compiler, "-std=c11", "-Wall", "-Wextra", "-Werror",
                 str(ROOT / "tests/game_sdk/test_raylib_fast_host.c"),
                 str(ROOT / "submodule/raylib-lite-engine/host/host_raylib_port.c"),
                 str(ROOT / "submodule/raylib-lite-engine/host/host_asset_runtime.c"),

@@ -1,4 +1,6 @@
 import pathlib
+import os
+import shutil
 import subprocess
 import tempfile
 import textwrap
@@ -6,6 +8,14 @@ import unittest
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
+
+
+def host_compiler():
+    return shutil.which("cc") or shutil.which("gcc") or shutil.which("clang")
+
+
+def host_executable(directory, name):
+    return pathlib.Path(directory) / (name + ".exe" if os.name == "nt" else name)
 
 
 class RuntimeComponentsTest(unittest.TestCase):
@@ -107,16 +117,19 @@ class RuntimeComponentsTest(unittest.TestCase):
                 ROOT / "submodule/raylib-lite-engine/components/mosaico_game_fx/include",
                 ROOT / "submodule/raylib-lite-engine/components/mosaico_game_save/include",
             ]
-            command = ["cc", "-std=c11", "-Wall", "-Wextra", "-Werror"]
+            compiler = host_compiler()
+            self.assertIsNotNone(compiler, "a C compiler is required")
+            executable = host_executable(temp, "runtime_test")
+            command = [compiler, "-std=c11", "-Wall", "-Wextra", "-Werror"]
             command += [f"-I{path}" for path in include_dirs]
             command += [str(harness),
                         str(ROOT / "submodule/raylib-lite-engine/components/mosaico_game_scene/mosaico_game_scene.c"),
                         str(ROOT / "submodule/raylib-lite-engine/components/mosaico_game_ui/mosaico_game_ui.c"),
                         str(ROOT / "submodule/raylib-lite-engine/components/mosaico_game_fx/mosaico_game_fx.c"),
                         str(ROOT / "submodule/raylib-lite-engine/components/mosaico_game_save/mosaico_game_save.c"),
-                        "-o", str(temp / "runtime_test")]
+                        "-o", str(executable)]
             subprocess.run(command, check=True)
-            subprocess.run([str(temp / "runtime_test")], check=True)
+            subprocess.run([str(executable)], check=True)
 
     def test_action_mapper_zones_and_restart_pulse(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -158,15 +171,18 @@ class RuntimeComponentsTest(unittest.TestCase):
                     return 0;
                 }
             """))
-            command = ["cc", "-std=c11", "-Wall", "-Wextra", "-Werror",
+            compiler = host_compiler()
+            self.assertIsNotNone(compiler, "a C compiler is required")
+            executable = host_executable(temp, "action_test")
+            command = [compiler, "-std=c11", "-Wall", "-Wextra", "-Werror",
                        f"-I{temp}",
                        f"-I{ROOT / 'submodule/raylib-lite-engine/components/mosaico_game/include'}",
                        f"-I{ROOT / 'submodule/raylib-lite-engine/components/mosaico_game_input/include'}",
                        str(harness),
                        str(ROOT / "submodule/raylib-lite-engine/components/mosaico_game_input/mosaico_game_action.c"),
-                       "-o", str(temp / "action_test")]
+                       "-o", str(executable)]
             subprocess.run(command, check=True)
-            subprocess.run([str(temp / "action_test")], check=True)
+            subprocess.run([str(executable)], check=True)
 
 
 if __name__ == "__main__":
