@@ -52,7 +52,8 @@ def requests_sim_bridge(
     )
 
 
-def run_sim_bridge(pc: Path, gsp_root: Path, *, headless: bool) -> int:
+def run_sim_bridge(pc: Path, gsp_root: Path, *, headless: bool,
+                   duration: float | None = None) -> int:
     command = [
         sys.executable,
         str(sim_bridge_script(gsp_root)),
@@ -69,6 +70,8 @@ def run_sim_bridge(pc: Path, gsp_root: Path, *, headless: bool) -> int:
     ]
     if headless:
         command.append("--headless")
+    if duration is not None:
+        command.extend(("--duration", str(duration)))
     return subprocess.call(command)
 
 
@@ -104,6 +107,13 @@ def main() -> int:
     )
     parser.add_argument("--frames", type=int)
     parser.add_argument("--fps", type=int)
+    parser.add_argument("--duration", type=float,
+                        help="Stop a sim_bridge preview after this many seconds")
+    parser.add_argument(
+        "--pc-project",
+        type=Path,
+        help="run this pc/CMakeLists.txt backend directly through sim_bridge",
+    )
     parser.add_argument("--dump-ppm", type=Path)
     parser.add_argument(
         "sim_args",
@@ -111,11 +121,27 @@ def main() -> int:
         help="extra simulator flags; pass after -- (for example -- --drag 80 360 400 360)",
     )
     args = parser.parse_args()
+    if args.headless and args.interactive:
+        raise SystemExit("use either --headless or --interactive")
+
+    if args.pc_project is not None:
+        pc = args.pc_project.expanduser().resolve()
+        if not (pc / "CMakeLists.txt").is_file():
+            raise SystemExit(f"PC simulator project not found: {pc}")
+        gsp_root = resolve_gsp_root(pc)
+        if gsp_root is None or not sim_bridge_script(gsp_root).is_file():
+            raise SystemExit(
+                "espressif/esp-gsp with sim_bridge is not installed for "
+                f"{pc.parent}"
+            )
+        bridge_args = {"headless": args.headless}
+        if args.duration is not None:
+            bridge_args["duration"] = args.duration
+        return run_sim_bridge(pc, gsp_root, **bridge_args)
+
     scene = args.scene.expanduser().resolve()
     if not scene.is_file():
         raise SystemExit(f"scene not found: {scene}")
-    if args.headless and args.interactive:
-        raise SystemExit("use either --headless or --interactive")
 
     extra = list(args.sim_args)
     if extra and extra[0] == "--":
@@ -142,7 +168,10 @@ def main() -> int:
                 "or set ESP_GSP_COMPONENT_DIR."
             )
         if sim_bridge_script(gsp_root).is_file():
-            return run_sim_bridge(pc, gsp_root, headless=args.headless)
+            if args.duration is None:
+                return run_sim_bridge(pc, gsp_root, headless=args.headless)
+            return run_sim_bridge(pc, gsp_root, headless=args.headless,
+                                  duration=args.duration)
 
     sim_args: list[str] = []
     if args.headless:

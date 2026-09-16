@@ -4,6 +4,21 @@
 # Recovery bootloader is intentionally not part of normal application updates.
 # It is installed and repaired only by `mosaico.py recover`.
 
+# ESP-IDF selects the factory partition as the default `flash`/`app-flash`
+# destination whenever a retained factory application exists.  For Mosaico
+# that partition contains Recovery and must never receive a game image.  Keep
+# the unsafe generic targets visible but make them fail before esptool starts;
+# the product CLI installs the application into ota_0 through Recovery.
+add_custom_target(mosaico-reject-direct-app-flash
+    COMMAND "${CMAKE_COMMAND}" -E echo
+        "Direct IDF flashing is disabled: factory contains retained Recovery."
+    COMMAND "${CMAKE_COMMAND}" -E echo
+        "Use: python3 mosaico.py install --project ${PROJECT_SOURCE_DIR}"
+    COMMAND "${CMAKE_COMMAND}" -E false
+    VERBATIM)
+add_dependencies(flash mosaico-reject-direct-app-flash)
+add_dependencies(app-flash mosaico-reject-direct-app-flash)
+
 set(system_update_preparer
     "${CMAKE_CURRENT_LIST_DIR}/../tools/prepare_system_update.py")
 set(system_update_partition_csv "${PROJECT_SOURCE_DIR}/partitions.csv")

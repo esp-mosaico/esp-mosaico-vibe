@@ -1,0 +1,15 @@
+cmake_minimum_required(VERSION 3.16)
+
+if(NOT SDKCONFIG)
+    set(SDKCONFIG "${CMAKE_BINARY_DIR}/sdkconfig")
+endif()
+if(NOT SDKCONFIG_DEFAULTS)
+    set(SDKCONFIG_DEFAULTS "sdkconfig.defaults;sdkconfig.application.defaults")
+endif()
+include("${CMAKE_CURRENT_LIST_DIR}/../../cmake/raylib_lite_engine.cmake")
+mosaico_game_sdk_configure_gsp_compiler()
+mosaico_game_sdk_add_components(RAYLIB AUDIO TILEMAP)
+include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+project(tower_defense VERSION 0.1.0)
+
+include(../../cmake/system_update.cmake)

@@ -1,0 +1,4 @@
+interface:
+  display_name: "ESP-Iris Device Debugging"
+  short_description: "Diagnose ESP-Mosaico boot, OTA, and crash failures"
+  default_prompt: "Diagnose an ESP-Mosaico device failure through ESP-Iris while preserving crash evidence and the Recovery path."
