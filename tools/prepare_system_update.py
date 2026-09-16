@@ -151,7 +151,7 @@ def main() -> int:
     manifest = {
         "schema": "esp-iris-system-update/v1",
         "release": args.release,
-        "minimum_recovery_version": "2.5.0-recovery",
+        "minimum_recovery_version": "0.1",
         "target": {"chip_id": 0x20, "flash_size": 16 * 1024 * 1024},
         "target_layout_sha256": target_layout,
         "components": components,

@@ -74,7 +74,7 @@ class PrepareSystemUpdateTests(unittest.TestCase):
             self.assertEqual((stage / "ui_apps.bin").read_bytes(), b"ui apps")
             self.assertEqual(manifest["schema"], "esp-iris-system-update/v1")
             self.assertNotIn("source_layout_sha256", manifest)
-            self.assertEqual(manifest["minimum_recovery_version"], "2.5.0-recovery")
+            self.assertEqual(manifest["minimum_recovery_version"], "0.1")
             self.assertEqual(
                 [item["kind"] for item in manifest["components"]],
                 ["partition_table", "application", "data"],
