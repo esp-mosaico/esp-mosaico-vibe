@@ -12,6 +12,8 @@ Host 仿真和设备固件编译同一份实现，因此颜色混合、裁剪、
 - 图元：pixel、line/line strip/dashed、circle/ellipse、rectangle/gradient/rounded、
   triangle/fan/strip、poly，以及对应的 outline/thickness 变体；
 - 纹理：`LoadTexture`、`UnloadTexture`、`DrawTexture`、`V`、`Rec`、`Ex`、`Pro`；
+  2.5D 内核另有 `Mosaico2DDrawColumn`、`Mosaico2DDrawSpan`、`Mosaico2DDrawFloorRow`，
+  在 RGB565 内做竖条/扫描线采样和距离光照，不走 Wasm；
 - 文本：`DrawText`、`MeasureText`、`TextFormat`；
 - 碰撞与颜色：矩形、圆、点、三角形查询，`GetCollisionRec`、`Fade`、
   `ColorAlpha`、`ColorTint`、`ColorBrightness`；

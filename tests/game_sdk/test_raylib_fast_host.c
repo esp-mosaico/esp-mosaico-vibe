@@ -78,6 +78,27 @@ int main(int argc, char **argv)
 
     mosaico_game_2d_reset_raster_stats();
     BeginDrawing();
+    ClearBackground(BLACK);
+    Mosaico2DDrawColumn(scale_texture, (Rectangle){0, 0, 1, 3},
+                        20, 20, 4, 6, 256);
+    uint16_t bottoms[2] = {0, 100};
+    Mosaico2DDrawFloorRow(scale_texture, (Rectangle){0, 0, 4, 3},
+                          30, 40, 4, 2, bottoms, 0, 0, 65536, 0, 256);
+    EndDrawing();
+    assert(framebuffer[20 * 480 + 20] == 1);
+    assert(framebuffer[20 * 480 + 23] == 1);
+    assert(framebuffer[22 * 480 + 20] == 5);
+    assert(framebuffer[24 * 480 + 20] == 9);
+    assert(framebuffer[30 * 480 + 40] == 1);
+    assert(framebuffer[30 * 480 + 44] == 0);
+    mosaico_game_2d_get_raster_stats(&raster);
+    assert(raster.column_calls == 1);
+    assert(raster.column_pixels == 24);
+    assert(raster.span_calls == 1);
+    assert(raster.span_pixels == 4);
+
+    mosaico_game_2d_reset_raster_stats();
+    BeginDrawing();
     DrawTexture(scale_texture, 30, 30, WHITE);
     EndDrawing();
     mosaico_game_2d_get_raster_stats(&raster);
