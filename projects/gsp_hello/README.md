@@ -38,7 +38,7 @@ python mosaico.py system-update --project projects/gsp_hello
 ```
 
 The command updates this project's partition table as part of the transaction.
-Recovery 2.4.0 or newer validates the shared recovery-critical partitions,
+Recovery 0.1 or newer in this repository validates the shared recovery-critical partitions,
 then uses this target table to write `ota_0` and `ui_apps`. Therefore the same
 single command works whether the device currently runs `hello_world` or
 `gsp_hello`; no intermediate layout-migration bundle is needed.
