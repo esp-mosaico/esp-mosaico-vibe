@@ -1,5 +1,9 @@
 # ESP-31：ESP-Iris 内存占用分析
 
+本文保留 ESP-31 阶段的历史基线，不代表当前配置。2026-09-16 的
+正常应用 USB/RPC/截图/镜像峰值优化与实机验收见
+[25 KB 内部 RAM 验收报告](esp-iris-internal-budget.zh-CN.md)。
+
 本次范围是正常应用中的 ESP-Iris 及其 USB CDC 传输依赖。基线为工作区
 `ebaf1d7`、Utils 子模块 `4159735`，在支持 ESP32-S31 的
 ESP-IDF `v6.2-dev-2221-g7b9cc1ac79f` 上构建 `projects/hello_world`。
