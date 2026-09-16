@@ -1,12 +1,13 @@
 {
   "image": "tactical_materials.png",
-  "columns": 3,
+  "columns": 4,
   "rows": 1,
   "output_cell": 128,
   "alpha_mode": "opaque",
   "frames": [
     {"name": "wall_concrete"},
     {"name": "wall_brick"},
-    {"name": "wall_container"}
+    {"name": "wall_container"},
+    {"name": "floor_dirt"}
   ]
 }

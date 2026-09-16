@@ -5,12 +5,18 @@
     {"config": "weapon.json", "source": "weapon.png", "output": "weapon.atlas"},
     {"config": "controls.json", "source": "controls.png", "output": "controls.atlas"},
     {"config": "environment.json", "source": "tactical_panorama.png", "output": "environment.atlas"},
-    {"config": "materials.json", "source": "tactical_materials.png", "output": "materials.atlas"}
+    {"config": "materials.json", "source": "tactical_materials.png", "output": "materials.atlas"},
+    {"config": "props.json", "source": "props.png", "output": "props.atlas"}
   ],
-  "sounds": [
+    "sounds": [
     {"source": "rifle.wav"},
     {"source": "impact.wav"},
     {"source": "confirm.wav"},
-    {"source": "hurt.wav"}
+    {"source": "hurt.wav"},
+    {"source": "empty.wav"},
+    {"source": "pickup.wav"},
+    {"source": "alert.wav"},
+    {"source": "step_l.wav"},
+    {"source": "step_r.wav"}
   ]
 }

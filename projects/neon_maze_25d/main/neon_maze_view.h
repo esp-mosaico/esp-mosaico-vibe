@@ -4,4 +4,5 @@
 #include "neon_maze_game.h"
 void neon_maze_view_render(const neon_maze_game_t *game,MosaicoAtlas enemies,
                            MosaicoAtlas weapon,MosaicoAtlas environment,
-                           MosaicoAtlas materials,MosaicoAtlas controls);
+                           MosaicoAtlas materials,MosaicoAtlas controls,
+                           MosaicoAtlas props);

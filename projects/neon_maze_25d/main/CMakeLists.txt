@@ -1,9 +1,10 @@
 idf_component_register(
     SRCS "main.c" "neon_maze_app.c" "neon_maze_game.c" "neon_maze_view.c"
+         "neon_maze_save.c"
     INCLUDE_DIRS "."
     REQUIRES mosaico_game_app mosaico_game_assets mosaico_game_2d
              mosaico_raylib_fast mosaico_raylib_port mosaico_game_audio
-             esp-mosaico-bsp raylib esp-gsp)
+             mosaico_game_save esp-mosaico-bsp raylib esp-gsp)
 
 set(GAME_ASSET_SOURCE "${CMAKE_CURRENT_LIST_DIR}/../assets_src")
 set(GAME_ASSET_OUTPUT "${CMAKE_CURRENT_LIST_DIR}/../assets/generated")
@@ -17,16 +18,23 @@ add_custom_target(neon_maze_assets ALL
                "${GAME_ASSET_OUTPUT}/controls.atlas"
                "${GAME_ASSET_OUTPUT}/environment.atlas"
                "${GAME_ASSET_OUTPUT}/materials.atlas"
+               "${GAME_ASSET_OUTPUT}/props.atlas"
                "${GAME_ASSET_OUTPUT}/rifle.sound"
                "${GAME_ASSET_OUTPUT}/impact.sound"
                "${GAME_ASSET_OUTPUT}/confirm.sound"
                "${GAME_ASSET_OUTPUT}/hurt.sound"
+               "${GAME_ASSET_OUTPUT}/empty.sound"
+               "${GAME_ASSET_OUTPUT}/pickup.sound"
+               "${GAME_ASSET_OUTPUT}/alert.sound"
+               "${GAME_ASSET_OUTPUT}/step_l.sound"
+               "${GAME_ASSET_OUTPUT}/step_r.sound"
     DEPENDS "${GAME_ASSET_SOURCE}/game_assets.json"
             "${GAME_ASSET_SOURCE}/enemy.json"
             "${GAME_ASSET_SOURCE}/weapon.json"
             "${GAME_ASSET_SOURCE}/controls.json"
             "${GAME_ASSET_SOURCE}/environment.json"
             "${GAME_ASSET_SOURCE}/materials.json"
+            "${GAME_ASSET_SOURCE}/props.json"
             "${GAME_ASSET_SOURCE}/enemy_run_strip_source.png"
             "${GAME_ASSET_SOURCE}/k98_rifle_source.png"
             "${GAME_ASSET_SOURCE}/tactical_panorama_source.png"
@@ -44,7 +52,9 @@ target_add_binary_data(${COMPONENT_LIB} "${GAME_ASSET_OUTPUT}/environment.atlas"
     RENAME_TO environment_atlas DEPENDS neon_maze_assets)
 target_add_binary_data(${COMPONENT_LIB} "${GAME_ASSET_OUTPUT}/materials.atlas" BINARY
     RENAME_TO materials_atlas DEPENDS neon_maze_assets)
-foreach(sound rifle impact confirm hurt)
+target_add_binary_data(${COMPONENT_LIB} "${GAME_ASSET_OUTPUT}/props.atlas" BINARY
+    RENAME_TO props_atlas DEPENDS neon_maze_assets)
+foreach(sound rifle impact confirm hurt empty pickup alert step_l step_r)
     target_add_binary_data(${COMPONENT_LIB} "${GAME_ASSET_OUTPUT}/${sound}.sound" BINARY
         RENAME_TO "neon_${sound}" DEPENDS neon_maze_assets)
 endforeach()

@@ -2,6 +2,7 @@
 """Deterministically isolate the generated drone and weapon cells."""
 from pathlib import Path
 import os
+import random
 from PIL import Image, ImageDraw, ImageFilter, ImageOps
 
 root = Path(__file__).resolve().parent
@@ -11,8 +12,8 @@ def save_atomic(image, destination):
     image.save(temporary, format="PNG")
     os.replace(temporary, destination)
 
-enemy_cell = 156
-enemy_sheet = Image.new("RGBA", (enemy_cell * 3, enemy_cell))
+enemy_cell = 120
+enemy_sheet = Image.new("RGBA", (enemy_cell * 6, enemy_cell))
 weapon_cell = 280
 weapon_sheet = Image.new("RGBA", (weapon_cell, weapon_cell))
 resampling = getattr(Image, "Resampling", Image)
@@ -21,6 +22,7 @@ cell_width = run_strip.width // 3
 sprites = [run_strip.crop((i * cell_width, 0,
                           (i + 1) * cell_width if i < 2 else run_strip.width,
                           run_strip.height)) for i in range(3)]
+processed = []
 for index, sprite in enumerate(sprites):
     alpha_bounds = sprite.getchannel("A").getbbox()
     if not alpha_bounds:
@@ -28,9 +30,28 @@ for index, sprite in enumerate(sprites):
     sprite = sprite.crop(alpha_bounds)
     sprite.thumbnail((enemy_cell - 8, enemy_cell - 8), resampling.LANCZOS)
     sprite = sprite.filter(ImageFilter.UnsharpMask(radius=.7, percent=105, threshold=2))
+    processed.append(sprite)
     enemy_sheet.alpha_composite(sprite,
         (index * enemy_cell + (enemy_cell - sprite.width) // 2,
          enemy_cell - 4 - sprite.height))
+
+def paste_variant(index, source, tint):
+    variant = source.copy()
+    pixels = variant.load()
+    for y in range(variant.height):
+        for x in range(variant.width):
+            r, g, b, a = pixels[x, y]
+            if a < 16:
+                continue
+            pixels[x, y] = (min(255, int(r * tint[0])), min(255, int(g * tint[1])),
+                            min(255, int(b * tint[2])), a)
+    enemy_sheet.alpha_composite(variant,
+        (index * enemy_cell + (enemy_cell - variant.width) // 2,
+         enemy_cell - 4 - variant.height))
+
+paste_variant(3, processed[1], (1.15, 0.95, 0.72))
+paste_variant(4, processed[0], (1.45, 0.55, 0.45))
+paste_variant(5, processed[2], (1.20, 1.05, 0.65))
 rifle = Image.open(root / "k98_rifle_source.png").convert("RGBA")
 alpha_bounds = rifle.getchannel("A").getbbox()
 if not alpha_bounds:
@@ -47,14 +68,14 @@ save_atomic(weapon_sheet, root / "weapon.png")
 controls = Image.new("RGBA", (192, 96))
 pixels = controls.load()
 draw = ImageDraw.Draw(controls)
-draw.ellipse((4, 4, 92, 92), outline=(158, 192, 183, 255), width=3)
-draw.ellipse((17, 17, 79, 79), outline=(72, 106, 99, 255), width=2)
-draw.ellipse((100, 4, 188, 92), outline=(221, 130, 92, 255), width=3)
-draw.ellipse((136, 40, 152, 56), fill=(246, 224, 201, 255))
-draw.line((144, 17, 144, 34), fill=(255, 239, 214, 255), width=2)
-draw.line((144, 62, 144, 79), fill=(255, 239, 214, 255), width=2)
-draw.line((113, 48, 130, 48), fill=(255, 239, 214, 255), width=2)
-draw.line((158, 48, 175, 48), fill=(255, 239, 214, 255), width=2)
+draw.ellipse((4, 4, 92, 92), outline=(120, 168, 158, 255), width=4)
+draw.ellipse((14, 14, 82, 82), outline=(48, 72, 68, 255), width=2)
+draw.ellipse((100, 4, 188, 92), outline=(196, 118, 78, 255), width=4)
+draw.ellipse((132, 36, 156, 60), fill=(246, 224, 201, 255))
+draw.line((144, 18, 144, 32), fill=(255, 239, 214, 255), width=3)
+draw.line((144, 64, 144, 78), fill=(255, 239, 214, 255), width=3)
+draw.line((116, 48, 130, 48), fill=(255, 239, 214, 255), width=3)
+draw.line((158, 48, 172, 48), fill=(255, 239, 214, 255), width=3)
 save_atomic(controls, root / "controls.png")
 
 # Keep the panorama in a square atlas cell while preserving a wide horizon.
@@ -65,6 +86,90 @@ environment = Image.new("RGB", (512, 256), panorama.getpixel((254, 204)))
 environment.paste(panorama, (2, 2))
 save_atomic(environment, root / "tactical_panorama.png")
 
-materials_source = Image.open(root / "tactical_materials_source.png").convert("RGB")
-materials = ImageOps.fit(materials_source, (384, 128), method=resampling.LANCZOS)
+def fill_tile(size, painter):
+    tile = Image.new("RGB", (size, size))
+    pixels = tile.load()
+    for y in range(size):
+        for x in range(size):
+            pixels[x, y] = painter(x, y)
+    return tile
+
+tile_rng = random.Random(77)
+
+def fence_color(x, y):
+    grit = tile_rng.randint(-8, 8)
+    post = x % 16 < 3
+    rail = 28 <= (y % 64) <= 34
+    if post:
+        return (78 + grit, 88 + grit, 98 + grit)
+    if rail:
+        return (168 + grit, 176 + grit, 188 + grit)
+    if 18 < (x % 32) < 28 and 36 < y < 92:
+        pane = 48 + grit
+        return (pane, pane + 22, pane + 36)
+    return (210 + grit, 216 + grit, 224 + grit)
+
+def brick_color(x, y):
+    grit = tile_rng.randint(-10, 10)
+    window = 22 < (x % 48) < 42 and 30 < y < 90
+    mortar = (y % 16) < 2 or ((x + (0 if (y // 16) % 2 else 16)) % 32) < 2
+    if window:
+        return (36 + grit // 2, 58 + grit, 78 + grit)
+    if mortar:
+        return (92 + grit, 70 + grit, 58 + grit)
+    return (168 + grit, 78 + grit // 2, 52 + grit // 3)
+
+def container_color(x, y):
+    grit = tile_rng.randint(-12, 12)
+    rib = x % 10 < 3
+    rust = 96 < y < 104
+    if rust:
+        return (118 + grit, 62 + grit, 28 + grit)
+    if rib:
+        return (28 + grit, 78 + grit, 46 + grit)
+    return (42 + grit, 108 + grit, 58 + grit)
+
+def floor_color(x, y):
+    grit = tile_rng.randint(-14, 14)
+    if y < 64:
+        seam = 18 if x % 28 == 0 or y % 22 == 0 else 0
+        return (max(40, min(160, 126 + grit - seam)),
+                max(24, min(96, 74 + grit - seam)),
+                max(12, min(48, 32 + grit // 2 - seam)))
+    plank = 22 if x % 18 == 0 else 0
+    ring = 14 if y % 8 == 0 else 0
+    return (max(110, min(210, 186 + grit - plank)),
+            max(88, min(170, 142 + grit - plank - ring)),
+            max(48, min(110, 78 + grit // 2 - plank)))
+
+materials = Image.new("RGB", (512, 128))
+materials.paste(fill_tile(128, fence_color), (0, 0))
+materials.paste(fill_tile(128, brick_color), (128, 0))
+materials.paste(fill_tile(128, container_color), (256, 0))
+materials.paste(fill_tile(128, floor_color), (384, 0))
 save_atomic(materials, root / "tactical_materials.png")
+
+prop_cell = 32
+props = Image.new("RGBA", (prop_cell * 4, prop_cell), (0, 0, 0, 0))
+prop_draw = ImageDraw.Draw(props)
+
+def box(x0, y0, x1, y1, fill, outline=None, width=1):
+    prop_draw.rectangle((x0, y0, x1, y1), fill=fill, outline=outline, width=width)
+
+# ammo crate
+box(4, 10, 27, 29, (72, 92, 46, 255), (28, 38, 18, 255), 2)
+box(6, 14, 25, 18, (214, 186, 64, 255))
+box(12, 8, 19, 12, (58, 74, 36, 255))
+# medkit
+box(36, 10, 59, 29, (236, 236, 232, 255), (148, 48, 48, 255), 2)
+box(44, 13, 50, 26, (196, 42, 48, 255))
+box(39, 17, 55, 22, (196, 42, 48, 255))
+# barrel
+prop_draw.ellipse((68, 6, 91, 16), fill=(62, 58, 54, 255), outline=(28, 26, 24, 255))
+box(68, 11, 91, 26, (74, 70, 64, 255))
+prop_draw.ellipse((68, 22, 91, 30), fill=(48, 46, 42, 255), outline=(24, 22, 20, 255))
+box(68, 16, 91, 18, (196, 118, 42, 255))
+# sandbag
+prop_draw.ellipse((100, 14, 123, 30), fill=(168, 132, 78, 255), outline=(96, 72, 40, 255))
+prop_draw.ellipse((104, 10, 119, 20), fill=(186, 148, 88, 255))
+save_atomic(props, root / "props.png")
