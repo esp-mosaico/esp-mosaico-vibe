@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "neon_maze_view.h"
 #include <math.h>
+#include <time.h>
+#ifdef ESP_PLATFORM
+#include "esp_timer.h"
+#endif
 #include "assets_ids.h"
 #include "mosaico_raylib_fast.h"
 
@@ -18,6 +22,20 @@ static uint8_t s_wall_u[NEON_MAZE_COLUMNS];
 static uint8_t s_wall_shift[NEON_MAZE_COLUMNS];
 static int16_t s_wall_top[NEON_MAZE_COLUMNS];
 static int16_t s_wall_height[NEON_MAZE_COLUMNS];
+static mosaico_raycast_wall_t s_wall_batch[NEON_MAZE_COLUMNS];
+static MosaicoSpriteFrame s_material_copies[4];
+static const MosaicoSpriteFrame *s_material_frames[4];
+
+static int64_t view_now_us(void)
+{
+#ifdef ESP_PLATFORM
+    return esp_timer_get_time();
+#else
+    struct timespec ts;
+    timespec_get(&ts, TIME_UTC);
+    return (int64_t)ts.tv_sec * 1000000LL + (int64_t)(ts.tv_nsec / 1000);
+#endif
+}
 
 static int view_horizon(const neon_maze_game_t *game)
 {
@@ -31,26 +49,44 @@ static int view_horizon(const neon_maze_game_t *game)
 static unsigned distance_light(float corrected, bool side, bool door, bool window,
                                bool corner, float flash)
 {
-    float light = 300.0f / (1.0f + corrected * 0.22f);
+    float light = 300.0f / (1.0f + corrected * 0.18f);
     if (light > 250.0f) light = 250.0f;
-    if (light < 118.0f) light = 118.0f;
-    if (side) light *= 0.74f;
+    if (light < 158.0f) light = 158.0f;
+    if (side) light *= 0.88f;
     if (window) light *= 1.08f;
     if (door) light *= 1.18f;
-    if (corner) light *= 0.68f;
+    if (corner) light *= 0.88f;
     light += flash * 48.0f;
-    if (light > 255.0f) light = 255.0f;
-    return (unsigned)light;
+    if (light > 256.0f) light = 256.0f;
+    if (light >= 248.0f) return 256U;
+    return ((unsigned)light + 8U) & ~15U;
 }
 
-static void draw_panorama(const neon_maze_game_t *game, MosaicoAtlas environment)
+static int panorama_height(const neon_maze_game_t *game)
+{
+    int horizon = view_horizon(game);
+    bool any_window = false;
+    int sky = 0;
+    for (int column = 0; column < NEON_MAZE_COLUMNS; ++column) {
+        if (s_wall_type[column] == 2) any_window = true;
+        if (s_wall_top[column] > sky) sky = s_wall_top[column];
+    }
+    if (any_window) return horizon;
+    if (sky < 0) sky = 0;
+    if (sky > horizon) sky = horizon;
+    return sky;
+}
+
+static void draw_panorama(const neon_maze_game_t *game, MosaicoAtlas environment,
+                         int dest_height)
 {
     static const mosaico_asset_id_t ids[] = {MOSAICO_ASSET_ID_TACTICAL_PANORAMA_LEFT,
                                            MOSAICO_ASSET_ID_TACTICAL_PANORAMA_RIGHT};
+    if (dest_height <= 0) return;
     const float available = 504.0f, window = 300.0f;
-    int horizon = view_horizon(game);
     float offset = fmodf(game->angle / 6.2831853f * available, available);
     float consumed = 0.0f;
+    float src_h = dest_height > 201 ? 201.0f : (float)dest_height;
     while (consumed < window) {
         float position = fmodf(offset + consumed, available);
         int half = position >= 252.0f ? 1 : 0;
@@ -60,9 +96,12 @@ static void draw_panorama(const neon_maze_game_t *game, MosaicoAtlas environment
         const MosaicoSpriteFrame *frame = MosaicoAtlasGetFrame(environment, ids[half]);
         if (!frame) return;
         float x = 480.0f * consumed / window, width = 480.0f * chunk / window;
+        if (consumed + chunk >= window)
+            width = 480.0f - x;
+        if (width < 1.0f) break;
         DrawTexturePro(environment.texture,
-            (Rectangle){frame->source.x + 2 + local, frame->source.y + 2, chunk, 201},
-            (Rectangle){x, 0, width, (float)horizon}, (Vector2){0, 0}, 0, WHITE);
+            (Rectangle){frame->source.x + 2 + local, frame->source.y + 2, chunk, src_h},
+            (Rectangle){x, 0, width, (float)dest_height}, (Vector2){0, 0}, 0, WHITE);
         consumed += chunk;
     }
 }
@@ -158,43 +197,55 @@ static void draw_enemies(const neon_maze_game_t *game, MosaicoAtlas atlas)
             }
     for (int n = 0; n < NEON_MAZE_ENEMIES; ++n) {
         const neon_maze_enemy_t *enemy = &game->enemies[order[n]];
-        if (!enemy->active) {
-            if (enemy->death_timer) draw_enemy_effect(game, enemy);
+        bool corpse = !enemy->active && !enemy->hp;
+        if (!enemy->active && !corpse) continue;
+        mosaico_asset_id_t frame_id = MOSAICO_ASSET_ID_ENEMY_DOWN;
+        if (!corpse) {
+            frame_id = MOSAICO_ASSET_ID_ENEMY_RUN_1;
+            if (enemy->hit_flash) frame_id = MOSAICO_ASSET_ID_ENEMY_HIT;
+            else if (enemy->attack_flash) frame_id = MOSAICO_ASSET_ID_ENEMY_FIRE;
+            else if (enemy->aim_timer) frame_id = MOSAICO_ASSET_ID_ENEMY_AIM;
+            else frame_id = run_frames[((game->tick / 4U) + enemy->move_phase) % 3U];
+        }
+        const MosaicoSpriteFrame *frame = MosaicoAtlasGetFrame(atlas, frame_id);
+        if (!frame) {
+            if (corpse && enemy->death_timer) draw_enemy_effect(game, enemy);
             continue;
         }
-        mosaico_asset_id_t frame_id = MOSAICO_ASSET_ID_ENEMY_RUN_1;
-        if (enemy->hit_flash) frame_id = MOSAICO_ASSET_ID_ENEMY_HIT;
-        else if (enemy->attack_flash) frame_id = MOSAICO_ASSET_ID_ENEMY_FIRE;
-        else if (enemy->aim_timer) frame_id = MOSAICO_ASSET_ID_ENEMY_AIM;
-        else frame_id = run_frames[((game->tick / 4U) + enemy->move_phase) % 3U];
-        const MosaicoSpriteFrame *frame = MosaicoAtlasGetFrame(atlas, frame_id);
-        if (!frame) continue;
         int center, size, ground;
         float distance;
         project_sprite(game, enemy->x, enemy->y, &center, &size, &ground, &distance);
         if (size <= 0) continue;
-        if (enemy->hp < 2) center += 3;
-        Color tint = enemy->hit_flash ? (Color){255, 92, 64, 255} : WHITE;
-        int left = center - size / 2, top = ground - size, run_start = -1;
+        int dest_h = corpse ? size * 3 / 5 : size;
+        int dest_w = corpse ? size + size / 6 : size;
+        if (dest_h < 12) dest_h = 12;
+        if (!corpse && enemy->hp < 2) center += 3;
+        Color tint = corpse ? (Color){210, 186, 168, 255}
+                    : (enemy->hit_flash ? (Color){255, 92, 64, 255} : WHITE);
+        int left = center - dest_w / 2, top = ground - dest_h, run_start = -1;
         bool visible_any = false;
-        for (int x = 0; x < size + 4; x += 4) {
+        for (int x = 0; x < dest_w + 4; x += 4) {
             int screen = left + x;
-            bool visible = x < size && column_visible(screen, distance);
+            bool visible = x < dest_w && column_visible(screen, distance);
             if (visible) {
                 visible_any = true;
                 if (run_start < 0) run_start = x;
             }
             if (!visible && run_start >= 0) {
-                int run_end = x < size ? x : size, run_width = run_end - run_start;
-                int screen_left = left + run_start;
-                float source_x = frame->source.x + frame->source.width * (float)run_start / size;
-                float source_width = frame->source.width * (float)run_width / size;
+                int run_end = x < dest_w ? x : dest_w, run_width = run_end - run_start;
+                float source_x = frame->source.x + frame->source.width * (float)run_start / dest_w;
+                float source_width = frame->source.width * (float)run_width / dest_w;
                 DrawTexturePro(atlas.texture,
                     (Rectangle){source_x, frame->source.y, source_width, frame->source.height},
-                    (Rectangle){(float)screen_left, (float)top, (float)run_width, (float)size},
+                    (Rectangle){(float)(left + run_start), (float)top, (float)run_width,
+                                (float)dest_h},
                     (Vector2){0, 0}, 0, tint);
                 run_start = -1;
             }
+        }
+        if (corpse) {
+            if (visible_any || enemy->death_timer) draw_enemy_effect(game, enemy);
+            continue;
         }
         if (visible_any && enemy->hp < 2)
             DrawRectangle(center - 6, top - 4, 12, 3, (Color){255, 72, 48, 255});
@@ -311,27 +362,38 @@ static void draw_pickups(const neon_maze_game_t *game, MosaicoAtlas props)
 
 static void draw_extract(const neon_maze_game_t *game)
 {
+    /* Keep the locked objective from competing with last-hostile guidance. */
+    if (neon_maze_enemies_alive(game) != 0) return;
     int center, size, ground;
     float distance;
     project_sprite(game, NEON_MAZE_EXTRACT_X, NEON_MAZE_EXTRACT_Y, &center, &size, &ground, &distance);
     if (size <= 0) return;
-    bool clear = neon_maze_enemies_alive(game) == 0;
-    Color neon = clear ? (Color){72, 255, 214, 255} : (Color){255, 92, 70, 255};
-    int left = center - size / 2, top = ground - size, run_start = -1;
-    for (int x = 0; x < size + 4; x += 4) {
+    Color neon = (Color){72, 255, 214, 255};
+    int pad_h = size / 5 + 6;
+    if (pad_h < 10) pad_h = 10;
+    int pad_w = size + size / 3;
+    int left = center - pad_w / 2, top = ground - pad_h, run_start = -1;
+    for (int x = 0; x < pad_w + 4; x += 4) {
         int screen = left + x;
-        bool visible = x < size && column_visible(screen, distance);
+        bool visible = x < pad_w && column_visible(screen, distance);
         if (visible && run_start < 0) run_start = x;
         if (!visible && run_start >= 0) {
-            int run_width = (x < size ? x : size) - run_start;
+            int run_width = (x < pad_w ? x : pad_w) - run_start;
             int screen_left = left + run_start;
-            DrawRectangle(screen_left, top, 4, size, neon);
-            if (run_width > 4) DrawRectangle(screen_left + run_width - 4, top, 4, size, neon);
-            DrawRectangle(screen_left, top, run_width, 4, neon);
-            DrawRectangle(screen_left, top + size - 4, run_width, 4, neon);
+            DrawRectangle(screen_left, top, run_width, pad_h, (Color){18, 42, 48, 255});
+            DrawRectangle(screen_left, top, run_width, 3, neon);
+            DrawRectangle(screen_left, top + pad_h - 3, run_width, 3, neon);
             run_start = -1;
         }
     }
+    int chev_y = ground - pad_h - 8 - ((int)(game->tick / 6U) % 6);
+    DrawTriangle((Vector2){(float)center, (float)(chev_y - 10)},
+                 (Vector2){(float)(center - 14), (float)chev_y},
+                 (Vector2){(float)(center + 14), (float)chev_y}, neon);
+    DrawTriangle((Vector2){(float)center, (float)(chev_y + 4)},
+                 (Vector2){(float)(center - 10), (float)(chev_y + 14)},
+                 (Vector2){(float)(center + 10), (float)(chev_y + 14)}, neon);
+    DrawRectangle(center - 2, top - 28, 4, 28, neon);
 }
 
 static void raycast_world(const neon_maze_game_t *game)
@@ -375,7 +437,8 @@ static void raycast_world(const neon_maze_game_t *game)
         s_depth[column] = corrected;
         s_wall_bottom[column] = (uint16_t)bottom;
         s_wall_top[column] = (int16_t)top;
-        s_wall_height[column] = (int16_t)height;
+        s_wall_height[column] = (int16_t)(bottom - top);
+        if (s_wall_height[column] < 1) s_wall_height[column] = 1;
         s_wall_type[column] = wall;
         s_wall_side[column] = side ? 1 : 0;
         s_wall_u[column] = (uint8_t)(u * 255.0f);
@@ -387,7 +450,8 @@ static int floor_kind_at(float wx, float wy)
 {
     int mx = (int)wx, my = (int)wy;
     if (neon_maze_cell(mx, my) == 5) return 2;
-    if (mx <= 11 && my <= 9) return 1;
+    if (mx >= 19 && my >= 19 && mx <= 22 && my <= 22) return 2;
+    if ((mx <= 6 && my <= 4) || (mx <= 6 && my >= 7 && my <= 9) || my >= 17) return 1;
     return 0;
 }
 
@@ -401,7 +465,7 @@ static void draw_floor(const neon_maze_game_t *game, MosaicoAtlas materials,
     float plane_x = -dir_y * plane, plane_y = dir_x * plane;
     float cam0 = (0.5f / (float)NEON_MAZE_COLUMNS) * 2.0f - 1.0f;
     float cam_step = 2.0f / (float)NEON_MAZE_COLUMNS;
-    for (int y = horizon + 1; y < 480; ++y) {
+    for (int y = horizon + 1; y < 480; y += 2) {
         float dist = NEON_MAZE_FLOOR_SCALE / (float)(y - horizon);
         float ray_x = dir_x + plane_x * cam0, ray_y = dir_y + plane_y * cam0;
         float wx = game->x + ray_x * dist, wy = game->y + ray_y * dist;
@@ -410,9 +474,9 @@ static void draw_floor(const neon_maze_game_t *game, MosaicoAtlas materials,
         int v_16 = (int)(wy * 128.0f * 65536.0f);
         int du_16 = (int)(dwx * 128.0f * 65536.0f);
         int dv_16 = (int)(dwy * 128.0f * 65536.0f);
-        unsigned light = (unsigned)(200.0f / (1.0f + dist * 0.26f));
-        if (light < 56U) light = 56U;
-        if (light > 198U) light = 198U;
+        unsigned light = (unsigned)(220.0f / (1.0f + dist * 0.18f));
+        if (light < 118U) light = 118U;
+        if (light > 210U) light = 210U;
         light += (unsigned)(game->weapon_recoil * 36.0f);
         int run_kind = -1, run_start = 0;
         for (int column = 0; column <= NEON_MAZE_COLUMNS; ++column) {
@@ -426,35 +490,48 @@ static void draw_floor(const neon_maze_game_t *game, MosaicoAtlas materials,
             }
             if (column < NEON_MAZE_COLUMNS && kind == run_kind) continue;
             Rectangle floor_src = tile->source;
-            if (run_kind == 1) {
-                floor_src.y += 64.0f;
-                floor_src.height = 64.0f;
-            } else {
-                floor_src.height = 64.0f;
-            }
-            floor_src.x += 6.0f;
-            floor_src.y += 4.0f;
-            floor_src.width -= 12.0f;
-            floor_src.height -= 8.0f;
+            if (run_kind == 1) floor_src.y += 64.0f;
+            floor_src.width = 64.0f;
+            floor_src.height = 64.0f;
             unsigned run_light = light;
             if (run_kind == 2) run_light += 36U;
             if (run_light > 230U) run_light = 230U;
             int columns = column - run_start;
-            Mosaico2DDrawFloorRow(materials.texture, floor_src, y,
+            Mosaico2DDrawFloorRows(materials.texture, floor_src, y,
                                   run_start * NEON_MAZE_COLUMN_WIDTH, NEON_MAZE_COLUMN_WIDTH,
-                                  columns, s_wall_bottom,
+                                  columns, s_wall_bottom + run_start,
                                   u_16 + du_16 * run_start, v_16 + dv_16 * run_start,
-                                  du_16, dv_16, run_light);
+                                  du_16, dv_16, run_light, 2);
             run_kind = kind;
             run_start = column;
         }
     }
 }
 
+static void draw_wall_footing(int screen_x, int top, int bottom)
+{
+    int height = bottom - top;
+    if (height <= 0) return;
+    if (bottom > 480) bottom = 480;
+    if (bottom <= 0) return;
+    int foot = height / 14;
+    if (foot < 5) foot = 5;
+    if (foot > 14) foot = 14;
+    int y = bottom - foot;
+    if (y < 0) y = 0;
+    foot = bottom - y;
+    if (foot <= 0) return;
+    DrawRectangle(screen_x, y, NEON_MAZE_COLUMN_WIDTH, foot, (Color){38, 32, 26, 255});
+    int edge = foot < 2 ? foot : 2;
+    DrawRectangle(screen_x, bottom - edge, NEON_MAZE_COLUMN_WIDTH, edge, (Color){24, 20, 16, 255});
+}
+
 static void draw_walls(const neon_maze_game_t *game, MosaicoAtlas materials,
                        const MosaicoSpriteFrame *frames[4])
 {
     float flash = game->weapon_recoil;
+    int batch = 0;
+    int horizon = view_horizon(game);
     for (int column = 0; column < NEON_MAZE_COLUMNS; ++column) {
         uint8_t wall = s_wall_type[column];
         if (!wall) continue;
@@ -463,44 +540,103 @@ static void draw_walls(const neon_maze_game_t *game, MosaicoAtlas materials,
         else if (wall == 3) mat = 2;
         const MosaicoSpriteFrame *material = frames[mat];
         if (!material) continue;
-        float inset = 6.0f;
+        float inset = 4.0f;
         float inner = material->source.width - inset * 2.0f;
+        if (inner < 4.0f) inner = material->source.width;
         float u = (float)s_wall_u[column] / 255.0f + (float)s_wall_shift[column] / 48.0f;
         u = u - floorf(u);
-        if (wall == 4) u = 0.12f + u * 0.52f;
+        if (wall == 4) u = u * 0.26f;
+        else if (wall == 2) u = 0.42f + u * 0.50f;
         bool corner = u < 0.08f || u > 0.92f;
         unsigned light = distance_light(s_depth[column], s_wall_side[column] != 0,
                                         wall == 4, wall == 2, corner, flash);
-        if (wall == 4 && (game->tick % 20U) < 10U) light += 28U;
-        if (light > 255U) light = 255U;
-        Mosaico2DDrawColumn(materials.texture,
-            (Rectangle){material->source.x + inset + u * (inner - 2.0f),
-                        material->source.y + inset, 2,
-                        material->source.height - inset * 2.0f},
-            column * NEON_MAZE_COLUMN_WIDTH, s_wall_top[column], NEON_MAZE_COLUMN_WIDTH,
-            s_wall_height[column], light);
+        if (wall == 4 && (game->tick % 20U) < 10U) light += 36U;
+        if (light > 256U) light = 256U;
+        int screen_x = column * NEON_MAZE_COLUMN_WIDTH;
+        int top = s_wall_top[column];
+        int bottom = s_wall_bottom[column];
+        int height = bottom - top;
+        if (height < 1) height = 1;
+        Rectangle src = {material->source.x + inset + u * (inner - 2.0f),
+                         material->source.y + inset, 2,
+                         material->source.height - inset * 2.0f};
+        if (src.height < 4.0f) src.height = material->source.height;
+        if (wall == 4) {
+            Color gold = (Color){214, 168, 48, 255};
+            if (s_wall_side[column]) gold = (Color){168, 128, 36, 255};
+            if ((game->tick % 20U) < 10U) {
+                gold.r = (unsigned char)(gold.r + 28 > 255 ? 255 : gold.r + 28);
+                gold.g = (unsigned char)(gold.g + 20 > 255 ? 255 : gold.g + 20);
+            }
+            DrawRectangle(screen_x, top, NEON_MAZE_COLUMN_WIDTH, height, gold);
+            DrawRectangle(screen_x, top, NEON_MAZE_COLUMN_WIDTH, 6, (Color){96, 64, 16, 255});
+            DrawRectangle(screen_x, top + height * 55 / 100, NEON_MAZE_COLUMN_WIDTH, 7,
+                          (Color){255, 232, 128, 255});
+            draw_wall_footing(screen_x, top, bottom);
+            continue;
+        }
+        if (wall == 2) {
+            int band = height * 22 / 100;
+            if (band < 6) band = 6;
+            if (band * 2 > height) band = height / 3;
+            int open_top = top + band;
+            int open_bot = bottom - band;
+            if (open_bot <= open_top + 2 || open_bot <= horizon) {
+                Mosaico2DDrawColumn(materials.texture, src, screen_x, top,
+                                    NEON_MAZE_COLUMN_WIDTH, height, light);
+            } else {
+                Mosaico2DDrawColumn(materials.texture,
+                    (Rectangle){src.x, src.y, src.width, src.height * 0.22f},
+                    screen_x, top, NEON_MAZE_COLUMN_WIDTH, band, light);
+                int haze_top = open_top < horizon ? horizon : open_top;
+                if (open_bot > haze_top)
+                    DrawRectangle(screen_x, haze_top, NEON_MAZE_COLUMN_WIDTH,
+                                  open_bot - haze_top, (Color){164, 152, 112, 255});
+                int sill_h = bottom - open_bot;
+                if (sill_h < 1) sill_h = 1;
+                Mosaico2DDrawColumn(materials.texture,
+                    (Rectangle){src.x, src.y + src.height * 0.78f, src.width, src.height * 0.22f},
+                    screen_x, open_bot, NEON_MAZE_COLUMN_WIDTH, sill_h, light);
+            }
+            draw_wall_footing(screen_x, top, bottom);
+            continue;
+        }
+        if (batch < NEON_MAZE_COLUMNS) {
+            s_wall_batch[batch++] = (mosaico_raycast_wall_t){
+                screen_x, top, NEON_MAZE_COLUMN_WIDTH, height,
+                (int)src.x, (int)src.y, (int)src.width, (int)src.height, light};
+        }
+    }
+    if (batch) Mosaico2DDrawRaycastWalls(materials.texture, s_wall_batch, batch);
+    for (int column = 0; column < NEON_MAZE_COLUMNS; ++column) {
+        uint8_t wall = s_wall_type[column];
+        if (wall != 1 && wall != 3) continue;
+        draw_wall_footing(column * NEON_MAZE_COLUMN_WIDTH,
+                          s_wall_top[column], s_wall_bottom[column]);
     }
 }
 
-static void draw_world(const neon_maze_game_t *game, MosaicoAtlas atlas,
-                       MosaicoAtlas materials, MosaicoAtlas props)
+static void load_material_frames(MosaicoAtlas materials)
 {
-    const mosaico_asset_id_t material_ids[] = {MOSAICO_ASSET_ID_WALL_CONCRETE,
+    static const mosaico_asset_id_t material_ids[] = {MOSAICO_ASSET_ID_WALL_CONCRETE,
         MOSAICO_ASSET_ID_WALL_BRICK, MOSAICO_ASSET_ID_WALL_CONTAINER,
         MOSAICO_ASSET_ID_FLOOR_DIRT};
-    const MosaicoSpriteFrame *material_frames[4];
-    for (int i = 0; i < 4; ++i) material_frames[i] = MosaicoAtlasGetFrame(materials, material_ids[i]);
-    raycast_world(game);
-    draw_floor(game, materials, material_frames[3] ? material_frames[3] : material_frames[1]);
-    draw_walls(game, materials, material_frames);
-    draw_extract(game);
-    draw_pickups(game, props);
-    draw_enemies(game, atlas);
+    for (int i = 0; i < 4; ++i) {
+        if (mosaico_game_2d_atlas_get_frame(materials, material_ids[i],
+                                            &s_material_copies[i]) == ESP_OK)
+            s_material_frames[i] = &s_material_copies[i];
+        else
+            s_material_frames[i] = NULL;
+    }
 }
 
 static void draw_weapon(const neon_maze_game_t *game, MosaicoAtlas atlas)
 {
-    const MosaicoSpriteFrame *frame = MosaicoAtlasGetFrame(atlas, MOSAICO_ASSET_ID_K98_RIFLE);
+    bool bolting = game->fire_cooldown > 4;
+    mosaico_asset_id_t frame_id = bolting ? MOSAICO_ASSET_ID_K98_BOLT
+                                         : MOSAICO_ASSET_ID_K98_RIFLE;
+    const MosaicoSpriteFrame *frame = MosaicoAtlasGetFrame(atlas, frame_id);
+    if (!frame) frame = MosaicoAtlasGetFrame(atlas, MOSAICO_ASSET_ID_K98_RIFLE);
     if (!frame) return;
     float motion = sqrtf(game->move_forward * game->move_forward +
                          game->move_strafe * game->move_strafe);
@@ -512,7 +648,7 @@ static void draw_weapon(const neon_maze_game_t *game, MosaicoAtlas atlas)
     float recoil_y = -18.0f * game->weapon_recoil + game->look_kick * .35f;
     float recoil_x = 4.0f * game->weapon_recoil;
     float bolt = game->fire_cooldown
-        ? 10.0f * (float)game->fire_cooldown / NEON_MAZE_FIRE_COOLDOWN : 0.0f;
+        ? 8.0f * (float)game->fire_cooldown / NEON_MAZE_FIRE_COOLDOWN : 0.0f;
     float nearest = 8.0f;
     for (int i = 0; i < NEON_MAZE_ENEMIES; ++i) {
         if (!game->enemies[i].active) continue;
@@ -520,19 +656,18 @@ static void draw_weapon(const neon_maze_game_t *game, MosaicoAtlas atlas)
         float dist = sqrtf(dx * dx + dy * dy);
         if (dist < nearest) nearest = dist;
     }
-    float hip = nearest < 1.8f ? (1.8f - nearest) * 56.0f : 0.0f;
-    float scale = 0.86f;
+    float hip = nearest < 1.8f ? (1.8f - nearest) * 22.0f : 0.0f;
     DrawTexturePro(atlas.texture, frame->source,
         (Rectangle){128.0f + bob_x + recoil_x,
-                    198.0f + hip + bolt + game->look_pitch * .38f + bob_y + recoil_y,
-                    frame->source.width * scale, frame->source.height * scale},
+                    348.0f + hip + bolt * 0.45f + game->look_pitch * .22f + bob_y + recoil_y,
+                    frame->source.width, frame->source.height},
         (Vector2){0, 0}, 0, WHITE);
     if (game->weapon_recoil > .35f)
-        DrawCircle(268 + (int)recoil_x, 238 + (int)(game->look_pitch * .38f + recoil_y),
-                   8 + (int)(game->weapon_recoil * 10.0f), (Color){255, 226, 96, 255});
+        DrawCircle(240, 204 + (int)(game->look_kick * .2f),
+                   7 + (int)(game->weapon_recoil * 9.0f), (Color){255, 226, 96, 255});
     if (game->fire_cooldown > 6) {
         int age = NEON_MAZE_FIRE_COOLDOWN - game->fire_cooldown;
-        DrawRectangle(292 + age * 3, 220 - age * 4, 5, 3, (Color){255, 196, 82, 255});
+        DrawRectangle(258 + age * 2, 372 - age * 2, 4, 3, (Color){255, 196, 82, 255});
     }
 }
 
@@ -577,7 +712,7 @@ static void draw_radar(const neon_maze_game_t *game)
                 DrawRectangle(left + ex * scale, top + ey * scale, 4, 4, (Color){255, 52, 147, 255});
         }
     if (extract_open) {
-        int ex = 22 - origin_x, ey = 22 - origin_y;
+        int ex = (int)NEON_MAZE_EXTRACT_X - origin_x, ey = (int)NEON_MAZE_EXTRACT_Y - origin_y;
         if (ex >= 0 && ey >= 0 && ex < span && ey < span)
             DrawRectangle(left + ex * scale, top + ey * scale, 4, 4, (Color){72, 255, 214, 255});
     }
@@ -710,11 +845,13 @@ static void draw_controls(const neon_maze_game_t *game, MosaicoAtlas controls)
     const MosaicoSpriteFrame *fire = MosaicoAtlasGetFrame(
         controls, MOSAICO_ASSET_ID_FIRE_BUTTON);
     if (joystick) DrawTexturePro(controls.texture, joystick->source,
-        (Rectangle){42, 352, 80, 80}, (Vector2){0, 0}, 0, WHITE);
+        (Rectangle){42, 352, joystick->source.width, joystick->source.height},
+        (Vector2){0, 0}, 0, WHITE);
     DrawCircle(thumb_x, thumb_y, 9, game->sprinting ? (Color){255, 220, 72, 255}
                                                     : (Color){186, 224, 217, 255});
     if (fire) DrawTexturePro(controls.texture, fire->source,
-        (Rectangle){358, 352, 80, 80}, (Vector2){0, 0}, 0, WHITE);
+        (Rectangle){358, 352, fire->source.width, fire->source.height},
+        (Vector2){0, 0}, 0, WHITE);
     if (game->fire_held)
         DrawCircle(NEON_MAZE_FIRE_X, NEON_MAZE_FIRE_Y, 16, (Color){255, 220, 72, 255});
     DrawText(game->sprinting ? "SPRINT" : "MOVE", 54, 338, 10,
@@ -732,7 +869,7 @@ static void draw_controls(const neon_maze_game_t *game, MosaicoAtlas controls)
         DrawLine(226, 219, 234, 211, marker); DrawLine(254, 219, 246, 211, marker);
     }
     if (game->kill_flash)
-        DrawText("HOSTILE DOWN", 181, 148, 16, (Color){255, 214, 75, 255});
+        DrawRectangle(236, 148, 8, 8, (Color){255, 214, 75, 255});
     if (game->last_fire == NEON_FIRE_SHOT) {
         DrawCircle(248, 198, 3, (Color){255, 214, 96, 255});
         DrawCircle(232, 212, 2, (Color){255, 168, 72, 255});
@@ -791,10 +928,10 @@ static void draw_phase_overlay(const neon_maze_game_t *game)
     DrawRectangle(58, 96, 364, 4, (Color){72, 255, 214, 255});
     if (game->phase == NEON_MAZE_PHASE_START) {
         DrawText("NEON MAZE", 160, 112, 28, (Color){239, 242, 224, 255});
-        DrawText("TURN THE CORNER TO CONTACT", 98, 156, 16, (Color){192, 235, 214, 255});
+        DrawText("SPAWN BAY, THEN THE EAST HALL", 108, 156, 16, (Color){192, 235, 214, 255});
         DrawText("TAP FIRE TO SHOOT / OPEN GATE", 82, 178, 16, (Color){192, 235, 214, 255});
         DrawText("SIDE CACHE IS OPTIONAL", 118, 200, 16, (Color){192, 235, 214, 255});
-        DrawText("CLEAR ALL, THEN FOLLOW EXTRACT", 86, 222, 14, (Color){255, 220, 72, 255});
+        DrawText("CLEAR ALL, THEN THE EXTRACT PAD", 86, 222, 14, (Color){255, 220, 72, 255});
         char best_buf[8];
         format_clock_buf(game->best_ticks, best_buf);
         DrawText(TextFormat("SHIFT %u/%u  BEST %s", (unsigned)game->layout + 1U,
@@ -819,13 +956,29 @@ void neon_maze_view_render(const neon_maze_game_t *game, MosaicoAtlas enemies,
                            MosaicoAtlas props)
 {
     if (!game) return;
+    load_material_frames(materials);
+    int64_t t0 = view_now_us();
     BeginDrawing();
-    draw_panorama(game, environment);
-    draw_world(game, enemies, materials, props);
+    raycast_world(game);
+    int64_t t1 = view_now_us();
+    draw_panorama(game, environment, panorama_height(game));
+    int64_t t2 = view_now_us();
+    draw_floor(game, materials, s_material_frames[3] ? s_material_frames[3] : s_material_frames[1]);
+    int64_t t3 = view_now_us();
+    draw_walls(game, materials, s_material_frames);
+    int64_t t4 = view_now_us();
+    draw_extract(game);
+    draw_pickups(game, props);
+    draw_enemies(game, enemies);
+    int64_t t5 = view_now_us();
     draw_radar(game);
     draw_compass(game);
     draw_weapon(game, weapon);
     draw_controls(game, controls);
     draw_phase_overlay(game);
     EndDrawing();
+    int64_t t6 = view_now_us();
+    mosaico_game_2d_set_phase_us((uint32_t)(t2 - t1), (uint32_t)(t3 - t2),
+                                 (uint32_t)((t1 - t0) + (t4 - t3)),
+                                 (uint32_t)(t5 - t4), (uint32_t)(t6 - t5));
 }

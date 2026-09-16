@@ -1,8 +1,8 @@
 {
   "image": "enemy_run.png",
-  "columns": 6,
+  "columns": 7,
   "rows": 1,
-  "output_cell": 120,
+  "output_cell": 96,
   "alpha_mode": "binary",
   "frames": [
     {"name": "enemy_run_0"},
@@ -10,6 +10,7 @@
     {"name": "enemy_run_2"},
     {"name": "enemy_aim"},
     {"name": "enemy_hit"},
-    {"name": "enemy_fire"}
+    {"name": "enemy_fire"},
+    {"name": "enemy_down"}
   ]
 }

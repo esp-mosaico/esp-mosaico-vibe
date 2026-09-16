@@ -7,14 +7,14 @@
 static const char s_map[NEON_MAZE_HEIGHT][NEON_MAZE_WIDTH + 1] = {
     "111111111111111111111111",
     "100000211111111111111111",
-    "100300211111111111111111",
-    "100000000002111111111111",
-    "103111110002111111111111",
+    "100000211111111111111111",
+    "100300000002111111111111",
+    "101111110002111111111111",
     "101111110000000021111111",
-    "101111113000300021111111",
-    "100000011111110021111111",
-    "100000011111000000000001",
-    "103000011111000300000001",
+    "101111110000300021111111",
+    "100000011111110000000001",
+    "100000011111000003000001",
+    "103000011111000000200001",
     "111111111111441111111111",
     "111111111111000000030001",
     "111111111111000300000001",
@@ -23,11 +23,11 @@ static const char s_map[NEON_MAZE_HEIGHT][NEON_MAZE_WIDTH + 1] = {
     "111111111111030000300001",
     "111111111111111110011111",
     "111111111111111110000001",
-    "111111111111111113000001",
-    "111111111111111111110001",
-    "111111111111111111110301",
-    "111111111111111111110001",
-    "111111111111111111110051",
+    "111111111111111110000001",
+    "111111111111111110000001",
+    "111111111111111110030001",
+    "111111111111111110000051",
+    "111111111111111110000001",
     "111111111111111111111111",
 };
 
@@ -333,15 +333,15 @@ static void place_layout(neon_maze_game_t *game,uint8_t layout)
 {
     static const float enemy_xy[NEON_MAZE_LAYOUTS][NEON_MAZE_ENEMIES][2]={
         {{10.5f,6.5f},{16.5f,8.5f},{21.5f,9.5f},{4.5f,8.5f},{13.5f,12.5f},
-         {21.5f,12.5f},{14.5f,15.5f},{21.5f,15.5f},{18.5f,18.5f},{21.5f,21.5f}},
-        {{10.5f,5.5f},{16.5f,8.5f},{21.5f,9.5f},{4.5f,8.5f},{20.5f,11.5f},
-         {13.5f,12.5f},{16.5f,15.5f},{13.5f,14.5f},{18.5f,18.5f},{20.5f,21.5f}},
+         {21.5f,12.5f},{14.5f,15.5f},{21.5f,15.5f},{18.5f,18.5f},{20.5f,20.5f}},
+        {{10.5f,5.5f},{16.5f,8.5f},{21.5f,8.5f},{4.5f,8.5f},{20.5f,11.5f},
+         {13.5f,12.5f},{16.5f,15.5f},{13.5f,14.5f},{18.5f,18.5f},{19.5f,21.5f}},
         {{10.5f,6.5f},{13.5f,9.5f},{18.5f,8.5f},{1.5f,8.5f},{14.5f,12.5f},
-         {21.5f,12.5f},{16.5f,14.5f},{21.5f,15.5f},{21.5f,17.5f},{22.5f,20.5f}}};
+         {21.5f,12.5f},{16.5f,14.5f},{21.5f,15.5f},{17.5f,18.5f},{20.5f,21.5f}}};
     static const float pickup_xy[NEON_MAZE_LAYOUTS][NEON_MAZE_PICKUPS][2]={
-        {{9.5f,5.5f},{5.5f,8.5f},{19.5f,8.5f},{14.5f,12.5f},{16.5f,15.5f},{21.5f,18.5f}},
-        {{10.5f,6.5f},{3.5f,8.5f},{21.5f,8.5f},{14.5f,12.5f},{20.5f,15.5f},{20.5f,18.5f}},
-        {{9.5f,5.5f},{1.5f,8.5f},{17.5f,9.5f},{20.5f,12.5f},{14.5f,15.5f},{22.5f,18.5f}}};
+        {{9.5f,5.5f},{5.5f,8.5f},{19.5f,8.5f},{14.5f,12.5f},{16.5f,15.5f},{18.5f,20.5f}},
+        {{10.5f,6.5f},{3.5f,8.5f},{20.5f,8.5f},{14.5f,12.5f},{20.5f,15.5f},{18.5f,21.5f}},
+        {{9.5f,5.5f},{1.5f,8.5f},{17.5f,9.5f},{20.5f,12.5f},{14.5f,15.5f},{22.5f,20.5f}}};
     static const neon_maze_pickup_kind_t pickup_kind[NEON_MAZE_PICKUPS]={
         NEON_PICKUP_AMMO,NEON_PICKUP_HEALTH,NEON_PICKUP_AMMO,
         NEON_PICKUP_AMMO,NEON_PICKUP_AMMO,NEON_PICKUP_HEALTH};
@@ -367,8 +367,8 @@ static void place_layout(neon_maze_game_t *game,uint8_t layout)
         game->pickups[i].taken=false;
     }
     static const float prop_xy[NEON_MAZE_PROPS][2]={
-        {1.5f,2.5f},{9.5f,6.5f},{15.5f,8.5f},{19.5f,9.5f},
-        {20.5f,11.5f},{13.5f,14.5f},{20.5f,15.5f},{22.5f,20.5f}};
+        {1.5f,1.5f},{5.5f,3.5f},{15.5f,8.5f},{20.5f,8.5f},
+        {13.5f,11.5f},{21.5f,14.5f},{17.5f,19.5f},{19.5f,22.5f}};
     for(int i=0;i<NEON_MAZE_PROPS;++i){
         game->props[i].x=prop_xy[i][0];
         game->props[i].y=prop_xy[i][1];
@@ -557,6 +557,7 @@ void neon_maze_update(neon_maze_game_t *game)
     }
     mark_explored(game);
     collect_pickups(game);
+    int last_enemy=neon_maze_last_enemy_index(game);
     for(int i=0;i<NEON_MAZE_ENEMIES;++i){
         neon_maze_enemy_t *enemy=&game->enemies[i];
         if(enemy->death_timer)--enemy->death_timer;
@@ -564,6 +565,15 @@ void neon_maze_update(neon_maze_game_t *game)
         if(enemy->hit_flash)--enemy->hit_flash;
         if(enemy->attack_flash)--enemy->attack_flash;
         if(enemy->attack_cooldown)--enemy->attack_cooldown;
+        /* Bring the final hostile to the player instead of requiring a sweep
+         * through every previously explored dead end. */
+        if(i==last_enemy&&enemy->ai_state!=NEON_ENEMY_ENGAGE&&
+           enemy->ai_state!=NEON_ENEMY_ALERT){
+            enemy->ai_state=NEON_ENEMY_SEARCH;
+            enemy->last_seen_x=game->x;
+            enemy->last_seen_y=game->y;
+            enemy->search_timer=151;
+        }
         float to_x=game->x-enemy->x,to_y=game->y-enemy->y;
         float distance=sqrtf(to_x*to_x+to_y*to_y),heading=0;
         bool sees_player=distance<6.8f&&line_clear(game,enemy->x,enemy->y,game->x,game->y);

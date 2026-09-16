@@ -1,10 +1,11 @@
 {
   "image": "weapon.png",
-  "columns": 1,
+  "columns": 2,
   "rows": 1,
-  "output_cell": 280,
+  "output_cell": 144,
   "alpha_mode": "binary",
   "frames": [
-    {"name": "k98_rifle"}
+    {"name": "k98_rifle"},
+    {"name": "k98_bolt"}
   ]
 }

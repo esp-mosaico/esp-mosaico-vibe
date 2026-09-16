@@ -45,6 +45,51 @@ class GameAssetCompilerTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "exceeds"):
                 assets.write_atlas(source, manifest, root / "bad.atlas")
 
+    def test_opaque_atlas_keeps_light_edge_fill(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "tiles.png"
+            Image.new("RGB", (16, 8), (214, 218, 222)).save(source)
+            output = root / "tiles.atlas"
+            assets.write_atlas(source, {
+                "columns": 2, "rows": 1, "output_cell": 8,
+                "alpha_mode": "opaque",
+                "frames": [{"name": "wall_a"}, {"name": "wall_b"}],
+            }, output)
+            blob = output.read_bytes()
+            header = assets.ATLAS_HEADER.unpack_from(blob)
+            self.assertTrue(header[4] & assets.ATLAS_FLAG_OPAQUE)
+            rgb_off = assets.ATLAS_HEADER.size + 2 * assets.ATLAS_FRAME.size
+            def lum(x: int, y: int) -> int:
+                pixel = struct.unpack_from("<H", blob, rgb_off + (y * header[1] + x) * 2)[0]
+                r, g, b = (pixel >> 11) & 31, (pixel >> 5) & 63, pixel & 31
+                return r + g + b
+            self.assertGreater(lum(0, 0), 40)
+            self.assertGreater(lum(7, 0), 40)
+            self.assertGreater(lum(0, 7), 40)
+            self.assertGreater(lum(8, 0), 40)
+
+    def test_neon_wall_tiles_darken_seams_and_keep_floor_in_bounds(self) -> None:
+        path = ROOT / "projects/neon_maze_25d/assets_src/tactical_materials.png"
+        image = Image.open(path).convert("RGB")
+        self.assertEqual(image.size, (512, 128))
+        pixels = image.load()
+        for cell in range(3):
+            x0 = cell * 128
+            mid, foot = [], []
+            for x in range(x0, x0 + 128):
+                column = [(pixels[x, y][0] * 3 + pixels[x, y][1] * 6 +
+                           pixels[x, y][2]) // 10 for y in range(128)]
+                body = column[:116]
+                self.assertFalse(min(body) >= 168 and (max(body) - min(body)) <= 28,
+                                 "full-height highlight column in wall cell")
+                mid.append(sum(column[40:80]) / 40)
+                foot.append(sum(column[116:128]) / 12)
+            self.assertLess(sum(foot) / len(foot), sum(mid) / len(mid) * 0.85)
+        for y in range(64, 128):
+            for x in range(384, 448):
+                self.assertNotEqual(pixels[x, y], (0, 0, 0))
+
     def test_generated_ids_include_validated_animation(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "assets_ids.h"

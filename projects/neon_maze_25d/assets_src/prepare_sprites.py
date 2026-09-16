@@ -12,10 +12,10 @@ def save_atomic(image, destination):
     image.save(temporary, format="PNG")
     os.replace(temporary, destination)
 
-enemy_cell = 120
-enemy_sheet = Image.new("RGBA", (enemy_cell * 6, enemy_cell))
-weapon_cell = 280
-weapon_sheet = Image.new("RGBA", (weapon_cell, weapon_cell))
+enemy_cell = 96
+enemy_sheet = Image.new("RGBA", (enemy_cell * 7, enemy_cell))
+weapon_cell = 176
+weapon_sheet = Image.new("RGBA", (weapon_cell * 2, weapon_cell))
 resampling = getattr(Image, "Resampling", Image)
 run_strip = Image.open(root / "enemy_run_strip_source.png").convert("RGBA")
 cell_width = run_strip.width // 3
@@ -52,21 +52,26 @@ def paste_variant(index, source, tint):
 paste_variant(3, processed[1], (1.15, 0.95, 0.72))
 paste_variant(4, processed[0], (1.45, 0.55, 0.45))
 paste_variant(5, processed[2], (1.20, 1.05, 0.65))
+down = processed[1].rotate(90, expand=True, resample=resampling.BICUBIC)
+down.thumbnail((enemy_cell - 8, enemy_cell // 2), resampling.LANCZOS)
+paste_variant(6, down, (0.88, 0.78, 0.70))
 rifle = Image.open(root / "k98_rifle_source.png").convert("RGBA")
 alpha_bounds = rifle.getchannel("A").getbbox()
 if not alpha_bounds:
     raise RuntimeError("98K sprite has no alpha content")
 rifle = rifle.crop(alpha_bounds)
-rifle.thumbnail((weapon_cell - 8, weapon_cell - 8), resampling.LANCZOS)
-weapon_sheet.alpha_composite(rifle, ((weapon_cell - rifle.width) // 2,
-                                     (weapon_cell - rifle.height) // 2))
+rifle.thumbnail((weapon_cell - 10, weapon_cell - 10), resampling.LANCZOS)
+weapon_sheet.alpha_composite(rifle, (weapon_cell - rifle.width - 6,
+                                     weapon_cell - rifle.height - 4))
+bolted = rifle.rotate(-14, expand=True, resample=resampling.BICUBIC)
+bolted.thumbnail((weapon_cell - 6, weapon_cell - 6), resampling.LANCZOS)
+weapon_sheet.alpha_composite(bolted, (weapon_cell + 16,
+                                      weapon_cell - bolted.height + 10))
 save_atomic(enemy_sheet, root / "enemy_run.png")
 save_atomic(weapon_sheet, root / "weapon.png")
 
-# Binary-alpha stippling preserves the translucent HUD feel while avoiding
-# per-pixel RGB565 alpha blending on the device.
-controls = Image.new("RGBA", (192, 96))
-pixels = controls.load()
+# Binary-alpha HUD. Corners stay A=0 so the world shows through the rings.
+controls = Image.new("RGBA", (192, 96), (0, 0, 0, 0))
 draw = ImageDraw.Draw(controls)
 draw.ellipse((4, 4, 92, 92), outline=(120, 168, 158, 255), width=4)
 draw.ellipse((14, 14, 82, 82), outline=(48, 72, 68, 255), width=2)
@@ -98,36 +103,45 @@ tile_rng = random.Random(77)
 
 def fence_color(x, y):
     grit = tile_rng.randint(-8, 8)
-    post = x % 16 < 3
-    rail = 28 <= (y % 64) <= 34
+    post = x % 18 < 3
+    rail = 26 <= (y % 40) <= 29
+    panel = (y % 40) < 2
     if post:
-        return (78 + grit, 88 + grit, 98 + grit)
-    if rail:
-        return (168 + grit, 176 + grit, 188 + grit)
-    if 18 < (x % 32) < 28 and 36 < y < 92:
-        pane = 48 + grit
-        return (pane, pane + 22, pane + 36)
-    return (210 + grit, 216 + grit, 224 + grit)
+        return (92 + grit, 96 + grit, 100 + grit)
+    if rail or panel:
+        return (118 + grit, 122 + grit, 126 + grit)
+    return (148 + grit, 152 + grit, 156 + grit)
 
 def brick_color(x, y):
     grit = tile_rng.randint(-10, 10)
+    if x < 38:
+        rivet = x % 9 == 3 and y % 14 == 6
+        seam = y % 16 < 2 or x < 3 or x > 34
+        if rivet:
+            return (196, 168, 88)
+        if seam:
+            return (86 + grit, 58, 22)
+        return (176 + grit // 2, 138 + grit // 3, 42)
     window = 22 < (x % 48) < 42 and 30 < y < 90
     mortar = (y % 16) < 2 or ((x + (0 if (y // 16) % 2 else 16)) % 32) < 2
     if window:
         return (36 + grit // 2, 58 + grit, 78 + grit)
     if mortar:
-        return (92 + grit, 70 + grit, 58 + grit)
-    return (168 + grit, 78 + grit // 2, 52 + grit // 3)
+        return (72 + grit, 54 + grit, 46 + grit)
+    return (152 + grit, 70 + grit // 2, 48 + grit // 3)
 
 def container_color(x, y):
-    grit = tile_rng.randint(-12, 12)
+    grit = tile_rng.randint(-10, 10)
     rib = x % 10 < 3
     rust = 96 < y < 104
+    band = y % 22 < 2
     if rust:
-        return (118 + grit, 62 + grit, 28 + grit)
+        return (118 + grit, 72 + grit, 42 + grit)
     if rib:
-        return (28 + grit, 78 + grit, 46 + grit)
-    return (42 + grit, 108 + grit, 58 + grit)
+        return (48 + grit, 86 + grit, 58 + grit)
+    if band:
+        return (56 + grit, 96 + grit, 64 + grit)
+    return (62 + grit, 108 + grit, 72 + grit)
 
 def floor_color(x, y):
     grit = tile_rng.randint(-14, 14)
@@ -142,10 +156,58 @@ def floor_color(x, y):
             max(88, min(170, 142 + grit - plank - ring)),
             max(48, min(110, 78 + grit // 2 - plank)))
 
+def finish_wall_tile(tile):
+    """Drop full-height highlight columns and add a dark skirting band."""
+    px = tile.load()
+    size = tile.width
+    for x in range(size):
+        lo, hi = 255, 0
+        for y in range(size):
+            r, g, b = px[x, y][:3]
+            lum = (r * 3 + g * 6 + b) // 10
+            if lum < lo:
+                lo = lum
+            if lum > hi:
+                hi = lum
+        if lo >= 168 and (hi - lo) <= 28:
+            for y in range(size):
+                r, g, b = px[x, y][:3]
+                px[x, y] = ((r * 3 + 78) // 4, (g * 3 + 74) // 4, (b * 3 + 68) // 4)
+    footer = max(12, size * 14 // 100)
+    start = size - footer
+    for y in range(start, size):
+        fade = (y - start + 1) / footer
+        shade = 1.0 - 0.58 * fade
+        if y >= size - 3:
+            shade = 0.34
+        for x in range(size):
+            r, g, b = px[x, y][:3]
+            px[x, y] = (max(22, int(r * shade)),
+                        max(20, int(g * shade)),
+                        max(18, int(b * shade)))
+    return tile
+
+
+def load_wall_tiles(size=128):
+    source_path = root / "tactical_materials_source.png"
+    if source_path.is_file():
+        photo = Image.open(source_path).convert("RGB")
+        third = max(1, photo.width // 3)
+        tiles = []
+        for index in range(3):
+            left = index * third
+            right = photo.width if index == 2 else left + third
+            crop = photo.crop((left, 0, right, photo.height))
+            tile = ImageOps.fit(crop, (size, size), method=resampling.LANCZOS)
+            tiles.append(finish_wall_tile(tile))
+        return tiles
+    painters = (fence_color, brick_color, container_color)
+    return [finish_wall_tile(fill_tile(size, painter)) for painter in painters]
+
+
 materials = Image.new("RGB", (512, 128))
-materials.paste(fill_tile(128, fence_color), (0, 0))
-materials.paste(fill_tile(128, brick_color), (128, 0))
-materials.paste(fill_tile(128, container_color), (256, 0))
+for index, tile in enumerate(load_wall_tiles(128)):
+    materials.paste(tile, (index * 128, 0))
 materials.paste(fill_tile(128, floor_color), (384, 0))
 save_atomic(materials, root / "tactical_materials.png")
 

@@ -18,13 +18,15 @@ Round 480×480 dual-touch loop:
 - `A/D` turn, `W`/`S` walk, `Shift` sprint, `Q`/`E` strafe.
 
 Turn the corner out of the spawn bay — the first hostile is not in the doorway.
-A west alley leads to an optional cache; the east hall is the main push. You
-start with 5 HP and 14 rounds. Hostiles still take two hits and will take cover
-instead of stacking on one point. Medkits stay on the ground if you are already
-full. The gold gate must be shot open. Fog, wall-edge shading, and muzzle flash
-light the corridor. Radar marks explored cells, windows, crates, doors, loot,
-extract, and last-known hostiles. Clear all ten opponents, then follow the
-extract arrow into the cyan pad. BEST time, hit rate, damage taken, remaining
-HP/ammo, and a grade show on the results screen. Redeploy after a win or death
-rotates the hostile and loot posts across three shifts. Walking plays boot
-steps; sprinting shortens the stride; standing is silent.
+A west alley leads to an optional cache; the east hall is the main push. South
+of the gold gate is a warehouse, then a wider extract compound with a cyan
+ground pad. You start with 5 HP and 14 rounds. Hostiles still take two hits
+and will take cover instead of stacking on one point. Medkits stay on the
+ground if you are already full. The gold gate must be shot open. Windows punch
+through to the sky. Fog, wall-edge shading, and muzzle flash light the
+corridor. Radar marks explored cells, windows, crates, doors, loot, extract,
+and last-known hostiles. Clear all ten opponents, then follow the extract
+arrow onto the pad. BEST time, hit rate, damage taken, remaining HP/ammo, and
+a grade show on the results screen. Redeploy after a win or death rotates the
+hostile and loot posts across three shifts. Walking plays boot steps;
+sprinting shortens the stride; standing is silent.

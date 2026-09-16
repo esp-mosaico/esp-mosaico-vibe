@@ -3,6 +3,7 @@
 #include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include "host_asset_runtime.h"
 #include "mosaico_game_2d.h"
 #include "mosaico_raylib_fast.h"
@@ -24,6 +25,10 @@ int main(int argc, char **argv)
     MosaicoFastInjectPointer(7, 123, 234, true);
     assert(GetTouchPointCount() == 1 && GetTouchPointId(0) == 7);
     assert(GetTouchX() == 123 && GetTouchY() == 234);
+    MosaicoFastConsumeInputEdges();
+    assert(!IsKeyPressed(KEY_LEFT) && IsKeyDown(KEY_A));
+    assert(GetTouchPointCount() == 1 && GetTouchPointId(0) == 7);
+
     MosaicoFastInjectImu(0.25f, -0.5f, 1.0f);
     Vector3 imu = MosaicoFastGetImuAcceleration();
     assert(imu.x == 0.25f && imu.y == -0.5f && imu.z == 1.0f);
@@ -99,6 +104,58 @@ int main(int argc, char **argv)
 
     mosaico_game_2d_reset_raster_stats();
     BeginDrawing();
+    ClearBackground(BLACK);
+    mosaico_raycast_wall_t wall = {20, 20, 4, 6, 0, 0, 1, 3, 256};
+    Mosaico2DDrawRaycastWalls(scale_texture, &wall, 1);
+    Mosaico2DDrawFloorRows(scale_texture, (Rectangle){0, 0, 4, 3},
+                           30, 40, 4, 2, bottoms, 0, 0, 65536, 0, 256, 2);
+    Mosaico2DCopyScanline(30, 32);
+    EndDrawing();
+    assert(framebuffer[20 * 480 + 20] == 1);
+    assert(framebuffer[20 * 480 + 23] == 1);
+    assert(framebuffer[22 * 480 + 20] == 5);
+    assert(framebuffer[24 * 480 + 20] == 9);
+    assert(framebuffer[30 * 480 + 40] == 1);
+    assert(framebuffer[31 * 480 + 40] == 1);
+    assert(framebuffer[30 * 480 + 44] == 0);
+    assert(framebuffer[32 * 480 + 40] == 1);
+    mosaico_game_2d_get_raster_stats(&raster);
+    assert(raster.column_calls == 1);
+    assert(raster.column_pixels == 24);
+    assert(raster.span_pixels == 8);
+
+    {
+        static const mosaico_raycast_wall_t cases[] = {
+            {16, 8, 4, 48, 0, 0, 1, 3, 256},
+            {40, -12, 4, 80, 1, 0, 2, 3, 192},
+            {80, 200, 4, 220, 0, 1, 1, 2, 160},
+            {200, 30, 8, 17, 2, 0, 2, 3, 256},
+            {300, 100, 4, 6, 0, 0, 1, 3, 128},
+        };
+        const int case_count = (int)(sizeof(cases) / sizeof(cases[0]));
+        uint16_t *expected = malloc(480 * 480 * sizeof(uint16_t));
+        assert(expected);
+        BeginDrawing();
+        ClearBackground((Color){17, 34, 51, 255});
+        for (int i = 0; i < case_count; ++i) {
+            const mosaico_raycast_wall_t *c = &cases[i];
+            Mosaico2DDrawColumn(scale_texture,
+                (Rectangle){(float)c->src_x, (float)c->src_y,
+                            (float)c->src_width, (float)c->src_height},
+                c->dest_x, c->dest_y, c->dest_width, c->dest_height, c->light256);
+        }
+        EndDrawing();
+        memcpy(expected, framebuffer, 480 * 480 * sizeof(uint16_t));
+        BeginDrawing();
+        ClearBackground((Color){17, 34, 51, 255});
+        Mosaico2DDrawRaycastWalls(scale_texture, cases, case_count);
+        EndDrawing();
+        assert(memcmp(framebuffer, expected, 480 * 480 * sizeof(uint16_t)) == 0);
+        free(expected);
+    }
+
+    mosaico_game_2d_reset_raster_stats();
+    BeginDrawing();
     DrawTexture(scale_texture, 30, 30, WHITE);
     EndDrawing();
     mosaico_game_2d_get_raster_stats(&raster);
@@ -129,6 +186,14 @@ int main(int argc, char **argv)
     assert(raster.binary_alpha_calls == 1);
     assert(raster.binary_scale_calls == 1 && raster.binary_copy_calls == 0);
     assert(raster.binary_alpha_pixels > 0 && raster.alpha_calls == 0);
+
+    mosaico_game_2d_reset_raster_stats();
+    BeginDrawing();
+    ClearBackground((Color){255, 0, 255, 255});
+    DrawTexturePro(mask_texture, (Rectangle){0, 0, 4, 3},
+                   (Rectangle){400, 400, 80, 80}, (Vector2){0, 0}, 0, WHITE);
+    EndDrawing();
+    assert(framebuffer[479 * 480 + 479] == framebuffer[0]);
 
     mosaico_game_2d_reset_raster_stats();
     BeginDrawing();

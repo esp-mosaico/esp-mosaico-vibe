@@ -12,6 +12,7 @@
 #include "neon_maze_game.h"
 #include "neon_maze_save.h"
 #include "neon_maze_view.h"
+#include "mosaico_game_2d.h"
 #include <math.h>
 
 static neon_maze_game_t s_game;
@@ -390,8 +391,14 @@ static void on_render(void)
 
 static void on_stats(void)
 {
-    ESP_LOGI("neon_maze", "pos=%.2f,%.2f score=%u state_hash=%08lx",
-             s_game.x, s_game.y, s_game.score,
+    mosaico_game_2d_raster_stats_t raster = {0};
+    mosaico_game_2d_get_raster_stats(&raster);
+    ESP_LOGI("neon_maze", "pos=%.2f,%.2f score=%u sky=%uus floor=%uus wall=%uus "
+             "enemy=%uus hud=%uus col=%u span=%u state_hash=%08lx",
+             s_game.x, s_game.y, s_game.score, (unsigned)raster.sky_us,
+             (unsigned)raster.floor_us, (unsigned)raster.wall_us,
+             (unsigned)raster.enemy_us, (unsigned)raster.hud_us,
+             (unsigned)raster.column_pixels, (unsigned)raster.span_pixels,
              (unsigned long)neon_maze_state_hash(&s_game));
 }
 
