@@ -69,7 +69,12 @@ jobs:
         run: >-
           python -m pytest -q tests
           --ignore=tests/firmware
+          -o junit_logging=all
           --junitxml=test-results/workspace.xml
+
+      - name: Report workspace test failures
+        if: failure()
+        run: python tools/report_junit_failures.py test-results/workspace.xml
 
       - name: Test ESP-Mosaico tools
         if: runner.os != 'Windows'

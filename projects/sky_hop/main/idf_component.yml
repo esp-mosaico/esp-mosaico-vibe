@@ -1,0 +1,11 @@
+dependencies:
+  idf: ">=6.1"
+  georgik/raylib: "==6.0.0~2"
+  espressif/esp-gsp: "==1.2.0"
+  espressif/esp_mmap_assets: "^2.0.0"
+  esp-mosaico-bsp:
+    version: "*"
+    override_path: ../../../submodule/esp-mosaico-bsp/components/esp-mosaico-bsp
+  esp_iris:
+    version: "*"
+    override_path: ../../../submodule/esp-mosaico-utils/ESP-Iris/components/esp_iris

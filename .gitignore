@@ -6,5 +6,11 @@
 **/dependencies.lock
 **/__pycache__/
 **/*.py[cod]
+/.tools/
+/artifacts/
+**/assets/generated/
+/projects/sky_hop/assets_src/*.wav
+/projects/sky_hop/assets_src/sky_hop_atlas.png
+/projects/raylib_shooter/assets_src/shooter_atlas.png
 /.mosaico-state/
 /tools/gsp-sim/.cache/
