@@ -9,14 +9,13 @@ GPIO 分支；未知板型或屏幕传输失败不会阻断启动。
 
 - `esp-mosaico-utils` 子模块拥有 bootloader 绘制代码、Recovery 配置和完整
   `firmware/recovery/prebuilt/recovery` 基础包。
-- `esp-mosaico-bsp` 子模块消费 LP STORE15 的 `0x4D4C4344` 交接标记。有效标记
-  只消费一次，跳过 reset、Sleep Out、亮度重设和重复 Display On，保留 Logo 至
-  应用首次刷新；无标记时使用原屏幕初始化路径。
-- 当前 workspace 固定两个子模块的匹配提交，并用
-  `tests/test_boot_splash_contract.py` 检查启动顺序和交接契约。
+- `esp-mosaico-bsp` 子模块不作改动。进入 Recovery 或普通应用时，BSP 照常
+  reset 和完整初始化屏幕，允许短暂黑屏；不保证 Logo 保留至应用首次刷新。
+- 当前 workspace 仅更新 utils 子模块，用 `tests/test_boot_splash_contract.py`
+  检查启动顺序、显示失败不阻断启动和 BSP 完整初始化契约。
 
-LP STORE15 保留给此启动交接协议。分区布局、OTA 选择、Recovery Boot 按键、
-ESP-Iris USB 归属和普通应用安装流程均不改变。
+bootloader 不使用 LP STORE 寄存器或跨启动阶段交接协议。分区布局、OTA 选择、
+Recovery Boot 按键、ESP-Iris USB 归属和普通应用安装流程均不改变。
 
 ## 使用与更新
 
@@ -35,12 +34,11 @@ python3 mosaico.py install --project projects/hello_world --device-id DEVICE_ID
 
 ## 验证范围
 
-2026-09-16，ESP32-S31 v1.2 测试板完成真实开机 Logo 观察、BSP 屏幕接管和同一
-Device ID 的 normal → Recovery → normal 往返。开发者确认“看到了点阵logo
-显示都很正常”；日志确认接管，应用截图正常，最终正常应用超过一分钟在线且无
-崩溃。Recovery、LVGL hello_world、GSP gsp_hello 均构建通过。
+2026-09-16，ESP32-S31 v1.2 测试板完成真实开机 Logo 观察和同一 Device ID 的
+normal → Recovery → normal 往返。开发者确认“看到了点阵logo 显示都很正常”。
+最初版本包含 BSP 接管，之后按开发者要求撤销 BSP 改动并移除交接协议，接受
+应用初始化时短暂黑屏。旧版本的接管日志不能作为撤销后的候选验收证据；当前
+候选的构建环境、哈希与验收范围见预编译包 README 和 manifest。
 
-bootloader 固定可用空间为 `0x6000` 字节，ERROR 日志配置下镜像为 `0x5ba0`
-字节，剩余 `0x460` 字节。v1.0/v1.1 的分支已编译，但尚未实机验收。镜像哈希、
-构建环境及预编译包的候选验收记录由该包的 README 和 manifest 保存；运行原始
-日志留在 `.codex-runs/`，不提交设备凭据。
+bootloader 固定可用空间为 `0x6000` 字节，使用 ERROR 日志配置。v1.0/v1.1 的
+分支已编译，但尚未实机验收。运行原始日志留在 `.codex-runs/`，不提交设备凭据。

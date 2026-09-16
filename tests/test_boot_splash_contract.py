@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import pathlib
-import re
 import unittest
 
 
@@ -14,7 +13,6 @@ BSP_DISPLAY = (
     ROOT
     / "submodule/esp-mosaico-bsp/components/esp-mosaico-bsp/onboard/display.c"
 )
-HANDOFF_MAGIC = "0x4D4C4344"
 
 
 class BootSplashContractTest(unittest.TestCase):
@@ -28,46 +26,39 @@ class BootSplashContractTest(unittest.TestCase):
             source.index("select_partition_number(&bs)"),
         )
 
-    def test_handoff_magic_matches_bootloader_and_bsp(self) -> None:
+    def test_bootloader_does_not_publish_cross_stage_handoff(self) -> None:
         boot = (RECOVERY / "bootloader_components/main/mosaico_boot_splash.c").read_text(
             encoding="utf-8"
         )
-        bsp = BSP_DISPLAY.read_text(encoding="utf-8")
-        for source in (boot, bsp):
-            match = re.search(r"MOSAICO_BOOT_LCD_HANDOFF_MAGIC\s+UINT32_C\((0x[0-9A-F]+)\)", source)
-            self.assertIsNotNone(match)
-            self.assertEqual(match.group(1), HANDOFF_MAGIC)
+        self.assertNotIn("HANDOFF", boot)
+        self.assertNotIn("LP_STORE", boot)
+        self.assertNotIn("REG_WRITE", boot)
 
-    def test_bsp_preserves_panel_only_for_valid_handoff(self) -> None:
+    def test_bsp_keeps_its_original_full_initialization(self) -> None:
         source = BSP_DISPLAY.read_text(encoding="utf-8")
-        self.assertIn("consume_bootloader_handoff()", source)
-        self.assertIn("bootloader_panel_ready ? s_handoff_init : s_vendor_init", source)
-        self.assertRegex(
-            source,
-            r"if \(!bootloader_panel_ready\) \{\s*ESP_GOTO_ON_ERROR\(esp_lcd_panel_reset",
-        )
-        self.assertRegex(
-            source,
-            r"if \(!bootloader_panel_ready\) \{\s*ESP_GOTO_ON_ERROR\(esp_lcd_panel_disp_on_off",
-        )
+        self.assertNotIn("bootloader_panel_ready", source)
+        self.assertNotIn("s_handoff_init", source)
+        self.assertIn("ESP_GOTO_ON_ERROR(esp_lcd_panel_reset(s_panel)", source)
+        self.assertIn("ESP_GOTO_ON_ERROR(esp_lcd_panel_disp_on_off(s_panel, true)", source)
 
-    def test_handoff_is_published_only_after_successful_draw(self) -> None:
+    def test_display_failure_is_nonfatal(self) -> None:
         source = (RECOVERY / "bootloader_components/main/mosaico_boot_splash.c").read_text(
             encoding="utf-8"
         )
         entry = source.split("bool mosaico_boot_splash_show(void)", 1)[1]
-        self.assertLess(entry.index("handoff_clear();"), entry.index("hardware_version_supported()"))
         self.assertRegex(
             entry,
-            r"if \(!panel_init\(\) \|\| !draw_splash\(\)\) \{\s*handoff_clear\(\);"
-            r"[^}]*return false;\s*\}\s*handoff_publish\(\);",
+            r"if \(!panel_init\(\) \|\| !draw_splash\(\)\) \{"
+            r"[^}]*return false;\s*\}[^}]*return true;",
         )
+        boot_entry = (RECOVERY / "bootloader_components/main/bootloader_start.c").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("(void)mosaico_boot_splash_show();", boot_entry)
 
-    def test_handoff_does_not_repeat_sleep_out_brightness_or_display_on(self) -> None:
-        source = BSP_DISPLAY.read_text(encoding="utf-8")
-        commands = source.split("s_handoff_init[] = {", 1)[1].split("};", 1)[0]
-        for command in ("0x11", "0x51", "0x29"):
-            self.assertNotIn(command, commands)
+    def test_bootloader_uses_size_constrained_logging(self) -> None:
+        defaults = (RECOVERY / "sdkconfig.defaults").read_text(encoding="utf-8")
+        self.assertIn("CONFIG_BOOTLOADER_LOG_LEVEL_ERROR=y", defaults)
 
     def test_partition_table_offset_stays_at_retained_contract(self) -> None:
         defaults = (RECOVERY / "sdkconfig.defaults").read_text(encoding="utf-8")
