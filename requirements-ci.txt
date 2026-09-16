@@ -1,3 +1,4 @@
 -r submodule/esp-mosaico-utils/ESP-Iris/components/esp_iris/tools/requirements.lock
+Pillow>=10,<12
 pytest>=8,<8.4 ; python_version < "3.9"
 pytest>=8,<9 ; python_version >= "3.9"

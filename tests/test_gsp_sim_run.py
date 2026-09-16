@@ -19,6 +19,7 @@ SPEC.loader.exec_module(MODULE)
 class GspSimRunTests(unittest.TestCase):
     def run_main(self, *arguments: str) -> tuple[int, list[str]]:
         with ExitStack() as contexts:
+            contexts.enter_context(mock.patch.dict(MODULE.os.environ, {}, clear=True))
             contexts.enter_context(
                 mock.patch.object(sys, "argv", [str(MODULE_PATH), *arguments])
             )
