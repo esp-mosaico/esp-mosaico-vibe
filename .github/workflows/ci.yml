@@ -59,7 +59,7 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libssl-dev
 
-      - name: Check out cJSON for Recovery host tests
+      - name: Check out cJSON for Recovery C tests
         if: runner.os == 'Linux'
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
