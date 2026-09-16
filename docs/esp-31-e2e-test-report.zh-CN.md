@@ -6,11 +6,11 @@
 
 | 项目 | 结果 |
 | --- | --- |
-| 工作树 | `feat/ESP-31`；被测应用源主仓库修订 `ffacfbc`，Utils 子模块 `a6b4554`；制包器门槛修正见本分支后续改动 |
+| 工作树 | `feat/ESP-31`；实机验收发生在同步前的主仓库 `ffacfbc`、Utils `a6b4554`。同步 `origin/main` 后，对应 ESP-31 提交为主仓库 `7e92092`、Utils `1ee0324`；当前宿主回归测试全部通过，未重复烧写设备 |
 | PC/ESP-IDF | Python 3.12.3；ESP-IDF `v6.2-dev-2221-g7b9cc1ac79f-dirty`，ESP32-S31 可用；`mosaico.py doctor` 9 项通过 |
 | 构建 | `hello_world`、`gsp_hello`、`iris_acceptance`、`iris_crash`、Recovery 均完成 ESP32-S31 构建；原始日志见各项目 `.codex-runs/idf-low-noise-build/` |
 | 宿主检查 | retained Recovery 与 crash fixture 6 项、GSP 截图生命周期 1 项、System Update 制包 4 项均通过 |
-| Gateway | 修订 `a6b4554feaf27700ce2dc7c3f89acbf99874a6bb`，与当前 Utils 一致；健康接口 ready |
+| Gateway | 实机验收使用修订 `a6b4554feaf27700ce2dc7c3f89acbf99874a6bb`；该提交已无冲突变基为当前 Utils 的 `1ee0324`。验收时健康接口 ready |
 | 设备 | Device ID `4553502d49524953010030eda0f45156`，MAC `30:ed:a0:f4:51:56`，USB Highspeed；契约 `esp-mosaico/v1`，布局 `mosaico-retained-recovery-2m-v1`，Recovery ABI 1 |
 
 本地二进制 SHA-256：`iris_acceptance.bin` 为 `92344f21d0d794ec498bac81e5ed234eaa825f1338e2d4cd33fbc3053687fada`；`gsp_hello.bin` 为 `57c58e4b156c83c9898dba5f44b3bb3dbd95ae751856eb886fa9aad76ff7abb4`；`ui_apps.bin` 为 `5a3884671e5278af51265222ea6d908f868e5ac9c4d6120c4f361d5a423a05f4`。设备返回的 acceptance ELF SHA 为 `697e87d57507fff63c835469e1dba8d2268986772fe8c82fec828c8e145f12f6`，GSP ELF SHA 为 `aa389b6d2ba72ae3bf474a9c9b3131d4c4bc40e2024ef036c53ef7e9d1ae6c80`；两次安装和 System Update 均校验匹配并返回 healthy。
