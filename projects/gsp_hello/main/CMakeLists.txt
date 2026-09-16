@@ -14,6 +14,7 @@ idf_component_register(
         freertos
         nvs_flash
     PRIV_REQUIRES
+        esp_timer
         esp-gsp
         esp_display_present
         esp_lcd
@@ -25,6 +26,19 @@ idf_component_register(
 # presenter converts them to the panel's wire byte order.
 target_link_options(${COMPONENT_LIB} INTERFACE
     "-Wl,--wrap=esp_display_presenter_submit_buffer")
+
+# Test-only instrumentation is owned by tests/firmware, never compiled into
+# the normal application. The fixture reuses this component and its real UI.
+if(MOSAICO_IRIS_BUDGET_FIXTURE)
+    target_sources(${COMPONENT_LIB} PRIVATE
+        "${CMAKE_CURRENT_LIST_DIR}/../../../tests/firmware/iris_internal_budget/budget.c")
+    foreach(budget_symbol app_main iris_ota_support_start esp_iris_start esp_iris_boot_probe
+            esp_iris_mark_healthy esp_iris_rpc_register esp_iris_screen_register
+            esp_ota_set_boot_partition)
+        target_link_options(${COMPONENT_LIB} INTERFACE
+            "-Wl,--wrap=${budget_symbol}")
+    endforeach()
+endif()
 
 set(gsp_bundle_symbol bundle)
 gsp_add_bundle(${COMPONENT_LIB}
@@ -58,7 +72,7 @@ endif()
 
 idf_build_get_property(build_python PYTHON)
 set(ui_apps_image "${CMAKE_BINARY_DIR}/ui_apps.bin")
-set(ui_apps_packer "${PROJECT_DIR}/../../tools/pack_gsp_partition.py")
+set(ui_apps_packer "${CMAKE_CURRENT_LIST_DIR}/../../../tools/pack_gsp_partition.py")
 add_custom_command(
     OUTPUT "${ui_apps_image}"
     COMMAND "${build_python}" "${ui_apps_packer}"

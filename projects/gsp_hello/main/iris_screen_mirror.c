@@ -33,6 +33,7 @@ typedef struct {
     esp_gsp_handle_t ui;
     uint8_t *shadow;
     uint8_t *capture;
+    uint32_t *coverage;
     size_t covered_pixels;
     SemaphoreHandle_t lock;
     StaticSemaphore_t lock_storage;
@@ -47,21 +48,15 @@ static screen_mirror_t s_mirror;
 
 static void release_frame_storage(screen_mirror_t *mirror)
 {
-    uint8_t *shadow = NULL;
     uint8_t *capture = NULL;
     if (mirror->lock != NULL &&
             xSemaphoreTake(mirror->lock, portMAX_DELAY) == pdTRUE) {
-        shadow = mirror->shadow;
         capture = mirror->capture;
-        mirror->shadow = NULL;
         mirror->capture = NULL;
-        mirror->covered_pixels = 0;
         mirror->capture_ready = false;
-        mirror->warming = false;
         xSemaphoreGive(mirror->lock);
     }
     heap_caps_free(capture);
-    heap_caps_free(shadow);
 }
 
 static uint32_t coverage_mask(unsigned first, unsigned last)
@@ -78,7 +73,7 @@ static bool mark_coverage(screen_mirror_t *mirror,
     const size_t first_word = (size_t)area->x1 / COVERAGE_WORD_BITS;
     const size_t last_word = (size_t)area->x2 / COVERAGE_WORD_BITS;
     for (int32_t y = area->y1; y <= area->y2; ++y) {
-        uint32_t *row = (uint32_t *)mirror->capture +
+        uint32_t *row = mirror->coverage +
             (size_t)y * COVERAGE_WORDS_PER_ROW;
         for (size_t word = first_word; word <= last_word; ++word) {
             const unsigned first = word == first_word
@@ -128,66 +123,40 @@ static esp_err_t screen_begin(const esp_iris_media_desc_t *requested,
         return ESP_ERR_TIMEOUT;
     }
     esp_gsp_handle_t ui = mirror->ui;
-    const bool unavailable = ui == NULL || mirror->shadow != NULL ||
+    const bool unavailable = ui == NULL || mirror->shadow == NULL ||
         mirror->capture != NULL;
     xSemaphoreGive(mirror->lock);
     if (unavailable) {
         return ESP_ERR_INVALID_STATE;
     }
 
-    uint8_t *shadow = heap_caps_calloc(
-        1, SCREEN_FRAME_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
     uint8_t *capture = heap_caps_malloc(
         SCREEN_FRAME_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-    if (shadow == NULL || capture == NULL) {
-        heap_caps_free(capture);
-        heap_caps_free(shadow);
+    if (capture == NULL) {
         return ESP_ERR_NO_MEM;
     }
-    memset(capture, 0, COVERAGE_BYTES);
-
-    esp_gsp_esp_lcd_pause_t *pause = NULL;
-    esp_err_t err = esp_gsp_esp_lcd_pause(
-        ui, FULL_REPAINT_TIMEOUT_MS, &pause);
-    if (err != ESP_OK) {
-        heap_caps_free(capture);
-        heap_caps_free(shadow);
-        return err;
-    }
-
-    while (xSemaphoreTake(mirror->frame_ready, 0) == pdTRUE) {
-    }
     if (xSemaphoreTake(mirror->lock, portMAX_DELAY) != pdTRUE) {
-        esp_gsp_handle_t resumed = NULL;
-        (void)esp_gsp_esp_lcd_resume_paused(pause, &resumed);
         heap_caps_free(capture);
-        heap_caps_free(shadow);
         return ESP_ERR_TIMEOUT;
     }
-    mirror->shadow = shadow;
-    mirror->capture = capture;
-    mirror->covered_pixels = 0;
-    mirror->capture_ready = false;
-    mirror->warming = true;
-    xSemaphoreGive(mirror->lock);
-
-    esp_gsp_handle_t resumed = NULL;
-    err = esp_gsp_esp_lcd_resume_paused(pause, &resumed);
-    if (err != ESP_OK) {
-        release_frame_storage(mirror);
-        return err;
-    }
-    if (xSemaphoreTake(mirror->lock, portMAX_DELAY) == pdTRUE) {
-        mirror->ui = resumed;
+    if (mirror->capture != NULL) {
         xSemaphoreGive(mirror->lock);
+        heap_caps_free(capture);
+        return ESP_ERR_INVALID_STATE;
     }
-
-    if (xSemaphoreTake(mirror->frame_ready,
+    mirror->capture = capture;
+    mirror->capture_ready = false;
+    const bool warming = mirror->warming;
+    xSemaphoreGive(mirror->lock);
+    /* The observer starts before GSP's first frame, so a capture does not
+     * pause/resume the renderer or allocate its transient control objects.
+     * Never expose unpainted pixels during an early-boot capture. */
+    if (warming && xSemaphoreTake(mirror->frame_ready,
                        pdMS_TO_TICKS(FULL_REPAINT_TIMEOUT_MS)) != pdTRUE) {
         release_frame_storage(mirror);
         return ESP_ERR_TIMEOUT;
     }
-    err = snapshot_frame(mirror);
+    esp_err_t err = snapshot_frame(mirror);
     if (err != ESP_OK) {
         release_frame_storage(mirror);
         return err;
@@ -265,6 +234,23 @@ esp_err_t iris_screen_mirror_init(void)
         return ESP_ERR_NO_MEM;
     }
 
+    s_mirror.shadow = heap_caps_calloc(
+        1, SCREEN_FRAME_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    s_mirror.coverage = heap_caps_calloc(
+        1, COVERAGE_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    if (s_mirror.shadow == NULL || s_mirror.coverage == NULL) {
+        heap_caps_free(s_mirror.coverage);
+        heap_caps_free(s_mirror.shadow);
+        s_mirror.coverage = NULL;
+        s_mirror.shadow = NULL;
+        vSemaphoreDelete(s_mirror.frame_ready);
+        vSemaphoreDelete(s_mirror.lock);
+        s_mirror.frame_ready = NULL;
+        s_mirror.lock = NULL;
+        return ESP_ERR_NO_MEM;
+    }
+    s_mirror.warming = true;
+
     const esp_iris_screen_backend_t backend = {
         .begin = screen_begin,
         .read = screen_read,
@@ -273,6 +259,10 @@ esp_err_t iris_screen_mirror_init(void)
     };
     esp_err_t err = esp_iris_screen_register(&backend);
     if (err != ESP_OK) {
+        heap_caps_free(s_mirror.coverage);
+        heap_caps_free(s_mirror.shadow);
+        s_mirror.coverage = NULL;
+        s_mirror.shadow = NULL;
         vSemaphoreDelete(s_mirror.frame_ready);
         vSemaphoreDelete(s_mirror.lock);
         s_mirror.frame_ready = NULL;
@@ -280,7 +270,7 @@ esp_err_t iris_screen_mirror_init(void)
         return err;
     }
     ESP_LOGI(TAG,
-             "Registered %dx%d RGB565 GSP screen backend (frames allocated on demand)",
+             "Registered %dx%d RGB565 GSP screen backend (PSRAM shadow retained, capture on demand)",
              BSP_LCD_H_RES, BSP_LCD_V_RES);
     return ESP_OK;
 }
@@ -293,7 +283,7 @@ esp_err_t iris_screen_mirror_attach(esp_gsp_handle_t ui)
     if (xSemaphoreTake(s_mirror.lock, portMAX_DELAY) != pdTRUE) {
         return ESP_ERR_TIMEOUT;
     }
-    if (s_mirror.shadow != NULL || s_mirror.capture != NULL) {
+    if (s_mirror.capture != NULL) {
         xSemaphoreGive(s_mirror.lock);
         return ESP_ERR_INVALID_STATE;
     }
@@ -339,7 +329,7 @@ esp_err_t __wrap_esp_display_presenter_submit_buffer(
                     memcpy(destination + row * SCREEN_STRIDE,
                            source + row * stride_bytes, row_bytes);
                 }
-                if (s_mirror.warming && s_mirror.capture != NULL) {
+                if (s_mirror.warming && s_mirror.coverage != NULL) {
                     frame_ready = mark_coverage(&s_mirror, area);
                 }
             }

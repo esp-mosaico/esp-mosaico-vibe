@@ -7,18 +7,20 @@ startup instead of embedding it in `ota_0`.
 
 Factory remains the LVGL Recovery template.
 
-The ESP-Iris screen backend keeps no full-frame allocation while mirroring is
-idle. A mirror or screenshot request allocates its coherent RGB565 shadow and
-capture frames in PSRAM, forces one complete GSP repaint, and releases both
-frames on close, stop, or disconnect.
+The ESP-Iris screen backend observes display presents from the first GSP frame.
+It retains a RGB565 shadow and initial-paint coverage bitmap in PSRAM (478.125
+KiB). A mirror or screenshot request allocates one additional 450 KiB capture
+frame in PSRAM and releases that capture on close, stop, or disconnect. Capture
+does not pause or restart GSP, and never falls back to internal RAM. Early
+captures wait for every pixel to have been painted before exposing an image.
 
 ## Simulate
 
 From the vibe repository root:
 
 ```sh
-python3 tools/gsp-sim/run.py projects/gsp_hello/ui/main.json --headless --dump-ppm /tmp/gsp-hello.ppm
-python3 tools/gsp-sim/run.py projects/gsp_hello/ui/main.json --interactive
+python3 tools/gsp-sim/run.py --headless --dump-ppm /tmp/gsp-hello.ppm projects/gsp_hello/ui/main.json
+python3 tools/gsp-sim/run.py --interactive projects/gsp_hello/ui/main.json
 ```
 
 ## Flash
@@ -31,7 +33,8 @@ python mosaico.py install --project projects/gsp_hello
 ```
 
 To install a changed scene, font, or image, use a System Update containing the
-application, `ui_apps`, bootloader, and partition table:
+application, `ui_apps`, and compatible partition table (preserving Recovery and
+the installed bootloader):
 
 ```sh
 python mosaico.py system-update --project projects/gsp_hello

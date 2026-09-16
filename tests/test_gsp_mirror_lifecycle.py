@@ -14,7 +14,7 @@ MAIN = MIRROR.parent
 
 
 class GspMirrorLifecycleTest(unittest.TestCase):
-    def test_frames_exist_only_during_stream(self) -> None:
+    def test_psram_shadow_and_on_demand_capture_lifecycle(self) -> None:
         compiler = shutil.which("cc")
         self.assertIsNotNone(compiler, "a C compiler is required for the mirror lifecycle test")
         with tempfile.TemporaryDirectory() as directory:
