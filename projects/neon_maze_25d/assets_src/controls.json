@@ -1,0 +1,11 @@
+{
+  "image": "controls.png",
+  "columns": 2,
+  "rows": 1,
+  "output_cell": 100,
+  "alpha_mode": "binary",
+  "frames": [
+    {"name": "joystick_base"},
+    {"name": "fire_button"}
+  ]
+}

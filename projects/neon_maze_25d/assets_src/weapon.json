@@ -1,0 +1,10 @@
+{
+  "image": "weapon.png",
+  "columns": 1,
+  "rows": 1,
+  "output_cell": 280,
+  "alpha_mode": "binary",
+  "frames": [
+    {"name": "k98_rifle"}
+  ]
+}

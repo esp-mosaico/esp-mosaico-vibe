@@ -1,0 +1,16 @@
+{
+  "schema": "mosaico-game-assets/v1",
+  "atlases": [
+    {"config": "enemy.json", "source": "enemy_run.png", "output": "enemy.atlas"},
+    {"config": "weapon.json", "source": "weapon.png", "output": "weapon.atlas"},
+    {"config": "controls.json", "source": "controls.png", "output": "controls.atlas"},
+    {"config": "environment.json", "source": "tactical_panorama.png", "output": "environment.atlas"},
+    {"config": "materials.json", "source": "tactical_materials.png", "output": "materials.atlas"}
+  ],
+  "sounds": [
+    {"source": "rifle.wav"},
+    {"source": "impact.wav"},
+    {"source": "confirm.wav"},
+    {"source": "hurt.wav"}
+  ]
+}

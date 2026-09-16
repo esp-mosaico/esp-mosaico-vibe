@@ -1,0 +1,9 @@
+{
+  "schema": "mosaico-game-sim/v1",
+  "tick_hz": 30,
+  "sources": [
+    "main/game_module.c",
+    "main/neon_maze_game.c",
+    "main/neon_maze_view.c"
+  ]
+}

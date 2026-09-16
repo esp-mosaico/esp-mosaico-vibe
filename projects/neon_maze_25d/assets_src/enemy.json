@@ -1,0 +1,12 @@
+{
+  "image": "enemy_run.png",
+  "columns": 3,
+  "rows": 1,
+  "output_cell": 156,
+  "alpha_mode": "binary",
+  "frames": [
+    {"name": "enemy_run_0"},
+    {"name": "enemy_run_1"},
+    {"name": "enemy_run_2"}
+  ]
+}

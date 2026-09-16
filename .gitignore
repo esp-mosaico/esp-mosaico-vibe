@@ -12,5 +12,11 @@
 /projects/sky_hop/assets_src/*.wav
 /projects/sky_hop/assets_src/sky_hop_atlas.png
 /projects/raylib_shooter/assets_src/shooter_atlas.png
+/projects/neon_maze_25d/assets_src/*.wav
+/projects/neon_maze_25d/assets_src/controls.png
+/projects/neon_maze_25d/assets_src/enemy_run.png
+/projects/neon_maze_25d/assets_src/tactical_materials.png
+/projects/neon_maze_25d/assets_src/tactical_panorama.png
+/projects/neon_maze_25d/assets_src/weapon.png
 /.mosaico-state/
 /tools/gsp-sim/.cache/

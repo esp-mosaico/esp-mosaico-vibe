@@ -1,0 +1,11 @@
+{
+  "image": "tactical_panorama.png",
+  "columns": 2,
+  "rows": 1,
+  "output_cell": 256,
+  "alpha_mode": "opaque",
+  "frames": [
+    {"name": "tactical_panorama_left"},
+    {"name": "tactical_panorama_right"}
+  ]
+}
