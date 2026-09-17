@@ -13,6 +13,8 @@
 #include "iris_screen_mirror.h"
 
 #define FRAME_BYTES ((size_t)BSP_LCD_H_RES * BSP_LCD_V_RES * 2U)
+#define COVERAGE_BYTES ((((BSP_LCD_H_RES + 31U) / 32U) * BSP_LCD_V_RES) * 4U)
+#define IDLE_BYTES (FRAME_BYTES + COVERAGE_BYTES)
 
 typedef struct {
     size_t size;
@@ -24,7 +26,6 @@ struct esp_gsp_esp_lcd_pause {
 
 static esp_iris_screen_backend_t registered_backend;
 static bool backend_registered;
-static struct esp_gsp_esp_lcd_pause fake_pause;
 static uint8_t repaint_frame[FRAME_BYTES];
 static size_t active_bytes;
 static size_t peak_bytes;
@@ -54,13 +55,13 @@ static void *tracked_allocate(size_t size, bool clear)
 
 void *heap_caps_calloc(size_t count, size_t size, unsigned caps)
 {
-    (void)caps;
+    assert(caps == (MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
     return tracked_allocate(count * size, true);
 }
 
 void *heap_caps_malloc(size_t size, unsigned caps)
 {
-    (void)caps;
+    assert(caps == (MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
     return tracked_allocate(size, false);
 }
 
@@ -119,10 +120,9 @@ esp_err_t esp_iris_screen_register(const esp_iris_screen_backend_t *backend)
 esp_err_t esp_gsp_esp_lcd_pause(esp_gsp_handle_t handle, uint32_t timeout_ms,
                                 esp_gsp_esp_lcd_pause_t **pause)
 {
-    assert(handle != NULL);
-    assert(timeout_ms != 0);
-    *pause = &fake_pause;
-    return ESP_OK;
+    (void)handle; (void)timeout_ms; (void)pause;
+    assert(!"capture must not pause GSP or allocate renderer control objects");
+    return ESP_ERR_INVALID_STATE;
 }
 
 esp_err_t __wrap_esp_display_presenter_submit_buffer(
@@ -134,20 +134,25 @@ esp_err_t __wrap_esp_display_presenter_submit_buffer(
 esp_err_t esp_gsp_esp_lcd_resume_paused(esp_gsp_esp_lcd_pause_t *pause,
                                         esp_gsp_handle_t *handle)
 {
-    assert(pause == &fake_pause);
-    *handle = (esp_gsp_handle_t)(uintptr_t)2;
+    (void)pause; (void)handle;
+    assert(!"capture must not resume/recreate GSP");
+    return ESP_ERR_INVALID_STATE;
+}
+
+static esp_err_t present_rows(unsigned first, unsigned last)
+{
     const esp_display_presenter_buffer_t buffer = {
         .surface = {
-            .pixels = repaint_frame,
+            .pixels = repaint_frame + first * BSP_LCD_H_RES * 2U,
             .pixel_format = ESP_DISPLAY_PRESENT_PIXEL_FORMAT_RGB565,
         },
-        .capacity_bytes = sizeof(repaint_frame),
+        .capacity_bytes = (last - first + 1U) * BSP_LCD_H_RES * 2U,
     };
     const esp_display_present_area_t area = {
         .x1 = 0,
-        .y1 = 0,
+        .y1 = first,
         .x2 = BSP_LCD_H_RES - 1,
-        .y2 = BSP_LCD_V_RES - 1,
+        .y2 = last,
     };
     return __wrap_esp_display_presenter_submit_buffer(
         NULL, &buffer, &area, BSP_LCD_H_RES * 2U);
@@ -173,7 +178,7 @@ static void exercise_one_stream(void)
     uint32_t total_size = 0;
     assert(registered_backend.begin(NULL, &actual, &total_size,
                                     registered_backend.user_ctx) == ESP_OK);
-    assert(active_bytes == FRAME_BYTES * 2U);
+    assert(active_bytes == IDLE_BYTES + FRAME_BYTES);
     assert(actual.width == BSP_LCD_H_RES);
     assert(actual.height == BSP_LCD_V_RES);
     assert(actual.stride == BSP_LCD_H_RES * 2U);
@@ -182,7 +187,7 @@ static void exercise_one_stream(void)
     assert(registered_backend.begin(NULL, &actual, &total_size,
                                     registered_backend.user_ctx) ==
            ESP_ERR_INVALID_STATE);
-    assert(active_bytes == FRAME_BYTES * 2U);
+    assert(active_bytes == IDLE_BYTES + FRAME_BYTES);
 
     uint8_t sample[64] = {0};
     size_t sample_size = 0;
@@ -191,35 +196,59 @@ static void exercise_one_stream(void)
     assert(sample_size == sizeof(sample));
     assert(memcmp(sample, repaint_frame, sizeof(sample)) == 0);
 
+    uint8_t retained[sizeof(sample)];
+    memcpy(retained, sample, sizeof(retained));
+    repaint_frame[0] ^= 0xff;
+    assert(present_rows(0, 0) == ESP_OK);
+    assert(registered_backend.read(0, sample, sizeof(sample), &sample_size,
+                                   registered_backend.user_ctx) == ESP_OK);
+    assert(memcmp(sample, retained, sizeof(sample)) == 0); /* stable snapshot */
+
     registered_backend.end(registered_backend.user_ctx);
-    assert(active_bytes == 0);
+    assert(active_bytes == IDLE_BYTES);
     registered_backend.end(registered_backend.user_ctx);
-    assert(active_bytes == 0);
+    assert(active_bytes == IDLE_BYTES);
 }
 
 int main(void)
 {
     memset(repaint_frame, 0xa5, sizeof(repaint_frame));
+    for (unsigned failed = 1; failed <= 2; ++failed) {
+        fail_allocation_call = allocation_calls + failed;
+        assert(iris_screen_mirror_init() == ESP_ERR_NO_MEM);
+        assert(active_bytes == 0);
+        assert(!backend_registered);
+    }
+    fail_allocation_call = 0;
     assert(iris_screen_mirror_init() == ESP_OK);
     assert(backend_registered);
-    assert(active_bytes == 0);
+    assert(active_bytes == IDLE_BYTES);
     assert(iris_screen_mirror_attach((esp_gsp_handle_t)(uintptr_t)1) == ESP_OK);
-    assert(active_bytes == 0);
+    assert(active_bytes == IDLE_BYTES);
 
-    fail_allocation_call = 2;
+    fail_allocation_call = allocation_calls + 1;
     esp_iris_media_desc_t actual = {0};
     uint32_t total_size = 0;
     assert(registered_backend.begin(NULL, &actual, &total_size,
                                     registered_backend.user_ctx) ==
            ESP_ERR_NO_MEM);
-    assert(active_bytes == 0);
+    assert(active_bytes == IDLE_BYTES);
 
     fail_allocation_call = 0;
+    assert(registered_backend.begin(NULL, &actual, &total_size,
+                                    registered_backend.user_ctx) == ESP_ERR_TIMEOUT);
+    assert(active_bytes == IDLE_BYTES);
+    assert(present_rows(0, BSP_LCD_V_RES / 2 - 1) == ESP_OK);
+    assert(present_rows(0, BSP_LCD_V_RES / 2 - 1) == ESP_OK); /* no double count */
+    assert(registered_backend.begin(NULL, &actual, &total_size,
+                                    registered_backend.user_ctx) == ESP_ERR_TIMEOUT);
+    assert(active_bytes == IDLE_BYTES);
+    assert(present_rows(BSP_LCD_V_RES / 2, BSP_LCD_V_RES - 1) == ESP_OK);
     for (unsigned cycle = 0; cycle < 40; ++cycle) {
         exercise_one_stream();
     }
-    assert(active_bytes == 0);
-    assert(peak_bytes == FRAME_BYTES * 2U);
-    assert(present_calls == 40);
+    assert(active_bytes == IDLE_BYTES);
+    assert(peak_bytes == IDLE_BYTES + FRAME_BYTES);
+    assert(present_calls == 43);
     return 0;
 }

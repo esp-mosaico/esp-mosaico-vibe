@@ -65,7 +65,12 @@ class RetainedRecoveryContractTests(unittest.TestCase):
             with self.subTest(project=project.name):
                 config = defaults(project / "sdkconfig.defaults")
                 self.assertEqual(config["CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH"], "y")
-                self.assertEqual(config["CONFIG_ESP_IRIS_LOG_RING_STORAGE_INTERNAL"], "y")
+                # Both storage choices are Core Dump sections. Low-internal-
+                # RAM normal apps use PSRAM; Recovery retains internal logs.
+                if config.get("CONFIG_ESP_IRIS_LOG_RING_STORAGE_PSRAM") == "y":
+                    self.assertEqual(config["CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY"], "y")
+                else:
+                    self.assertEqual(config["CONFIG_ESP_IRIS_LOG_RING_STORAGE_INTERNAL"], "y")
 
     def test_fixed_prefix_and_acceptance_layout_match_recovery(self):
         recovery = partitions(TOOLS / "firmware/recovery/partitions.csv")
