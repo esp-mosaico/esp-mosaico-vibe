@@ -20,6 +20,7 @@
 #define NEON_MAZE_EXTRACT_X 21.5f
 #define NEON_MAZE_EXTRACT_Y 21.5f
 #define NEON_MAZE_PROPS 8
+#define NEON_MAZE_MAX_ARMOR 3
 #define NEON_MAZE_SPRINT 0.78f
 #define NEON_MAZE_MOVE_X 82
 #define NEON_MAZE_MOVE_Y 392
@@ -55,6 +56,7 @@ typedef enum {
 typedef enum {
     NEON_PICKUP_AMMO = 0,
     NEON_PICKUP_HEALTH,
+    NEON_PICKUP_ARMOR,
 } neon_maze_pickup_kind_t;
 
 typedef struct {
@@ -74,7 +76,8 @@ typedef struct {
 
 typedef struct {
     float x,y;
-    uint8_t kind;
+    uint8_t kind,blast_timer;
+    bool active;
 } neon_maze_prop_t;
 
 typedef struct {
@@ -82,7 +85,7 @@ typedef struct {
     float look_pitch,look_kick,weapon_recoil,move_phase,display_hp,vel_x,vel_y;
     uint32_t tick,best_ticks;
     uint16_t cells_reached,score,shots_fired,shots_hit,kills;
-    uint8_t fire_cooldown,hit_flash,hit_marker,kill_flash,hp,hurt_cooldown,ammo;
+    uint8_t fire_cooldown,hit_flash,hit_marker,kill_flash,hp,armor,hurt_cooldown,ammo;
     uint8_t pickup_flash,door_flash,dry_flash,layout,damage_taken,enemy_shot_lock;
     float damage_angle;
     neon_maze_phase_t phase;
@@ -115,13 +118,14 @@ void neon_maze_set_performance(neon_maze_game_t *game,float logic_fps,
                                float display_fps,float render_ms);
 void neon_maze_update(neon_maze_game_t *game);
 neon_maze_fire_result_t neon_maze_fire(neon_maze_game_t *game);
-uint8_t neon_maze_cell(int x,int y);
+uint8_t neon_maze_cell(const neon_maze_game_t *game,int x,int y);
 bool neon_maze_blocks(const neon_maze_game_t *game,int x,int y);
 bool neon_maze_door_ahead(const neon_maze_game_t *game);
 bool neon_maze_near_closed_door(const neon_maze_game_t *game);
 bool neon_maze_pickup_visible(const neon_maze_game_t *game,int index);
 bool neon_maze_enemy_on_radar(const neon_maze_game_t *game,int index);
 int neon_maze_enemies_alive(const neon_maze_game_t *game);
+int neon_maze_enemy_total(const neon_maze_game_t *game);
 int neon_maze_last_enemy_index(const neon_maze_game_t *game);
 float neon_maze_extract_bearing(const neon_maze_game_t *game);
 char neon_maze_grade(const neon_maze_game_t *game);

@@ -26,7 +26,7 @@ static uint8_t s_step_wait, s_enemy_step_wait;
 static bool s_step_right;
 static TimerHandle_t s_haptic_timer, s_haptic_second_timer;
 static bool s_motor_ready;
-static uint8_t s_previous_hp;
+static uint8_t s_previous_hp, s_previous_armor;
 static neon_maze_phase_t s_previous_phase;
 static uint8_t s_second_strength;
 static uint16_t s_second_duration_ms;
@@ -285,6 +285,7 @@ static esp_err_t on_start(void)
     s_move_forward = s_move_strafe = 0.0f;
     s_target_forward = s_target_strafe = 0.0f;
     s_previous_hp = s_game.hp;
+    s_previous_armor = s_game.armor;
     s_previous_phase = s_game.phase;
     return ESP_OK;
 }
@@ -365,7 +366,12 @@ static void on_update(void)
         if (s_game.hp) play_haptic_pattern(82, 35, 55, 25, 45);
         else play_haptic_pattern(96, 90, 70, 35, 120);
     }
+    if (s_game.armor < s_previous_armor) {
+        PlaySound(s_impact_sound);
+        play_haptic_pattern(52, 18, 34, 12, 20);
+    }
     s_previous_hp = s_game.hp;
+    s_previous_armor = s_game.armor;
     apply_footsteps();
     if (s_game.phase == NEON_MAZE_PHASE_PLAYING && s_game.hp == 1 &&
         (s_game.tick % 24U) == 0U && !IsSoundPlaying(s_hurt_sound) &&

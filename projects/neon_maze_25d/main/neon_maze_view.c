@@ -337,16 +337,30 @@ static void draw_pickups(const neon_maze_game_t *game, MosaicoAtlas props)
     for (int i = 0; i < NEON_MAZE_PICKUPS; ++i) {
         if (game->pickups[i].taken) continue;
         mosaico_asset_id_t id = game->pickups[i].kind == NEON_PICKUP_HEALTH
-            ? MOSAICO_ASSET_ID_PICKUP_HEALTH : MOSAICO_ASSET_ID_PICKUP_AMMO;
+            ? MOSAICO_ASSET_ID_PICKUP_HEALTH
+            : (game->pickups[i].kind == NEON_PICKUP_ARMOR
+                ? MOSAICO_ASSET_ID_PICKUP_ARMOR : MOSAICO_ASSET_ID_PICKUP_AMMO);
         if (props.texture.id)
             draw_billboard_sprite(game, props, id, game->pickups[i].x, game->pickups[i].y, 0.42f);
         else {
             Color color = game->pickups[i].kind == NEON_PICKUP_HEALTH
-                ? (Color){255, 82, 96, 255} : (Color){255, 214, 75, 255};
+                ? (Color){255, 82, 96, 255}
+                : (game->pickups[i].kind == NEON_PICKUP_ARMOR
+                    ? (Color){64, 170, 255, 255} : (Color){255, 214, 75, 255});
             draw_billboard_box(game, game->pickups[i].x, game->pickups[i].y, color, 6);
         }
     }
     for (int i = 0; i < NEON_MAZE_PROPS; ++i) {
+        if (!game->props[i].active) {
+            if (game->props[i].blast_timer) {
+                int age = 18 - game->props[i].blast_timer;
+                Color blast = age < 7 ? (Color){255, 224, 92, 255}
+                                      : (Color){232, 82, 34, 255};
+                draw_billboard_box(game, game->props[i].x, game->props[i].y,
+                                   blast, 14 + age);
+            }
+            continue;
+        }
         mosaico_asset_id_t id = game->props[i].kind ? MOSAICO_ASSET_ID_PROP_BAG
                                                     : MOSAICO_ASSET_ID_PROP_BARREL;
         if (props.texture.id)
@@ -420,7 +434,7 @@ static void raycast_world(const neon_maze_game_t *game)
                 map_y += step_y;
                 side = true;
             }
-            uint8_t cell = neon_maze_cell(map_x, map_y);
+            uint8_t cell = neon_maze_cell(game, map_x, map_y);
             if (neon_maze_blocks(game, map_x, map_y)) wall = cell ? cell : 1;
         }
         float distance = side ? side_y - delta_y : side_x - delta_x;
@@ -446,10 +460,10 @@ static void raycast_world(const neon_maze_game_t *game)
     }
 }
 
-static int floor_kind_at(float wx, float wy)
+static int floor_kind_at(const neon_maze_game_t *game, float wx, float wy)
 {
     int mx = (int)wx, my = (int)wy;
-    if (neon_maze_cell(mx, my) == 5) return 2;
+    if (neon_maze_cell(game, mx, my) == 5) return 2;
     if (mx >= 19 && my >= 19 && mx <= 22 && my <= 22) return 2;
     if ((mx <= 6 && my <= 4) || (mx <= 6 && my >= 7 && my <= 9) || my >= 17) return 1;
     return 0;
@@ -482,7 +496,8 @@ static void draw_floor(const neon_maze_game_t *game, MosaicoAtlas materials,
         for (int column = 0; column <= NEON_MAZE_COLUMNS; ++column) {
             int kind = 0;
             if (column < NEON_MAZE_COLUMNS)
-                kind = floor_kind_at(wx + dwx * (float)column, wy + dwy * (float)column);
+                kind = floor_kind_at(game, wx + dwx * (float)column,
+                                     wy + dwy * (float)column);
             if (column == 0) {
                 run_kind = kind;
                 run_start = 0;
@@ -682,7 +697,7 @@ static void draw_radar(const neon_maze_game_t *game)
             int mx = origin_x + x, my = origin_y + y;
             if (mx < 0 || my < 0 || mx >= NEON_MAZE_WIDTH || my >= NEON_MAZE_HEIGHT) continue;
             if (!game->explored[my][mx]) continue;
-            uint8_t cell = neon_maze_cell(mx, my);
+            uint8_t cell = neon_maze_cell(game, mx, my);
             Color color = (Color){58, 42, 28, 255};
             if (cell == 4 && !game->door_open[my][mx]) color = (Color){220, 180, 60, 255};
             else if (cell == 5) color = (Color){80, 220, 200, 255};
@@ -701,7 +716,9 @@ static void draw_radar(const neon_maze_game_t *game)
         int ox = mx - origin_x, oy = my - origin_y;
         if (ox < 0 || oy < 0 || ox >= span || oy >= span) continue;
         Color color = game->pickups[i].kind == NEON_PICKUP_HEALTH
-            ? (Color){255, 82, 96, 255} : (Color){255, 214, 75, 255};
+            ? (Color){255, 82, 96, 255}
+            : (game->pickups[i].kind == NEON_PICKUP_ARMOR
+                ? (Color){64, 170, 255, 255} : (Color){255, 214, 75, 255});
         DrawRectangle(left + ox * scale + 1, top + oy * scale + 1, 3, 3, color);
     }
     for (int i = 0; i < NEON_MAZE_ENEMIES; ++i)
@@ -786,6 +803,10 @@ static void draw_status_hud(const neon_maze_game_t *game)
                                  : (Color){36, 40, 44, 255};
         DrawRectangle(158 + i * 14, 40, 12, 8, pip);
     }
+    for (int i = 0; i < NEON_MAZE_MAX_ARMOR; ++i)
+        DrawRectangle(230 + i * 10, 42, 8, 6,
+                      i < game->armor ? (Color){64, 170, 255, 255}
+                                      : (Color){28, 44, 58, 255});
     int ammo_shown = game->ammo > 10 ? 10 : (int)game->ammo;
     for (int i = 0; i < 10; ++i) {
         Color tick = i < ammo_shown ? (Color){255, 214, 75, 255} : (Color){36, 40, 44, 255};
@@ -909,7 +930,7 @@ static void draw_round_stats(const neon_maze_game_t *game, int y)
     format_clock_buf(game->tick, time_buf);
     format_clock_buf(game->best_ticks, best_buf);
     DrawText(TextFormat("TIME %s   KILLS %u/%d", time_buf,
-                        (unsigned)game->kills, NEON_MAZE_ENEMIES), 118, y, 14,
+                        (unsigned)game->kills, neon_maze_enemy_total(game)), 118, y, 14,
              (Color){239, 242, 224, 255});
     DrawText(TextFormat("HIT %u%%   DMG %u   HP %u  AMMO %u", accuracy_pct(game),
                         (unsigned)game->damage_taken, (unsigned)game->hp,
@@ -934,11 +955,14 @@ static void draw_phase_overlay(const neon_maze_game_t *game)
         DrawText("CLEAR ALL, THEN THE EXTRACT PAD", 86, 222, 14, (Color){255, 220, 72, 255});
         char best_buf[8];
         format_clock_buf(game->best_ticks, best_buf);
-        DrawText(TextFormat("SHIFT %u/%u  BEST %s", (unsigned)game->layout + 1U,
+        static const char *missions[] = {"DOCK", "DEPOT", "COMMAND"};
+        DrawText(TextFormat("MISSION %u/%u %s", (unsigned)game->layout + 1U,
                             (unsigned)NEON_MAZE_LAYOUTS,
-                            game->best_ticks ? best_buf : "--:--"),
-                 118, 250, 16, (Color){72, 255, 214, 255});
-        DrawText("TAP TO DEPLOY", 168, 286, 16, (Color){255, 220, 72, 255});
+                            missions[game->layout]),
+                 118, 250, 14, (Color){72, 255, 214, 255});
+        DrawText(TextFormat("BEST %s", game->best_ticks ? best_buf : "--:--"),
+                 190, 270, 12, (Color){192, 235, 214, 255});
+        DrawText("TAP TO DEPLOY", 168, 300, 16, (Color){255, 220, 72, 255});
     } else if (game->phase == NEON_MAZE_PHASE_WON) {
         DrawText("EXTRACT SECURE", 128, 112, 24, (Color){72, 255, 214, 255});
         draw_round_stats(game, 160);

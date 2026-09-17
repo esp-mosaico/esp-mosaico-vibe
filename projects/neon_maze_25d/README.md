@@ -25,8 +25,18 @@ and will take cover instead of stacking on one point. Medkits stay on the
 ground if you are already full. The gold gate must be shot open. Windows punch
 through to the sky. Fog, wall-edge shading, and muzzle flash light the
 corridor. Radar marks explored cells, windows, crates, doors, loot, extract,
-and last-known hostiles. Clear all ten opponents, then follow the extract
+and last-known hostiles. Clear all opponents, then follow the extract
 arrow onto the pad. BEST time, hit rate, damage taken, remaining HP/ammo, and
-a grade show on the results screen. Redeploy after a win or death rotates the
-hostile and loot posts across three shifts. Walking plays boot steps;
+a grade show on the results screen. Redeploy after a win advances the campaign;
+redeploy after a death retries the same mission. Walking plays boot steps;
 sprinting shortens the stride; standing is silent.
+
+The campaign now advances through three missions with separate map geometry,
+cover, enemy posts, supplies, and difficulty. Dock starts with eight hostiles
+and extra ammunition; Depot introduces ten hostiles and armor; Command starts
+with twelve rounds and adds three armored elites. Death retries the current
+mission, while a successful extraction advances to the next mission.
+
+Ammo boxes restore six rounds, medkits restore one HP, and blue armor plates
+absorb up to three incoming hits. Barrels detonate when shot and eliminate
+hostiles within 2.5 map cells, allowing positioning to replace several shots.

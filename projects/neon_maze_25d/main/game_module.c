@@ -160,11 +160,11 @@ static int state_json(const void *value,char *output,size_t capacity)
     mosaico_game_2d_raster_stats_t raster={0};
     mosaico_game_2d_get_raster_stats(&raster);
     return snprintf(output,capacity,"{\"phase\":\"%s\",\"x\":%.2f,\"y\":%.2f,"
-        "\"heading\":%d,\"pitch\":%.1f,\"score\":%u,\"hp\":%u,\"ammo\":%u,\"alive\":%d,"
+        "\"heading\":%d,\"pitch\":%.1f,\"score\":%u,\"hp\":%u,\"armor\":%u,\"ammo\":%u,\"alive\":%d,"
         "\"target_visible\":%s,\"target_x\":%.2f,\"target_y\":%.2f,\"best\":%lu,\"tick\":%lu,\"layout\":%u,"
         "\"sfx\":\"%s\",\"state_hash\":\"%08lx\",\"sky_us\":%u,\"floor_us\":%u,\"wall_us\":%u,"
         "\"enemy_us\":%u,\"hud_us\":%u}",phase,g->x,g->y,
-        (int)(g->angle*57.29578f),g->look_pitch,g->score,g->hp,g->ammo,
+        (int)(g->angle*57.29578f),g->look_pitch,g->score,g->hp,g->armor,g->ammo,
         neon_maze_enemies_alive(g),target_visible?"true":"false",target>=0?g->enemies[target].x:g->x,
         target>=0?g->enemies[target].y:g->y,(unsigned long)g->best_ticks,
         (unsigned long)g->tick,(unsigned)g->layout,neon_maze_sfx_name(g),

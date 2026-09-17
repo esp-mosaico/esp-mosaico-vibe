@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static const char s_map[NEON_MAZE_HEIGHT][NEON_MAZE_WIDTH + 1] = {
+static const char s_maps[NEON_MAZE_LAYOUTS][NEON_MAZE_HEIGHT][NEON_MAZE_WIDTH + 1] = {{
     "111111111111111111111111",
     "100000211111111111111111",
     "100000211111111111111111",
@@ -29,7 +29,57 @@ static const char s_map[NEON_MAZE_HEIGHT][NEON_MAZE_WIDTH + 1] = {
     "111111111111111110000051",
     "111111111111111110000001",
     "111111111111111111111111",
-};
+},{
+    "111111111111111111111111",
+    "100000211111111111111111",
+    "100030211111111111111111",
+    "100000000002111111111111",
+    "101111110002111111111111",
+    "101111110000003021111111",
+    "101111110000300021111111",
+    "100000011111110000000001",
+    "100300011111000000030001",
+    "100000011111000002000001",
+    "111111111111441111111111",
+    "111111111111000000000001",
+    "111111111111003000030001",
+    "111111111111001111110001",
+    "111111111111000000000001",
+    "111111111111030030000001",
+    "111111111111111110011111",
+    "111111111111111110000001",
+    "111111111111111110003001",
+    "111111111111111110000001",
+    "111111111111111110030001",
+    "111111111111111110000051",
+    "111111111111111110000001",
+    "111111111111111111111111",
+},{
+    "111111111111111111111111",
+    "100000211111111111111111",
+    "100000211111111111111111",
+    "100300000002111111111111",
+    "101111110002111111111111",
+    "101111110030000021111111",
+    "101111110000300021111111",
+    "100030011111110000000001",
+    "100000011111000003000001",
+    "103000011111000000200001",
+    "111111111111441111111111",
+    "111111111111000030000001",
+    "111111111111000300003001",
+    "111111111111001111110001",
+    "111111111111000030000001",
+    "111111111111030000300001",
+    "111111111111111110011111",
+    "111111111111111110000001",
+    "111111111111111110030001",
+    "111111111111111110000001",
+    "111111111111111110030001",
+    "111111111111111110000051",
+    "111111111111111110000001",
+    "111111111111111111111111",
+}};
 
 static float angle_delta(float value);
 static void emit_sfx(neon_maze_game_t *game,uint8_t id);
@@ -45,17 +95,17 @@ static bool line_clear(const neon_maze_game_t *game,float x0,float y0,float x1,f
     return true;
 }
 
-static bool layout_open(int x,int y)
+static bool layout_open(const neon_maze_game_t *game,int x,int y)
 {
-    uint8_t cell=neon_maze_cell(x,y);
+    uint8_t cell=neon_maze_cell(game,x,y);
     return cell==0||cell==4||cell==5;
 }
 
-static bool adjacent_cover(int x,int y)
+static bool adjacent_cover(const neon_maze_game_t *game,int x,int y)
 {
     static const int8_t dirs[4][2]={{1,0},{-1,0},{0,1},{0,-1}};
     for(int i=0;i<4;++i){
-        uint8_t cell=neon_maze_cell(x+dirs[i][0],y+dirs[i][1]);
+        uint8_t cell=neon_maze_cell(game,x+dirs[i][0],y+dirs[i][1]);
         if(cell>=1&&cell<=3)return true;
     }
     return false;
@@ -77,14 +127,14 @@ static void pick_hold_cell(neon_maze_game_t *game,int index,neon_maze_enemy_t *e
     float best=1e9f;
     for(int dy=-2;dy<=2;++dy)for(int dx=-2;dx<=2;++dx){
         int nx=ex+dx,ny=ey+dy;
-        if(!layout_open(nx,ny)||neon_maze_blocks(game,nx,ny))continue;
+        if(!layout_open(game,nx,ny)||neon_maze_blocks(game,nx,ny))continue;
         float cx=(float)nx+0.5f,cy=(float)ny+0.5f;
         if(ally_at(game,index,cx,cy))continue;
         if(!line_clear(game,cx,cy,game->x,game->y))continue;
         float px=cx-game->x,py=cy-game->y,dist=sqrtf(px*px+py*py);
         if(dist<2.2f||dist>5.4f)continue;
         float score=fabsf(dist-3.4f);
-        if(adjacent_cover(nx,ny))score-=1.5f;
+        if(adjacent_cover(game,nx,ny))score-=1.5f;
         if(score<best){best=score;best_x=nx;best_y=ny;}
     }
     enemy->hold_x=(int8_t)best_x;
@@ -133,7 +183,8 @@ static void route_next(const neon_maze_game_t *game,int sx,int sy,int gx,int gy,
 static void hurt_player(neon_maze_game_t *game,const neon_maze_enemy_t *enemy)
 {
     if(game->hurt_cooldown)return;
-    if(game->hp)--game->hp;
+    if(game->armor)--game->armor;
+    else if(game->hp)--game->hp;
     if(game->damage_taken<255)++game->damage_taken;
     game->hurt_cooldown=40;game->hit_flash=8;
     emit_sfx(game,9);
@@ -155,7 +206,7 @@ static void open_door_cluster(neon_maze_game_t *game,int x,int y)
 {
     for(int dy=-1;dy<=1;++dy)for(int dx=-1;dx<=1;++dx){
         int nx=x+dx,ny=y+dy;
-        if(neon_maze_cell(nx,ny)==4&&!game->door_open[ny][nx]){
+        if(neon_maze_cell(game,nx,ny)==4&&!game->door_open[ny][nx]){
             game->door_open[ny][nx]=1;
             game->score+=15;
             game->door_flash=12;
@@ -168,7 +219,7 @@ static bool door_cell_ahead(const neon_maze_game_t *game,int *out_x,int *out_y)
     float fx=cosf(game->angle),fy=sinf(game->angle);
     for(float ray=.28f;ray<1.45f;ray+=.12f){
         int x=(int)(game->x+fx*ray),y=(int)(game->y+fy*ray);
-        if(neon_maze_cell(x,y)==4&&!game->door_open[y][x]){
+        if(neon_maze_cell(game,x,y)==4&&!game->door_open[y][x]){
             if(out_x)*out_x=x;
             if(out_y)*out_y=y;
             return true;
@@ -178,15 +229,16 @@ static bool door_cell_ahead(const neon_maze_game_t *game,int *out_x,int *out_y)
     return false;
 }
 
-uint8_t neon_maze_cell(int x,int y)
+uint8_t neon_maze_cell(const neon_maze_game_t *game,int x,int y)
 {
     if(x<0||y<0||x>=NEON_MAZE_WIDTH||y>=NEON_MAZE_HEIGHT)return 1;
-    return (uint8_t)(s_map[y][x]-'0');
+    unsigned level=game&&game->layout<NEON_MAZE_LAYOUTS?game->layout:0;
+    return (uint8_t)(s_maps[level][y][x]-'0');
 }
 
 bool neon_maze_blocks(const neon_maze_game_t *game,int x,int y)
 {
-    uint8_t cell=neon_maze_cell(x,y);
+    uint8_t cell=neon_maze_cell(game,x,y);
     if(cell==0||cell==5)return false;
     if(cell==4)return !game||!game->door_open[y][x];
     return true;
@@ -203,7 +255,7 @@ bool neon_maze_near_closed_door(const neon_maze_game_t *game)
     int px=(int)game->x,py=(int)game->y;
     for(int dy=-2;dy<=2;++dy)for(int dx=-2;dx<=2;++dx){
         int x=px+dx,y=py+dy;
-        if(neon_maze_cell(x,y)==4&&!game->door_open[y][x])return true;
+        if(neon_maze_cell(game,x,y)==4&&!game->door_open[y][x])return true;
     }
     return false;
 }
@@ -233,6 +285,11 @@ int neon_maze_enemies_alive(const neon_maze_game_t *game)
     int alive=0;
     for(int i=0;i<NEON_MAZE_ENEMIES;++i)if(game->enemies[i].active)++alive;
     return alive;
+}
+
+int neon_maze_enemy_total(const neon_maze_game_t *game)
+{
+    return game&&game->layout==0?8:NEON_MAZE_ENEMIES;
 }
 
 int neon_maze_last_enemy_index(const neon_maze_game_t *game)
@@ -270,13 +327,14 @@ bool neon_maze_in_fire_zone(int x,int y)
     return dx*dx+dy*dy<=NEON_MAZE_FIRE_R*NEON_MAZE_FIRE_R;
 }
 
-static void flood_layout(uint8_t seen[NEON_MAZE_HEIGHT][NEON_MAZE_WIDTH],int sx,int sy)
+static void flood_layout(const neon_maze_game_t *game,
+                         uint8_t seen[NEON_MAZE_HEIGHT][NEON_MAZE_WIDTH],int sx,int sy)
 {
     uint16_t queue[NEON_MAZE_WIDTH*NEON_MAZE_HEIGHT];
     static const int8_t dirs[4][2]={{1,0},{-1,0},{0,1},{0,-1}};
     unsigned head=0,tail=0;
     memset(seen,0,sizeof(uint8_t)*NEON_MAZE_WIDTH*NEON_MAZE_HEIGHT);
-    if(!layout_open(sx,sy))return;
+    if(!layout_open(game,sx,sy))return;
     seen[sy][sx]=1;queue[tail++]=(uint16_t)(sy*NEON_MAZE_WIDTH+sx);
     while(head<tail){
         unsigned cell=queue[head++];
@@ -284,7 +342,7 @@ static void flood_layout(uint8_t seen[NEON_MAZE_HEIGHT][NEON_MAZE_WIDTH],int sx,
         for(int i=0;i<4;++i){
             int nx=x+dirs[i][0],ny=y+dirs[i][1];
             if(nx<0||ny<0||nx>=NEON_MAZE_WIDTH||ny>=NEON_MAZE_HEIGHT||seen[ny][nx])continue;
-            if(!layout_open(nx,ny))continue;
+            if(!layout_open(game,nx,ny))continue;
             seen[ny][nx]=1;queue[tail++]=(uint16_t)(ny*NEON_MAZE_WIDTH+nx);
         }
     }
@@ -306,7 +364,7 @@ static void snap_reachable(float *px,float *py,const uint8_t seen[NEON_MAZE_HEIG
 static void repair_layout(neon_maze_game_t *game)
 {
     uint8_t seen[NEON_MAZE_HEIGHT][NEON_MAZE_WIDTH];
-    flood_layout(seen,2,3);
+    flood_layout(game,seen,2,3);
     for(int i=0;i<NEON_MAZE_ENEMIES;++i)
         snap_reachable(&game->enemies[i].x,&game->enemies[i].y,seen);
     for(int i=0;i<NEON_MAZE_PICKUPS;++i)
@@ -320,9 +378,9 @@ static void repair_layout(neon_maze_game_t *game)
             if(dx*dx+dy*dy>1.6f)continue;
             float nx=game->enemies[j].x+1.0f,ny=game->enemies[j].y+1.0f;
             int cx=(int)nx,cy=(int)game->enemies[j].y;
-            if(layout_open(cx,cy)&&seen[cy][cx])
+            if(layout_open(game,cx,cy)&&seen[cy][cx])
                 game->enemies[j].x=(float)cx+0.5f;
-            else if(layout_open((int)game->enemies[j].x,(int)ny)&&
+            else if(layout_open(game,(int)game->enemies[j].x,(int)ny)&&
                     seen[(int)ny][(int)game->enemies[j].x])
                 game->enemies[j].y=(float)((int)ny)+0.5f;
         }
@@ -342,28 +400,32 @@ static void place_layout(neon_maze_game_t *game,uint8_t layout)
         {{9.5f,5.5f},{5.5f,8.5f},{19.5f,8.5f},{14.5f,12.5f},{16.5f,15.5f},{18.5f,20.5f}},
         {{10.5f,6.5f},{3.5f,8.5f},{20.5f,8.5f},{14.5f,12.5f},{20.5f,15.5f},{18.5f,21.5f}},
         {{9.5f,5.5f},{1.5f,8.5f},{17.5f,9.5f},{20.5f,12.5f},{14.5f,15.5f},{22.5f,20.5f}}};
-    static const neon_maze_pickup_kind_t pickup_kind[NEON_MAZE_PICKUPS]={
-        NEON_PICKUP_AMMO,NEON_PICKUP_HEALTH,NEON_PICKUP_AMMO,
-        NEON_PICKUP_AMMO,NEON_PICKUP_AMMO,NEON_PICKUP_HEALTH};
+    static const neon_maze_pickup_kind_t pickup_kind[NEON_MAZE_LAYOUTS][NEON_MAZE_PICKUPS]={
+        {NEON_PICKUP_AMMO,NEON_PICKUP_HEALTH,NEON_PICKUP_AMMO,
+         NEON_PICKUP_AMMO,NEON_PICKUP_AMMO,NEON_PICKUP_HEALTH},
+        {NEON_PICKUP_AMMO,NEON_PICKUP_HEALTH,NEON_PICKUP_AMMO,
+         NEON_PICKUP_AMMO,NEON_PICKUP_ARMOR,NEON_PICKUP_HEALTH},
+        {NEON_PICKUP_AMMO,NEON_PICKUP_ARMOR,NEON_PICKUP_AMMO,
+         NEON_PICKUP_AMMO,NEON_PICKUP_ARMOR,NEON_PICKUP_HEALTH}};
     if(layout>=NEON_MAZE_LAYOUTS)layout=0;
     game->layout=layout;
     for(int i=0;i<NEON_MAZE_ENEMIES;++i){
         game->enemies[i].x=enemy_xy[layout][i][0];
         game->enemies[i].y=enemy_xy[layout][i][1];
-        game->enemies[i].hp=2;
+        game->enemies[i].hp=(uint8_t)(layout==2&&i>=7?3:2);
         game->enemies[i].move_phase=(uint8_t)(i*37U+layout*19U);
         game->enemies[i].last_seen_x=game->enemies[i].x;
         game->enemies[i].last_seen_y=game->enemies[i].y;
         game->enemies[i].hold_x=(int8_t)game->enemies[i].x;
         game->enemies[i].hold_y=(int8_t)game->enemies[i].y;
-        game->enemies[i].active=true;
+        game->enemies[i].active=i<neon_maze_enemy_total(game);
     }
     game->enemies[0].ai_state=NEON_ENEMY_ENGAGE;
     game->enemies[0].aim_timer=16;
     for(int i=0;i<NEON_MAZE_PICKUPS;++i){
         game->pickups[i].x=pickup_xy[layout][i][0];
         game->pickups[i].y=pickup_xy[layout][i][1];
-        game->pickups[i].kind=pickup_kind[i];
+        game->pickups[i].kind=pickup_kind[layout][i];
         game->pickups[i].taken=false;
     }
     static const float prop_xy[NEON_MAZE_PROPS][2]={
@@ -373,6 +435,8 @@ static void place_layout(neon_maze_game_t *game,uint8_t layout)
         game->props[i].x=prop_xy[i][0];
         game->props[i].y=prop_xy[i][1];
         game->props[i].kind=(uint8_t)(i&1);
+        game->props[i].active=true;
+        game->props[i].blast_timer=0;
     }
     repair_layout(game);
 }
@@ -386,7 +450,7 @@ void neon_maze_reset(neon_maze_game_t *game)
     game->best_ticks=best;
     game->x=2.5f;game->y=3.5f;game->angle=.28f;
     game->hp=NEON_MAZE_MAX_HP;
-    game->ammo=NEON_MAZE_AMMO_START;
+    game->ammo=layout==0?16:(layout==2?12:NEON_MAZE_AMMO_START);
     game->display_hp=(float)NEON_MAZE_MAX_HP;
     game->phase=NEON_MAZE_PHASE_START;
     place_layout(game,layout);
@@ -402,7 +466,8 @@ void neon_maze_confirm(neon_maze_game_t *game)
     if(!game)return;
     if(game->phase==NEON_MAZE_PHASE_PLAYING)return;
     if(game->phase!=NEON_MAZE_PHASE_START){
-        game->layout=(uint8_t)((game->layout+1U)%NEON_MAZE_LAYOUTS);
+        if(game->phase==NEON_MAZE_PHASE_WON)
+            game->layout=(uint8_t)((game->layout+1U)%NEON_MAZE_LAYOUTS);
         neon_maze_reset(game);
     }
     game->phase=NEON_MAZE_PHASE_PLAYING;
@@ -474,6 +539,7 @@ static void collect_pickups(neon_maze_game_t *game)
         float dx=item->x-game->x,dy=item->y-game->y;
         if(dx*dx+dy*dy>.42f)continue;
         if(item->kind==NEON_PICKUP_HEALTH&&game->hp>=NEON_MAZE_MAX_HP)continue;
+        if(item->kind==NEON_PICKUP_ARMOR&&game->armor>=NEON_MAZE_MAX_ARMOR)continue;
         if(item->kind==NEON_PICKUP_AMMO&&game->ammo>=NEON_MAZE_AMMO_MAX)continue;
         item->taken=true;
         game->last_pickup=true;
@@ -482,9 +548,12 @@ static void collect_pickups(neon_maze_game_t *game)
         if(item->kind==NEON_PICKUP_AMMO){
             game->ammo=(uint8_t)(game->ammo+6);
             if(game->ammo>NEON_MAZE_AMMO_MAX)game->ammo=NEON_MAZE_AMMO_MAX;
-        }else if(game->hp<NEON_MAZE_MAX_HP){
+        }else if(item->kind==NEON_PICKUP_HEALTH&&game->hp<NEON_MAZE_MAX_HP){
             ++game->hp;
             game->display_hp=(float)game->hp;
+        }else if(item->kind==NEON_PICKUP_ARMOR){
+            game->armor=(uint8_t)(game->armor+2U);
+            if(game->armor>NEON_MAZE_MAX_ARMOR)game->armor=NEON_MAZE_MAX_ARMOR;
         }
     }
 }
@@ -557,6 +626,7 @@ void neon_maze_update(neon_maze_game_t *game)
     }
     mark_explored(game);
     collect_pickups(game);
+    for(int i=0;i<NEON_MAZE_PROPS;++i)if(game->props[i].blast_timer)--game->props[i].blast_timer;
     int last_enemy=neon_maze_last_enemy_index(game);
     for(int i=0;i<NEON_MAZE_ENEMIES;++i){
         neon_maze_enemy_t *enemy=&game->enemies[i];
@@ -656,7 +726,7 @@ void neon_maze_update(neon_maze_game_t *game)
     if(!game->sfx&&game->last_pickup)emit_sfx(game,6);
     if(!game->sfx&&game->last_alert)emit_sfx(game,5);
     if(neon_maze_enemies_alive(game)==0 &&
-       neon_maze_cell((int)game->x,(int)game->y)==5){
+       neon_maze_cell(game,(int)game->x,(int)game->y)==5){
         game->cells_reached=1;
         game->phase=NEON_MAZE_PHASE_WON;
         if(!game->best_ticks||game->tick<game->best_ticks){
@@ -702,7 +772,7 @@ neon_maze_fire_result_t neon_maze_fire(neon_maze_game_t *game)
     game->fire_cooldown=NEON_MAZE_FIRE_COOLDOWN;
     game->weapon_recoil=1.0f;
     game->look_kick-=7.0f;
-    int target=-1;float best=1000.0f;
+    int target=-1,barrel=-1;float best=1000.0f;
     for(int i=0;i<NEON_MAZE_ENEMIES;++i){
         neon_maze_enemy_t *enemy=&game->enemies[i];if(!enemy->active)continue;
         float dx=enemy->x-game->x,dy=enemy->y-game->y;
@@ -712,6 +782,31 @@ neon_maze_fire_result_t neon_maze_fire(neon_maze_game_t *game)
         if(delta>.08f+slop+(.16f/distance)||distance>=best)continue;
         if(!line_clear(game,game->x,game->y,enemy->x,enemy->y))continue;
         best=distance;target=i;
+    }
+    for(int i=0;i<NEON_MAZE_PROPS;++i){
+        neon_maze_prop_t *prop=&game->props[i];
+        if(!prop->active||prop->kind!=0)continue;
+        float dx=prop->x-game->x,dy=prop->y-game->y;
+        float distance=sqrtf(dx*dx+dy*dy);
+        float delta=fabsf(angle_delta(atan2f(dy,dx)-game->angle));
+        if(delta>.08f+(.14f/distance)||distance>=best)continue;
+        if(!line_clear(game,game->x,game->y,prop->x,prop->y))continue;
+        best=distance;target=-1;barrel=i;
+    }
+    if(barrel>=0){
+        neon_maze_prop_t *prop=&game->props[barrel];
+        prop->active=false;prop->blast_timer=18;
+        ++game->shots_hit;
+        int killed=0;
+        for(int i=0;i<NEON_MAZE_ENEMIES;++i){
+            neon_maze_enemy_t *enemy=&game->enemies[i];if(!enemy->active)continue;
+            float dx=enemy->x-prop->x,dy=enemy->y-prop->y;
+            if(dx*dx+dy*dy>6.25f)continue;
+            enemy->hp=0;enemy->active=false;enemy->death_timer=20;
+            ++game->kills;++killed;game->score+=100;
+        }
+        game->hit_marker=10;game->kill_flash=killed?18:0;game->score+=40;
+        return killed?NEON_FIRE_KILL:NEON_FIRE_HIT;
     }
     if(target<0)return NEON_FIRE_SHOT;
     neon_maze_enemy_t *enemy=&game->enemies[target];
@@ -740,12 +835,14 @@ uint32_t neon_maze_state_hash(const neon_maze_game_t *game)
         (uint32_t)(game->x*4096),(uint32_t)(game->y*4096),
         (uint32_t)(game->angle*4096),(uint32_t)((game->look_pitch+64.0f)*256.0f),
         game->tick,game->cells_reached,game->score,
-        (uint32_t)game->phase,(uint32_t)game->hp,(uint32_t)game->ammo,
+        (uint32_t)game->phase,(uint32_t)game->hp,(uint32_t)game->armor,(uint32_t)game->ammo,
         (uint32_t)game->layout};
     for(unsigned i=0;i<sizeof(values)/sizeof(values[0]);++i){hash^=values[i];hash*=16777619U;}
     for(int i=0;i<NEON_MAZE_ENEMIES;++i){hash^=(uint32_t)game->enemies[i].hp;
         hash*=16777619U;}
     for(int i=0;i<NEON_MAZE_PICKUPS;++i){hash^=game->pickups[i].taken;hash*=16777619U;}
+    for(int i=0;i<NEON_MAZE_PROPS;++i){hash^=game->props[i].active;hash*=16777619U;
+        hash^=game->props[i].blast_timer;hash*=16777619U;}
     for(int y=0;y<NEON_MAZE_HEIGHT;++y)for(int x=0;x<NEON_MAZE_WIDTH;++x){
         hash^=game->door_open[y][x];hash*=16777619U;}
     return hash;

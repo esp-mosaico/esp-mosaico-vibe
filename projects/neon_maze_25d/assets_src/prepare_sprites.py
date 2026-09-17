@@ -212,7 +212,7 @@ materials.paste(fill_tile(128, floor_color), (384, 0))
 save_atomic(materials, root / "tactical_materials.png")
 
 prop_cell = 32
-props = Image.new("RGBA", (prop_cell * 4, prop_cell), (0, 0, 0, 0))
+props = Image.new("RGBA", (prop_cell * 5, prop_cell), (0, 0, 0, 0))
 prop_draw = ImageDraw.Draw(props)
 
 def box(x0, y0, x1, y1, fill, outline=None, width=1):
@@ -234,4 +234,8 @@ box(68, 16, 91, 18, (196, 118, 42, 255))
 # sandbag
 prop_draw.ellipse((100, 14, 123, 30), fill=(168, 132, 78, 255), outline=(96, 72, 40, 255))
 prop_draw.ellipse((104, 10, 119, 20), fill=(186, 148, 88, 255))
+# Compact ceramic armor plate.
+prop_draw.polygon(((144, 4), (155, 8), (153, 24), (144, 30), (135, 24), (133, 8)),
+                  fill=(54, 142, 214, 255), outline=(190, 232, 255, 255))
+prop_draw.rectangle((140, 11, 148, 22), fill=(22, 72, 128, 255))
 save_atomic(props, root / "props.png")

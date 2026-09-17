@@ -1,6 +1,6 @@
 {
   "image": "props.png",
-  "columns": 4,
+  "columns": 5,
   "rows": 1,
   "output_cell": 32,
   "alpha_mode": "binary",
@@ -8,6 +8,7 @@
     {"name": "pickup_ammo"},
     {"name": "pickup_health"},
     {"name": "prop_barrel"},
-    {"name": "prop_bag"}
+    {"name": "prop_bag"},
+    {"name": "pickup_armor"}
   ]
 }
