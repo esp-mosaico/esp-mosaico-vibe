@@ -4,4 +4,5 @@
 #include "underwater_world.h"
 void underwater_view_render(const underwater_world_t *world,MosaicoAtlas panorama,
                             MosaicoAtlas fish,MosaicoAtlas creatures,
-                            MosaicoAtlas aurora,MosaicoAtlas sunrise);
+                            MosaicoAtlas aurora,MosaicoAtlas sunrise,
+                            MosaicoAtlas reindeer,MosaicoAtlas rainforest);

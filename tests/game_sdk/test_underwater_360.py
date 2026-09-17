@@ -44,8 +44,9 @@ int main(void){underwater_world_t w;underwater_world_reset(&w);
                        "--project", str(PROJECT), "--headless", "--frames", "3",
                        "--replay", str(replay)]
             result = json.loads(subprocess.check_output(command, cwd=ROOT))
-            self.assertAlmostEqual(result["yaw"], 286.8, places=1)
-            self.assertAlmostEqual(result["pitch"], 17.0, places=1)
+            # The release frame applies the first bounded inertia step.
+            self.assertAlmostEqual(result["yaw"], 280.8, places=1)
+            self.assertAlmostEqual(result["pitch"], 20.0, places=1)
             self.assertFalse(result["dragging"])
 
     def test_bottom_buttons_switch_scene_without_dragging(self) -> None:
@@ -54,9 +55,13 @@ int main(void){underwater_world_t w;underwater_world_reset(&w);
 #include "underwater_world.h"
 int main(void){underwater_world_t w;underwater_world_reset(&w);
  assert(w.scene==UNDERWATER_SCENE_OCEAN);
- underwater_world_pointer(&w,140,440,1);assert(w.scene==UNDERWATER_SCENE_AURORA&&!w.dragging);
- underwater_world_pointer(&w,140,440,0);
- underwater_world_pointer(&w,330,440,1);assert(w.scene==UNDERWATER_SCENE_SUNRISE&&!w.dragging);
+ underwater_world_pointer(&w,80,440,1);assert(w.scene==UNDERWATER_SCENE_AURORA&&!w.dragging);
+ underwater_world_pointer(&w,80,440,0);
+ underwater_world_pointer(&w,300,440,1);assert(w.scene==UNDERWATER_SCENE_SUNRISE&&!w.dragging);
+ underwater_world_pointer(&w,300,440,0);
+ underwater_world_pointer(&w,410,440,1);assert(w.scene==UNDERWATER_SCENE_RAINFOREST&&!w.dragging);
+ underwater_world_pointer(&w,410,440,0);
+ assert(w.effects_level==1);underwater_world_pointer(&w,120,32,1);assert(w.effects_level==2&&!w.dragging);
  return 0;}'''
         with tempfile.TemporaryDirectory() as directory:
             main = Path(directory) / "main.c"

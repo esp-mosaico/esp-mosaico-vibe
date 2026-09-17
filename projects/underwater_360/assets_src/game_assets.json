@@ -1,6 +1,6 @@
 {
   "schema": "mosaico-game-assets/v1",
-  "limit_bytes": 7340032,
+  "limit_bytes": 10485760,
   "atlases": [
     {
       "config": "panorama.json",
@@ -26,6 +26,16 @@
       "config": "sunrise.json",
       "source": "sunrise_scene.png",
       "output": "sunrise.atlas"
+    },
+    {
+      "config": "reindeer.json",
+      "source": "reindeer.png",
+      "output": "reindeer.atlas"
+    },
+    {
+      "config": "rainforest.json",
+      "source": "rainforest_scene.png",
+      "output": "rainforest.atlas"
     }
   ]
 }

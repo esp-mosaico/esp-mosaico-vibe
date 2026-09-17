@@ -1,0 +1,12 @@
+{
+  "image": "reindeer.png",
+  "columns": 3,
+  "rows": 1,
+  "output_cell": 192,
+  "alpha_mode": "binary",
+  "frames": [
+    {"name": "reindeer_walk_0", "pivot_x": 96, "pivot_y": 172},
+    {"name": "reindeer_walk_1", "pivot_x": 96, "pivot_y": 172},
+    {"name": "reindeer_walk_2", "pivot_x": 96, "pivot_y": 172}
+  ]
+}
