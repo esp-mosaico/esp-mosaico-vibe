@@ -23,7 +23,7 @@ static float world_to_screen_x(float longitude,float camera_yaw)
 
 static float world_to_screen_x_layer(float longitude,float camera_yaw,float parallax)
 {
-    return 240.0f+signed_angle(longitude-camera_yaw*parallax)*(480.0f/VIEW_FOV_DEG);
+    return 240.0f+signed_angle(longitude-camera_yaw)*parallax*(480.0f/VIEW_FOV_DEG);
 }
 
 static int effect_count(const underwater_world_t *world,int calm,int living,int vivid)
@@ -113,18 +113,30 @@ static void draw_rainforest_fx(const underwater_world_t *world)
         DrawLine(bx-3,by,bx-13,by-5,(Color){18,25,20,220});
         DrawLine(bx+4,by-1,bx+12,by-2,(Color){207,128,37,230});
     }
-    /* Small stream glints imply moving water without repainting the photograph. */
+    /* Stream glints, rain and motes occupy world longitudes, never screen slots. */
     int glints=effect_count(world,2,5,8);
     for(int i=0;i<glints;++i){
-        int x=(i*101+(int)(world->tick*.7f))%540-30;
-        int y=348+i*17;
+        float lon=fmodf(26.0f+i*67.0f+world->tick*.008f*(1+i%2),360.0f);
+        int x=(int)world_to_screen_x(lon,world->yaw);
+        int y=338+(i%4)*21-(int)(world->pitch*5.2f);
+        if(x<-20||x>500)continue;
         DrawLine(x,y,x+18,y,(Color){207,229,214,(unsigned char)(48+i*7)});
     }
     int drops=effect_count(world,3,7,13);
     for(int i=0;i<drops;++i){
-        int x=(i*109+31)%476;
-        int y=(i*71+(int)world->tick*(2+i%2))%420;
+        float lon=fmodf(11.0f+i*47.0f+world->tick*.012f*(1+i%3),360.0f);
+        int x=(int)world_to_screen_x(lon,world->yaw);
+        int y=(i*71+(int)world->tick*(2+i%2))%420-(int)(world->pitch*4.4f);
+        if(x<0||x>=480)continue;
         DrawLine(x,y,x-1,y+5,(Color){202,225,218,105});
+    }
+    int motes=effect_count(world,3,7,12);
+    for(int i=0;i<motes;++i){
+        float phase=world->tick*.014f+i*1.71f;
+        float lon=fmodf(19.0f+i*79.0f+sinf(phase)*2.4f,360.0f);
+        int x=(int)world_to_screen_x(lon,world->yaw);
+        int y=88+(i*53)%270+(int)(sinf(phase*.7f)*10.0f)-(int)(world->pitch*3.9f);
+        if(x>2&&x<478)DrawCircle(x,y,1,(Color){221,231,172,(unsigned char)(70+i%3*30)});
     }
     /* Close vines and leaves travel faster than the photographic background. */
     static const float vine_lon[]={18.0f,104.0f,221.0f,319.0f};
@@ -158,21 +170,30 @@ static void draw_aurora_fx(const underwater_world_t *world)
     }
     int stars=effect_count(world,16,34,52);
     for(int i=0;i<stars;++i){
-        int x=(i*137+23)%470+5,y=(i*73+17)%208+10;
+        float lon=fmodf(7.0f+i*47.3f,360.0f);
+        int x=(int)world_to_screen_x(lon,world->yaw);
+        int y=(i*73+17)%208+10-(int)(world->pitch*.65f);
+        if(x<2||x>478)continue;
         unsigned char a=(unsigned char)(75+55*sinf(world->tick*.045f+i*1.7f));
         DrawCircle(x,y,(i%5==0)?2:1,(Color){220,255,246,a});
     }
     for(int i=0;i<3;++i){
         float phase=world->tick*.035f+i*2.1f;
-        int x=80+i*137+(int)(sinf(phase)*38.0f),y=54+i*37+(int)(cosf(phase*.7f)*18.0f);
+        float lon=fmodf(48.0f+i*119.0f+sinf(phase)*7.0f,360.0f);
+        int x=(int)world_to_screen_x(lon,world->yaw);
+        int y=54+i*37+(int)(cosf(phase*.7f)*18.0f)-(int)(world->pitch*.8f);
+        if(x<-45||x>520)continue;
         DrawLine(x,y,x-42,y+24,(Color){210,238,255,(unsigned char)(155-i*25)});
         DrawLine(x-1,y,x-29,y+16,(Color){255,255,255,210});
     }
     int snow=effect_count(world,5,11,20);
     for(int i=0;i<snow;++i){
         int layer=i%3;
-        int x=(i*83+(int)(world->tick*(1+layer)/3))%520-20;
-        int y=(i*59+(int)(world->tick*(1+layer)/2))%390+55;
+        float lon=fmodf(13.0f+i*41.0f+world->tick*.01f*(1+layer),360.0f);
+        int x=(int)world_to_screen_x_layer(lon,world->yaw,1.0f+layer*.035f);
+        int y=(i*59+(int)(world->tick*(1+layer)/2))%390+55-
+              (int)(world->pitch*(2.0f+layer*1.4f));
+        if(x<-4||x>484)continue;
         DrawCircle(x,y,1+layer,(Color){232,247,251,(unsigned char)(90+layer*45)});
     }
 }
@@ -181,14 +202,20 @@ static void draw_sunrise_fx(const underwater_world_t *world)
 {
     float t=world->tick*.028f;
     for(int i=0;i<5;++i){
-        int x=(int)fmodf(70.0f+i*113.0f+t*(13+i*2),560.0f)-40;
-        int y=82+i*31+(int)(sinf(t+i)*7.0f);
+        float lon=fmodf(35.0f+i*73.0f+world->tick*.014f*(1+i%2),360.0f);
+        int x=(int)world_to_screen_x(lon,world->yaw);
+        int y=82+i*31+(int)(sinf(t+i)*7.0f)-(int)(world->pitch*2.7f);
+        if(x<-10||x>490)continue;
         DrawLine(x-8,y+3,x,y,(Color){51,49,44,180});DrawLine(x,y,x+8,y+3,(Color){51,49,44,180});
     }
     int seeds=effect_count(world,6,12,20);
     for(int i=0;i<seeds;++i){
-        int x=(i*91+(int)(world->tick*(1+i%3)/3))%520-20;
-        int y=270+(i*47+(int)(sinf(t+i)*18))%145;
+        int layer=i%3;
+        float lon=fmodf(9.0f+i*43.0f+world->tick*.008f*(1+layer),360.0f);
+        int x=(int)world_to_screen_x_layer(lon,world->yaw,1.0f+layer*.025f);
+        int y=270+(i*47+(int)(sinf(t+i)*18))%145-
+              (int)(world->pitch*(3.5f+layer*.7f));
+        if(x<-6||x>486)continue;
         Color seed=(Color){255,241,205,170};
         DrawLine(x,y,x-3,y+7,(Color){116,91,58,135});
         DrawLine(x,y,x-4,y-2,seed);DrawLine(x,y,x,y-4,seed);DrawLine(x,y,x+4,y-2,seed);
@@ -196,8 +223,11 @@ static void draw_sunrise_fx(const underwater_world_t *world)
     }
     int grass=effect_count(world,5,9,14);
     for(int i=0;i<grass;++i){
-        int x=18+i*37,bend=(int)(sinf(t*.7f+i*.8f)*5.0f);
-        DrawLine(x,461,x+bend,438-(i%3)*5,(Color){77,83,48,120});
+        float lon=fmodf(16.0f+i*39.0f,360.0f);
+        int x=(int)world_to_screen_x_layer(lon,world->yaw,1.12f);
+        int py=(int)(-world->pitch*5.7f);
+        int bend=(int)(sinf(t*.7f+i*.8f)*5.0f);
+        if(x>-8&&x<488)DrawLine(x,461+py,x+bend,438+py-(i%3)*5,(Color){77,83,48,120});
     }
     /* Large foreground dandelions keep the original scene idea and add depth. */
     static const float flower_lon[]={24.0f,112.0f,206.0f,311.0f};
@@ -309,8 +339,10 @@ static void draw_lens_particles(const underwater_world_t *world)
     }
     int rays=effect_count(world,2,4,7);
     for(int i=0;i<rays;++i){
-        int x=(i*97+(int)(world->tick*.35f))%560-40;
-        DrawLine(x,42,x+54,178,(Color){155,226,231,(unsigned char)(18+i*3)});
+        float lon=fmodf(22.0f+i*71.0f+sinf(world->tick*.006f+i)*2.0f,360.0f);
+        int x=(int)world_to_screen_x_layer(lon,world->yaw,.94f);
+        int py=(int)(-world->pitch*1.2f);
+        if(x>-60&&x<500)DrawLine(x,42+py,x+54,178+py,(Color){155,226,231,(unsigned char)(18+i*3)});
     }
     /* Near sea grass has stronger yaw parallax than fish and the reef. */
     int grass=effect_count(world,4,7,11);
