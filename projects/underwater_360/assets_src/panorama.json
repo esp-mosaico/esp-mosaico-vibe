@@ -1,0 +1,11 @@
+{
+  "columns": 2,
+  "rows": 1,
+  "image": "reef_panorama_clean_1600.png",
+  "output_cell": 800,
+  "alpha_mode": "opaque",
+  "frames": [
+    {"name": "reef_west", "pivot_x": 0, "pivot_y": 0},
+    {"name": "reef_east", "pivot_x": 0, "pivot_y": 0}
+  ]
+}

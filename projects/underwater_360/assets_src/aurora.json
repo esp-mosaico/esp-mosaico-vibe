@@ -1,0 +1,14 @@
+{
+  "image": "aurora_scene.png",
+  "columns": 1,
+  "rows": 1,
+  "output_cell": 768,
+  "alpha_mode": "opaque",
+  "frames": [
+    {
+      "name": "aurora_scene",
+      "pivot_x": 0,
+      "pivot_y": 0
+    }
+  ]
+}

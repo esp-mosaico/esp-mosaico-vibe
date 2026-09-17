@@ -1,0 +1,12 @@
+{
+  "image": "marine_creatures.png",
+  "columns": 3,
+  "rows": 3,
+  "output_cell": 160,
+  "alpha_mode": "binary",
+  "frames": [
+    {"name": "turtle_swim_0"}, {"name": "turtle_swim_1"}, {"name": "turtle_swim_2"},
+    {"name": "whale_swim_0"}, {"name": "whale_swim_1"}, {"name": "whale_swim_2"},
+    {"name": "jelly_pulse_0"}, {"name": "jelly_pulse_1"}, {"name": "jelly_pulse_2"}
+  ]
+}

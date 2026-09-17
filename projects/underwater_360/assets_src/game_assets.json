@@ -1,0 +1,31 @@
+{
+  "schema": "mosaico-game-assets/v1",
+  "limit_bytes": 7340032,
+  "atlases": [
+    {
+      "config": "panorama.json",
+      "source": "reef_panorama_clean_1600.png",
+      "output": "panorama.atlas"
+    },
+    {
+      "config": "reef_fish.json",
+      "source": "reef_fish.png",
+      "output": "reef_fish.atlas"
+    },
+    {
+      "config": "marine_creatures.json",
+      "source": "marine_creatures.png",
+      "output": "marine_creatures.atlas"
+    },
+    {
+      "config": "aurora.json",
+      "source": "aurora_scene.png",
+      "output": "aurora.atlas"
+    },
+    {
+      "config": "sunrise.json",
+      "source": "sunrise_scene.png",
+      "output": "sunrise.atlas"
+    }
+  ]
+}

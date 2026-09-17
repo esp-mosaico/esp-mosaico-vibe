@@ -1,0 +1,12 @@
+{
+  "image": "reef_fish.png",
+  "columns": 3,
+  "rows": 1,
+  "output_cell": 96,
+  "alpha_mode": "binary",
+  "frames": [
+    {"name": "reef_fish_swim_0", "pivot_x": 48, "pivot_y": 48},
+    {"name": "reef_fish_swim_1", "pivot_x": 48, "pivot_y": 48},
+    {"name": "reef_fish_swim_2", "pivot_x": 48, "pivot_y": 48}
+  ]
+}

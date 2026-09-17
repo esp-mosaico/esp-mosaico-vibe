@@ -1,0 +1,9 @@
+{
+  "schema": "mosaico-game-sim/v1",
+  "tick_hz": 30,
+  "sources": [
+    "main/game_module.c",
+    "main/underwater_world.c",
+    "main/underwater_view.c"
+  ]
+}
