@@ -31,6 +31,27 @@ static int effect_count(const underwater_world_t *world,int calm,int living,int 
     return world->effects_level==0?calm:(world->effects_level==2?vivid:living);
 }
 
+static void draw_panorama_band(MosaicoAtlas panorama,float source_x,float source_y,
+                               float source_width,float source_height,
+                               float dest_y,float dest_height)
+{
+    float panorama_width=(float)panorama.texture.width;
+    float first=panorama_width-source_x;
+    if(first>source_width)first=source_width;
+    float first_dest=first*(480.0f/source_width);
+    DrawTexturePro(panorama.texture,
+                   (Rectangle){source_x,source_y,first,source_height},
+                   (Rectangle){0,dest_y,first_dest,dest_height},
+                   (Vector2){0,0},0,WHITE);
+    if(first<source_width){
+        float second=source_width-first;
+        DrawTexturePro(panorama.texture,
+                       (Rectangle){0,source_y,second,source_height},
+                       (Rectangle){first_dest,dest_y,480-first_dest,dest_height},
+                       (Vector2){0,0},0,WHITE);
+    }
+}
+
 static void draw_panorama(const underwater_world_t *world,MosaicoAtlas panorama)
 {
     float panorama_width=(float)panorama.texture.width;
@@ -40,21 +61,27 @@ static void draw_panorama(const underwater_world_t *world,MosaicoAtlas panorama)
     float source_x=world->yaw*(panorama_width/360.0f);
     /* Keep equal angular density on both axes. The previous 150-degree vertical
        view compressed cliffs and valleys into a flat postcard. */
-    float source_y=(panorama_height-view_height)*.5f+
-                   world->pitch*(panorama_height/PANORAMA_HEIGHT)*4.0f;
-    if(source_y<0)source_y=0;
-    if(source_y>panorama_height-view_height)
-        source_y=panorama_height-view_height;
-    float first=panorama_width-source_x;
-    if(first>view_width)first=view_width;
-    float first_dest=first*(480.0f/view_width);
-    DrawTexturePro(panorama.texture,(Rectangle){source_x,source_y,first,view_height},
-                   (Rectangle){0,0,first_dest,480},(Vector2){0,0},0,WHITE);
-    if(first<view_width){
-        float second=view_width-first;
-        DrawTexturePro(panorama.texture,(Rectangle){0,source_y,second,view_height},
-                       (Rectangle){first_dest,0,480-first_dest,480},
-                       (Vector2){0,0},0,WHITE);
+    float neutral_y=(panorama_height-view_height)*.5f;
+    float pitch_pixels=world->pitch*(panorama_height/PANORAMA_HEIGHT)*4.0f;
+    /* A horizon-anchored vertical projection: distant sky moves least while
+       close ground moves most. Boundary-derived source coordinates keep every
+       strip continuous, and pitch zero remains the original one-pass path. */
+    if(fabsf(world->pitch)<.25f){
+        draw_panorama_band(panorama,source_x,neutral_y,view_width,view_height,0,480);
+        return;
+    }
+    enum { VERTICAL_BANDS=16 };
+    for(int band=0;band<VERTICAL_BANDS;++band){
+        float v0=(float)band/VERTICAL_BANDS;
+        float v1=(float)(band+1)/VERTICAL_BANDS;
+        float factor0=.65f+.75f*v0;
+        float factor1=.65f+.75f*v1;
+        float y0=neutral_y+view_height*v0+pitch_pixels*factor0;
+        float y1=neutral_y+view_height*v1+pitch_pixels*factor1;
+        if(y0<0)y0=0;
+        if(y1>panorama_height)y1=panorama_height;
+        draw_panorama_band(panorama,source_x,y0,view_width,y1-y0,
+                           480.0f*v0,480.0f*(v1-v0)+.25f);
     }
 }
 
@@ -68,7 +95,7 @@ static void draw_rainforest_fx(const underwater_world_t *world)
         float phase=world->tick*(.018f+i*.003f)+i*2.3f;
         float lon=base_lon[i]+sinf(phase*.35f)*9.0f;
         int x=(int)world_to_screen_x(lon,world->yaw);
-        int y=(int)(base_y[i]+sinf(phase)*15.0f-world->pitch*1.62f);
+        int y=(int)(base_y[i]+sinf(phase)*15.0f-world->pitch*4.1f);
         if(x<-12||x>492||y<5||y>450)continue;
         int wing=1+(int)(fabsf(sinf(phase*4.2f))*2.0f);
         Color blue=(Color){22,107,187,205};
@@ -80,7 +107,7 @@ static void draw_rainforest_fx(const underwater_world_t *world)
     float bird_phase=fmodf(world->tick*.055f,720.0f);
     float bird_lon=205.0f+bird_phase*.5f;
     int bx=(int)world_to_screen_x(fmodf(bird_lon,360.0f),world->yaw);
-    int by=92+(int)(sinf(world->tick*.08f)*8.0f)-world->pitch;
+    int by=92+(int)(sinf(world->tick*.08f)*8.0f)-(int)(world->pitch*3.7f);
     if(bx>-24&&bx<504){
         DrawCircle(bx,by,5,(Color){20,27,21,235});
         DrawLine(bx-3,by,bx-13,by-5,(Color){18,25,20,220});
@@ -105,7 +132,7 @@ static void draw_rainforest_fx(const underwater_world_t *world)
         int x=(int)world_to_screen_x_layer(vine_lon[i],world->yaw,1.12f);
         if(x<-28||x>508)continue;
         int sway=(int)(sinf(world->tick*.018f+i*1.4f)*7.0f);
-        int py=(int)(-world->pitch*2.25f);
+        int py=(int)(-world->pitch*6.0f);
         DrawLine(x,py,x+sway,py+104+i*17,(Color){20,55,27,210});
         for(int j=1;j<4;++j){
             int y=py+20+j*23+i*5,side=((i+j)&1)?1:-1;
@@ -179,7 +206,7 @@ static void draw_sunrise_fx(const underwater_world_t *world)
         int x=(int)world_to_screen_x_layer(flower_lon[i],world->yaw,1.16f);
         if(x<-32||x>512)continue;
         int bend=(int)(sinf(t*.55f+i*1.9f)*8.0f);
-        int y=391+(i%2)*24-(int)(world->pitch*2.25f);
+        int y=391+(i%2)*24-(int)(world->pitch*6.0f);
         int r=13+(i%3)*3;
         DrawLine(x,y+80,x+bend,y,(Color){74,83,43,210});
         DrawCircleLines(x+bend,y,(float)r,(Color){244,230,190,205});
@@ -209,7 +236,7 @@ static void draw_world_sprite(const underwater_world_t *world,MosaicoAtlas atlas
 {
     if(!frame)return;
     float x=world_to_screen_x(longitude,world->yaw);
-    y-=world->pitch*1.62f;
+    y-=world->pitch*4.4f;
     if(x < -size*.6f || x > 480.0f+size*.6f)return;
     Rectangle source=frame->source;
     if(face_left)source.width=-source.width;
@@ -274,7 +301,7 @@ static void draw_lens_particles(const underwater_world_t *world)
         int x=(int)world_to_screen_x(longitude,world->yaw);
         int y=(i*71-(int)world->tick*(i%2+1)/2)%500;
         if(y<0)y+=500;
-        y-=(int)(world->pitch*1.62f);
+        y-=(int)(world->pitch*5.2f);
         int r=3+(i*5)%7;
         if(x < -r || x >= 480+r || y < -r || y >= 480+r)continue;
         DrawCircleLines(x,y,(float)r,(Color){188,242,244,(unsigned char)(72+i%4*18)});
@@ -292,7 +319,7 @@ static void draw_lens_particles(const underwater_world_t *world)
         if(x<-12||x>492)continue;
         int h=31+(i%4)*11;
         int bend=(int)(sinf(world->tick*.022f+i*.8f)*9.0f);
-        int py=(int)(-world->pitch*2.25f);
+        int py=(int)(-world->pitch*6.0f);
         DrawLine(x,480+py,x+bend,480+py-h,(Color){21,91,86,195});
         DrawLine(x+4,480+py,x-bend/2+5,486+py-h,(Color){39,119,101,160});
     }
@@ -322,7 +349,7 @@ static void draw_swimming_fish(const underwater_world_t *world,MosaicoAtlas fish
         float x=world_to_screen_x(longitude,world->yaw);
         float side=size[i];
         float y=base_y[i]+sinf((float)world->tick*.028f+i*1.3f)*4.0f
-                -world->pitch*1.62f;
+                -world->pitch*4.2f;
         if(x < -side*.6f || x > 480.0f+side*.6f)continue;
         Rectangle source=frame->source;
         if(cosf(swim_phase)<0.0f)source.width=-source.width;
