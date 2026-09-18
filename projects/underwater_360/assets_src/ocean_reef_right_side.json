@@ -2,7 +2,7 @@
   "image": "ocean_reef_right_side.png",
   "columns": 1,
   "rows": 1,
-  "output_cell": 256,
+  "output_cell": 96,
   "alpha_mode": "opaque",
   "frames": [
     {

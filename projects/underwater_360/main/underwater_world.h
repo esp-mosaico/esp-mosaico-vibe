@@ -5,7 +5,8 @@
 #include "underwater_aurora.h"
 #include "underwater_ocean.h"
 
-#define UNDERWATER_SUNRISE_SEED_CAP 48
+#define UNDERWATER_SUNRISE_SEED_CAP 12
+#define UNDERWATER_SUNRISE_SEED_AMBIENT 10
 
 typedef struct {
     float x,y,z;

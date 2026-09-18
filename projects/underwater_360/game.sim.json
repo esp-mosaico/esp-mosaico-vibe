@@ -1,5 +1,6 @@
 {
   "schema": "mosaico-game-sim/v1",
+  "preview": "sim_preview.html",
   "tick_hz": 30,
   "sources": [
     "main/game_module.c",

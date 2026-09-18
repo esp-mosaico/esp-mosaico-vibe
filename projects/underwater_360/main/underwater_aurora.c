@@ -356,7 +356,7 @@ void underwater_aurora_draw(const underwater_aurora_t *aurora,float yaw,float pi
             float age=ripple->age-ring*.20f;
             if(age<0)continue;
             float rad=age*.9f;
-            unsigned char alpha=(unsigned char)((1.0f-age/3.5f)*40.0f);
+            unsigned char alpha=(unsigned char)((1.0f-age/3.5f)*120.0f);
             Vector2 prev;bool has_prev=false;
             for(int s=0;s<=24;++s){
                 float a=s/24.0f*6.2831853f;
@@ -366,8 +366,7 @@ void underwater_aurora_draw(const underwater_aurora_t *aurora,float yaw,float pi
                     has_prev=false;continue;
                 }
                 if(has_prev)
-                    DrawLine((int)prev.x,(int)prev.y,(int)screen.x,(int)screen.y,
-                             (Color){145,203,197,alpha});
+                    DrawLineEx(prev,screen,1.35f,(Color){145,203,197,alpha});
                 prev=screen;has_prev=true;
             }
         }

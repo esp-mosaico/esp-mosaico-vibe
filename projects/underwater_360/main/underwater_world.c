@@ -56,10 +56,10 @@ static void sunrise_spawn_seed(underwater_world_t *world,
     seed->x=(screen_x-240.0f)*z/focal;
     seed->y=(240.0f-screen_y)*z/focal;
     seed->z=z;
-    seed->vx=sunrise_random_range(world,.10f,.25f);
-    seed->vy=sunrise_random_range(world,.010f,.055f);
-    seed->vz=sunrise_random_range(world,-.018f,.018f);
-    seed->radius=sunrise_random_range(world,.027f,.075f)*(.76f+z*.028f);
+    seed->vx=sunrise_random_range(world,.055f,.18f);
+    seed->vy=sunrise_random_range(world,.006f,.06f);
+    seed->vz=sunrise_random_range(world,-.025f,.025f);
+    seed->radius=sunrise_random_range(world,.10f,.19f);
     seed->rx=sunrise_random_range(world,-.70f,.70f);
     seed->ry=sunrise_random_range(world,0.0f,6.2831853f);
     seed->rz=sunrise_random_range(world,-.55f,.55f);
@@ -73,7 +73,7 @@ static void sunrise_particles_reset(underwater_world_t *world)
 {
     memset(world->sunrise_seeds,0,sizeof(world->sunrise_seeds));
     world->sunrise_rng=0x51f15e31U;
-    world->sunrise_seed_count=34;
+    world->sunrise_seed_count=UNDERWATER_SUNRISE_SEED_AMBIENT;
     for(unsigned i=0;i<world->sunrise_seed_count;++i)
         sunrise_spawn_seed(world,&world->sunrise_seeds[i],false);
     world->sunrise_next_gust=(uint16_t)(114U+sunrise_random(world)%61U);
@@ -96,16 +96,10 @@ static void sunrise_particles_update(underwater_world_t *world)
 {
     if(world->sunrise_next_gust>0)--world->sunrise_next_gust;
     if(world->sunrise_next_gust==0){
-        unsigned first=world->sunrise_seed_count;
-        unsigned add=14;
-        if(first+add>UNDERWATER_SUNRISE_SEED_CAP)add=UNDERWATER_SUNRISE_SEED_CAP-first;
+        unsigned add=3;
+        if(add>world->sunrise_seed_count)add=world->sunrise_seed_count;
         for(unsigned i=0;i<add;++i)
-            sunrise_spawn_seed(world,&world->sunrise_seeds[first+i],true);
-        world->sunrise_seed_count=(uint8_t)(first+add);
-        if(add==0){
-            for(unsigned i=0;i<14;++i)
-                sunrise_spawn_seed(world,&world->sunrise_seeds[i],true);
-        }
+            sunrise_spawn_seed(world,&world->sunrise_seeds[i],true);
         world->sunrise_gust_ticks=200;
         world->sunrise_next_gust=(uint16_t)(114U+sunrise_random(world)%61U);
     }
@@ -178,11 +172,13 @@ void underwater_world_pointer(underwater_world_t *world,float x,float y,bool pre
     }
     if(!pressed&&world->ui_touch){world->ui_touch=false;world->dragging=false;return;}
     if(!pressed&&world->dragging&&!world->ui_touch){
-        if(sunrise_abs(x-world->press_x)+sunrise_abs(y-world->press_y)<14.0f){
+        /* Device release events may arrive as (0,0). Tap at the last contact. */
+        float tap_x=world->last_x,tap_y=world->last_y;
+        if(sunrise_abs(tap_x-world->press_x)+sunrise_abs(tap_y-world->press_y)<28.0f){
             if(world->scene==UNDERWATER_SCENE_AURORA)
-                underwater_aurora_tap(&world->aurora,x,y);
+                underwater_aurora_tap(&world->aurora,tap_x,tap_y);
             else if(world->scene==UNDERWATER_SCENE_OCEAN)
-                underwater_ocean_tap(&world->ocean,x,y);
+                underwater_ocean_tap(&world->ocean,tap_x,tap_y);
         }
     }
     if(pressed&&world->dragging&&!world->ui_touch){

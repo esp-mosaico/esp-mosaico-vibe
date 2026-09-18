@@ -14,6 +14,7 @@
 
 #define OCEAN_DT (1.0f/30.0f)
 #define OCEAN_FOCAL (480.0f*1.055f)
+#define OCEAN_RENDER_GRID 16
 
 static float ocean_clamp(float value,float low,float high)
 {
@@ -251,6 +252,36 @@ static int ocean_depth_index(int value)
     return value;
 }
 
+static float ocean_depth_sample(float u,float v)
+{
+    const int n=OCEAN_DEPTH_GRID;
+    float gx=ocean_clamp(u,0.0f,1.0f)*n;
+    float gy=ocean_clamp(v,0.0f,1.0f)*n;
+    int x0=(int)gx,y0=(int)gy;
+    int x1=ocean_depth_index(x0+1),y1=ocean_depth_index(y0+1);
+    float fx=gx-x0,fy=gy-y0;
+    float top=OCEAN_DEPTH[y0*(n+1)+x0]*(1.0f-fx)+
+              OCEAN_DEPTH[y0*(n+1)+x1]*fx;
+    float bottom=OCEAN_DEPTH[y1*(n+1)+x0]*(1.0f-fx)+
+                 OCEAN_DEPTH[y1*(n+1)+x1]*fx;
+    return top*(1.0f-fy)+bottom*fy;
+}
+
+static float ocean_mask_sample(float u,float v)
+{
+    const int n=OCEAN_DEPTH_GRID;
+    float gx=ocean_clamp(u,0.0f,1.0f)*n;
+    float gy=ocean_clamp(v,0.0f,1.0f)*n;
+    int x0=(int)gx,y0=(int)gy;
+    int x1=ocean_depth_index(x0+1),y1=ocean_depth_index(y0+1);
+    float fx=gx-x0,fy=gy-y0;
+    float top=OCEAN_MASK_R[y0*(n+1)+x0]*(1.0f-fx)+
+              OCEAN_MASK_R[y0*(n+1)+x1]*fx;
+    float bottom=OCEAN_MASK_R[y1*(n+1)+x0]*(1.0f-fx)+
+                 OCEAN_MASK_R[y1*(n+1)+x1]*fx;
+    return top*(1.0f-fy)+bottom*fy;
+}
+
 static bool ocean_project_depth(const living_camera_t *camera,float u,float v,
                                 uint16_t raw,Vector2 *out)
 {
@@ -265,34 +296,34 @@ static void draw_ocean_water(const underwater_ocean_t *ocean,float yaw,float pit
 {
     if(!water.texture.id)return;
     living_camera_t camera=living_camera_orbit(yaw,pitch,OCEAN_FOCUS);
-    const int n=OCEAN_DEPTH_GRID;
+    const int n=OCEAN_RENDER_GRID;
     float tex_w=(float)water.texture.width-1.0f,tex_h=(float)water.texture.height-1.0f;
     for(int band=0;band<8;++band)
-    for(int y=-2;y<n+2;++y)
-    for(int x=-4;x<n+4;++x){
-        int x0=ocean_depth_index(x),x1=ocean_depth_index(x+1);
-        int y0=ocean_depth_index(y),y1=ocean_depth_index(y+1);
-        int a=y0*(n+1)+x0,b=y0*(n+1)+x1,c=y1*(n+1)+x0,d=y1*(n+1)+x1;
-        unsigned average=((unsigned)OCEAN_DEPTH[a]+OCEAN_DEPTH[b]+
-                          OCEAN_DEPTH[c]+OCEAN_DEPTH[d])/4U;
+    for(int y=-n/4;y<n+n/4;++y)
+    for(int x=-n/2;x<n+n/2;++x){
+        float u0=(float)x/n,u1=(float)(x+1)/n;
+        float v0=(float)y/n,v1=(float)(y+1)/n;
+        float depth[4]={ocean_depth_sample(u0,v0),ocean_depth_sample(u1,v0),
+                        ocean_depth_sample(u0,v1),ocean_depth_sample(u1,v1)};
+        unsigned average=(unsigned)((depth[0]+depth[1]+depth[2]+depth[3])*.25f);
         if((int)(average*8U/65536U)!=band)continue;
-        unsigned reef=((unsigned)OCEAN_MASK_R[a]+OCEAN_MASK_R[b]+
-                       OCEAN_MASK_R[c]+OCEAN_MASK_R[d])/4U;
+        unsigned reef=(unsigned)((ocean_mask_sample(u0,v0)+ocean_mask_sample(u1,v0)+
+                                  ocean_mask_sample(u0,v1)+ocean_mask_sample(u1,v1))*.25f);
         unsigned background_light=reef<40U?232U:256U;
         Vector2 p[4];
-        if(!ocean_project_depth(&camera,(float)x/n,(float)y/n,OCEAN_DEPTH[a],&p[0])||
-           !ocean_project_depth(&camera,(float)(x+1)/n,(float)y/n,OCEAN_DEPTH[b],&p[1])||
-           !ocean_project_depth(&camera,(float)x/n,(float)(y+1)/n,OCEAN_DEPTH[c],&p[2])||
-           !ocean_project_depth(&camera,(float)(x+1)/n,(float)(y+1)/n,OCEAN_DEPTH[d],&p[3]))
+        if(!ocean_project_depth(&camera,u0,v0,(uint16_t)depth[0],&p[0])||
+           !ocean_project_depth(&camera,u1,v0,(uint16_t)depth[1],&p[1])||
+           !ocean_project_depth(&camera,u0,v1,(uint16_t)depth[2],&p[2])||
+           !ocean_project_depth(&camera,u1,v1,(uint16_t)depth[3],&p[3]))
             continue;
-        mosaico_textured_vertex_t va={p[0].x,p[0].y,ocean_mirror((float)x/n)*tex_w,
-            ocean_mirror((float)y/n)*tex_h};
-        mosaico_textured_vertex_t vb={p[1].x,p[1].y,ocean_mirror((float)(x+1)/n)*tex_w,
-            ocean_mirror((float)y/n)*tex_h};
-        mosaico_textured_vertex_t vc={p[2].x,p[2].y,ocean_mirror((float)x/n)*tex_w,
-            ocean_mirror((float)(y+1)/n)*tex_h};
-        mosaico_textured_vertex_t vd={p[3].x,p[3].y,ocean_mirror((float)(x+1)/n)*tex_w,
-            ocean_mirror((float)(y+1)/n)*tex_h};
+        mosaico_textured_vertex_t va={p[0].x,p[0].y,ocean_mirror(u0)*tex_w,
+            ocean_mirror(v0)*tex_h};
+        mosaico_textured_vertex_t vb={p[1].x,p[1].y,ocean_mirror(u1)*tex_w,
+            ocean_mirror(v0)*tex_h};
+        mosaico_textured_vertex_t vc={p[2].x,p[2].y,ocean_mirror(u0)*tex_w,
+            ocean_mirror(v1)*tex_h};
+        mosaico_textured_vertex_t vd={p[3].x,p[3].y,ocean_mirror(u1)*tex_w,
+            ocean_mirror(v1)*tex_h};
         Mosaico2DDrawTexturedTriangle(water.texture,va,vc,vb,background_light);
         Mosaico2DDrawTexturedTriangle(water.texture,vb,vc,vd,background_light);
     }
@@ -361,46 +392,32 @@ static void jelly_world(const ocean_jelly_t *jelly,float x,float y,float z,
 
 static void draw_ocean_jelly(const living_camera_t *camera,const ocean_jelly_t *jelly,float t)
 {
-    int lat=jelly->id==0?6:4,lon=jelly->id==0?10:8;
     float contract=1.0f-jelly->pulse*.145f;
     float h=.76f*(1.0f+jelly->pulse*.15f);
-    Vector2 prev_ring[12];
-    uint8_t prev_valid[12];
-    for(int j=0;j<=lat;++j){
-        float theta=.05f+j/(float)lat*1.55f;
-        Vector2 ring[12];
-        uint8_t valid[12];
-        for(int k=0;k<=lon;++k){
-            float phi=k/(float)lon*6.2831853f;
-            float r=sinf(theta)*contract;
-            float wx,wy,wz;
-            jelly_world(jelly,r*cosf(phi),h*cosf(theta)-.04f,r*sinf(phi),&wx,&wy,&wz);
-            valid[k]=(uint8_t)ocean_project(camera,wx,wy,wz,&ring[k]);
-        }
-        if(j>0){
-            unsigned char alpha=(unsigned char)(128+jelly->flash*60+j*8);
-            Color color=(Color){90,196,236,alpha};
-            Color inner=(Color){168,228,248,(unsigned char)(alpha*4U/5U)};
-            for(int k=0;k<lon;++k){
-                if(valid[k]&&valid[k+1]&&prev_valid[k]&&prev_valid[k+1]){
-                    DrawTriangle(prev_ring[k],ring[k],ring[k+1],color);
-                    DrawTriangle(prev_ring[k],ring[k+1],prev_ring[k+1],inner);
-                }
+    float wx,wy,wz;
+    Vector2 top,left,right;
+    jelly_world(jelly,0,h-.04f,0,&wx,&wy,&wz);
+    bool cap_valid=ocean_project(camera,wx,wy,wz,&top);
+    jelly_world(jelly,-contract,-.04f,0,&wx,&wy,&wz);
+    cap_valid=cap_valid&&ocean_project(camera,wx,wy,wz,&left);
+    jelly_world(jelly,contract,-.04f,0,&wx,&wy,&wz);
+    cap_valid=cap_valid&&ocean_project(camera,wx,wy,wz,&right);
+    if(cap_valid){
+        float rim_x=(left.x+right.x)*.5f;
+        float rim_y=(left.y+right.y)*.5f;
+        float height=rim_y-top.y;
+        float radius=fabsf(right.x-left.x)*.5f;
+        if(height>1.0f&&radius>1.0f){
+            int first_x=(int)ceilf(rim_x-radius),last_x=(int)floorf(rim_x+radius);
+            for(int x=first_x;x<=last_x;++x){
+                float q=ocean_clamp(((float)x+.5f-rim_x)/radius,-1.0f,1.0f);
+                float curve=sqrtf(fmaxf(0.0f,1.0f-q*q));
+                int first_y=(int)ceilf(rim_y-height*curve);
+                int last_y=(int)floorf(rim_y+height*.055f*curve*curve);
+                unsigned char alpha=(unsigned char)(96+(1.0f-curve)*24+jelly->flash*42);
+                Color fill=(Color){92,190,229,alpha};
+                if(last_y>=first_y)DrawRectangle(x,first_y,1,last_y-first_y+1,fill);
             }
-        }
-        for(int k=0;k<=lon;++k){prev_ring[k]=ring[k];prev_valid[k]=valid[k];}
-    }
-    for(int rim=0;rim<2;++rim){
-        float theta=1.48f+rim*.12f,r=sinf(theta)*contract;
-        Vector2 last;bool has=false;
-        for(int s=0;s<=lon*2;++s){
-            float phi=s/(float)(lon*2)*6.2831853f,wx,wy,wz;
-            jelly_world(jelly,r*cosf(phi),h*cosf(theta)-.04f,r*sinf(phi),&wx,&wy,&wz);
-            Vector2 screen;
-            if(!ocean_project(camera,wx,wy,wz,&screen)){has=false;continue;}
-            if(has)DrawLine((int)last.x,(int)last.y,(int)screen.x,(int)screen.y,
-                            (Color){125,204,236,(unsigned char)(rim?90:48)});
-            last=screen;has=true;
         }
     }
     int tentacles=jelly->id==0?10:7;

@@ -191,7 +191,8 @@ static esp_err_t before_display(void)
 }
 static esp_err_t on_start(void){underwater_world_reset(&world);return ESP_OK;}
 static void on_event(const mosaico_device_event_t *event){
-    if(event&&event->type==MOSAICO_DEVICE_EVENT_POINTER){
+    if(event&&(event->type==MOSAICO_DEVICE_EVENT_POINTER||
+               event->type==MOSAICO_DEVICE_EVENT_TOUCH)){
         uint8_t previous=world.scene;
         underwater_world_pointer(&world,(float)event->x,(float)event->y,event->pressed);
         if(world.scene!=previous){

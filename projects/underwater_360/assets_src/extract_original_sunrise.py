@@ -10,15 +10,15 @@ import math
 from pathlib import Path
 import re
 
-from PIL import Image, ImageFilter
+from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 HTML = ROOT / "mosaico_living_worlds_v11 (1).html"
 ASSETS = ROOT / "assets_src"
 GRID = 8
 VOLUME_FACE_TARGETS = {"front": 350, "side": 100, "rear": 80}
-SIDE_CONTOUR_VERTICES = 24
-SIDE_RINGS = (0, 3, 6)
+SIDE_CONTOUR_VERTICES = 36
+SIDE_RINGS = (0, 2, 4, 6)
 
 
 def embedded_assets() -> dict[str, bytes]:
@@ -207,25 +207,15 @@ def simplify_side_rings(
     return output_vertices, output_faces
 
 
-def bake_rock_material(size: tuple[int, int], exposure: float) -> Image.Image:
-    """Create deterministic low-frequency rock that will not form UV stripes."""
-    coarse = Image.new("L", (48, 24))
-    coarse.putdata([
-        66 + (((x * 73856093) ^ (y * 19349663) ^ ((x + y) * 83492791)) & 63)
-        for y in range(24) for x in range(48)
-    ])
-    broad = Image.new("L", (12, 6))
-    broad.putdata([
-        58 + (((x * 2654435761) ^ (y * 2246822519) ^ 0x51F15E31) & 79)
-        for y in range(6) for x in range(12)
-    ])
-    coarse = coarse.resize(size,Image.BICUBIC).filter(ImageFilter.GaussianBlur(1.3))
-    broad = broad.resize(size,Image.BICUBIC).filter(ImageFilter.GaussianBlur(3.2))
-    value = Image.blend(coarse,broad,.46)
-    red = value.point(lambda p: min(255,round((p*.94+31)*exposure)))
-    green = value.point(lambda p: min(255,round((p*.70+24)*exposure)))
-    blue = value.point(lambda p: min(255,round((p*.43+17)*exposure)))
-    return Image.merge("RGB",(red,green,blue))
+def bake_cliff_shell(front: Image.Image, size: tuple[int, int], exposure: float) -> Image.Image:
+    """Tile the photographed grass/soil so the hull matches the sunlit face."""
+    width, height = front.size
+    crop = front.crop((int(width * 0.07), int(height * 0.58),
+                       int(width * 0.40), int(height * 0.96)))
+    tile = crop.resize(size, Image.LANCZOS)
+    if abs(exposure - 1.0) > 1e-3:
+        tile = tile.point(lambda pixel: min(255, max(0, round(pixel * exposure))))
+    return tile
 
 
 def main() -> None:
@@ -238,14 +228,12 @@ def main() -> None:
     front_image = front_rgba.convert("RGB")
     front_image.resize((768,768),Image.LANCZOS).save(
         ASSETS / "sunrise_cliff_front.png",optimize=True)
-    # The prototype's flank/rear images are kaleidoscope patterns.  They become
-    # obvious horizontal stripes when stretched over the volume.  Bake both
-    # low-poly occlusion surfaces from the same photographed grass and rock as
-    # the front so the palette and material remain continuous.
-    side_image = bake_rock_material((512,128),.88)
-    side_image.save(ASSETS / "sunrise_cliff_side.png",optimize=True)
-    rear_image = bake_rock_material((256,256),.72)
-    rear_image.save(ASSETS / "sunrise_cliff_rear.png",optimize=True)
+    # HTML projects side/rear with world-space UVs onto the rock/back photo.
+    # Sample the same grass/soil as the front so the hull is not a wood grain.
+    side_image = bake_cliff_shell(front_image, (256, 256), 0.90)
+    side_image.save(ASSETS / "sunrise_cliff_side.png", optimize=True)
+    rear_image = bake_cliff_shell(front_image, (192, 192), 0.78)
+    rear_image.save(ASSETS / "sunrise_cliff_rear.png", optimize=True)
 
     samples: list[int] = []
     for y in range(GRID + 1):

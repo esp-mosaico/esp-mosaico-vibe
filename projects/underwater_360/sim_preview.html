@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>MOSAICO / LIVING WORLDS</title>
+<style>
+:root {
+  color-scheme: dark;
+  --ink: #edf4f3;
+  --muted: #8c9c9e;
+  --accent: #b0e7f8;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  width: 100%;
+  min-height: 100%;
+  background: #090e12;
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+body {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 28px 16px;
+}
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+button:focus-visible { outline: 2px solid #b5edff; outline-offset: 3px; }
+main { width: 480px; max-width: 100%; }
+.outside {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 19px;
+  font-size: 11px;
+  letter-spacing: .18em;
+  color: #849497;
+}
+.outside b { font-weight: 500; color: #b6c3c5; letter-spacing: .04em; }
+.screen {
+  width: 480px;
+  height: 480px;
+  max-width: 100%;
+  aspect-ratio: 1 / 1;
+  position: relative;
+  background: #071b25;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  isolation: isolate;
+  box-shadow: 0 26px 80px #0009;
+  outline: 1px solid #182226;
+}
+#world {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  image-rendering: auto;
+  touch-action: none;
+  cursor: grab;
+}
+#world:active { cursor: grabbing; }
+#offline {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: none;
+  place-items: center;
+  background: #040e18c8;
+  pointer-events: none;
+  text-align: center;
+  padding: 24px;
+}
+#offline.visible { display: grid; }
+#offline p { margin: 0; font-size: 16px; color: #e0f1f4; }
+#offline small { color: var(--muted); margin-top: 8px; }
+.helpOutside {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 16px 2px 0;
+  color: #9aabb0;
+  font-size: 13px;
+}
+.helpOutside strong { color: #d7e6ea; font-weight: 550; }
+.instructions {
+  margin: 8px 2px 0;
+  color: #7f9094;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.tools {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+.tools button {
+  border: 1px solid #d3e7ed29;
+  background: #05121a88;
+  border-radius: 18px;
+  padding: 8px 14px;
+  color: #cbdbdf;
+}
+.tools button:hover { background: #c8eff21a; }
+.meta {
+  margin-top: 12px;
+  color: #6f8388;
+  font-size: 12px;
+  letter-spacing: .04em;
+}
+</style>
+</head>
+<body>
+<main>
+  <div class="outside">
+    <span>MOSAICO / LIVING WORLDS</span>
+    <b id="eyebrow">480 × 480</b>
+  </div>
+  <section class="screen" aria-label="480×480 可交互空间风景">
+    <img id="world" width="480" height="480" alt="Living Worlds" draggable="false" tabindex="0">
+    <div id="offline" role="status">
+      <div>
+        <p>正在连接仿真</p>
+        <small>画面由设备固件实时渲染</small>
+      </div>
+    </div>
+  </section>
+  <div class="helpOutside">
+    <strong id="sceneName">流动风景</strong>
+    <span id="angle">yaw 0.0° · pitch 0.0°</span>
+  </div>
+  <div class="instructions">拖动画布环视纵深，点底部按钮切场景。松手保留当前视角。</div>
+  <div class="tools">
+    <button id="reset" type="button">回到正视</button>
+  </div>
+  <div class="meta" id="status">等待第一帧</div>
+</main>
+<script>
+const SCENES = [
+  { zh: "极光", en: "AURORA" },
+  { zh: "海洋", en: "OCEAN" },
+  { zh: "日出", en: "SUNRISE" },
+];
+const img = document.querySelector("#world");
+const offline = document.querySelector("#offline");
+const sceneName = document.querySelector("#sceneName");
+const angle = document.querySelector("#angle");
+const eyebrow = document.querySelector("#eyebrow");
+const status = document.querySelector("#status");
+const pointers = new Map();
+let busy = false;
+let lastBlob = "";
+
+function sceneLabel(id) {
+  const scene = SCENES[id] || SCENES[0];
+  return scene.zh + " / " + scene.en;
+}
+
+function pointerFromEvent(event) {
+  const box = img.getBoundingClientRect();
+  const width = Math.max(1, box.width);
+  const height = Math.max(1, box.height);
+  return {
+    track: event.pointerId,
+    x: (event.clientX - box.left) * 480 / width,
+    y: (event.clientY - box.top) * 480 / height,
+  };
+}
+
+async function sendInput() {
+  await fetch("/api/v1/input", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ pointers: [...pointers.values()] }),
+  });
+}
+
+async function control(command) {
+  await fetch("/api/v1/control", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ command }),
+  });
+}
+
+img.addEventListener("pointerdown", (event) => {
+  event.preventDefault();
+  img.focus();
+  img.setPointerCapture(event.pointerId);
+  pointers.set(event.pointerId, pointerFromEvent(event));
+  sendInput();
+});
+img.addEventListener("pointermove", (event) => {
+  if (!pointers.has(event.pointerId)) return;
+  event.preventDefault();
+  pointers.set(event.pointerId, pointerFromEvent(event));
+  sendInput();
+});
+function releasePointer(event) {
+  if (!pointers.has(event.pointerId)) return;
+  pointers.delete(event.pointerId);
+  sendInput();
+}
+img.addEventListener("pointerup", releasePointer);
+img.addEventListener("pointercancel", releasePointer);
+addEventListener("blur", () => {
+  if (!pointers.size) return;
+  pointers.clear();
+  sendInput();
+});
+
+document.querySelector("#reset").onclick = () => control("reset");
+
+function applyMeta(meta) {
+  const scene = Number(meta.scene ?? 0);
+  const yaw = Number(meta.yaw ?? 0);
+  const pitch = Number(meta.pitch ?? 0);
+  sceneName.textContent = sceneLabel(scene);
+  eyebrow.textContent = (SCENES[scene] || SCENES[0]).zh;
+  angle.textContent = "yaw " + yaw.toFixed(1) + "° · pitch " + pitch.toFixed(1) + "°";
+  const fps = meta.simulation && meta.simulation.logic_fps;
+  const render = Number(meta.host_render_ms || 0);
+  status.textContent = (Number.isFinite(fps) ? fps.toFixed(0) + " Hz · " : "")
+    + render.toFixed(1) + " ms"
+    + (meta.reload_error ? " · " + meta.reload_error : "");
+}
+
+async function tick() {
+  if (busy) return;
+  busy = true;
+  try {
+    const response = await fetch("/api/v1/frame", { cache: "no-store" });
+    if (!response.ok) throw new Error("frame " + response.status);
+    const header = response.headers.get("X-Mosaico-State");
+    if (header) applyMeta(JSON.parse(header));
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    img.onload = () => {
+      if (lastBlob) URL.revokeObjectURL(lastBlob);
+      lastBlob = url;
+      img.onload = null;
+    };
+    img.src = url;
+    offline.classList.remove("visible");
+  } catch (error) {
+    offline.classList.add("visible");
+    status.textContent = "仿真断开，正在重连";
+  } finally {
+    busy = false;
+  }
+}
+
+let lastFrame = 0;
+function animate(now) {
+  if (now - lastFrame >= 32) {
+    lastFrame = now;
+    tick();
+  }
+  requestAnimationFrame(animate);
+}
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>

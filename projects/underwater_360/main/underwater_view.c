@@ -240,8 +240,23 @@ static void draw_sunrise_volume_part(const sunrise_camera_t *camera,
         float min_y=fminf(pa.y,fminf(pb.y,pc.y));
         float max_y=fmaxf(pa.y,fmaxf(pb.y,pc.y));
         if(max_x<0||min_x>=480||max_y<0||min_y>=480)continue;
-        float au=a->u*scale_u,av=a->v*scale_v,bu=b->u*scale_u,bv=b->v*scale_v,
-              cu=c->u*scale_u,cv=c->v*scale_v;
+        float au,av,bu,bv,cu,cv;
+        if(part==2||part==3){
+            /* HTML ClosedLandscape sides use world-space UVs, not the strip unwrap. */
+            const float shell=56.0f;
+            if(abs(faces[i].ny)>abs(faces[i].nx)){
+                au=a->x*.001f*shell;av=a->z*.001f*shell;
+                bu=b->x*.001f*shell;bv=b->z*.001f*shell;
+                cu=c->x*.001f*shell;cv=c->z*.001f*shell;
+            }else{
+                au=a->z*.001f*shell;av=a->y*.001f*shell;
+                bu=b->z*.001f*shell;bv=b->y*.001f*shell;
+                cu=c->z*.001f*shell;cv=c->y*.001f*shell;
+            }
+        }else{
+            au=a->u*scale_u;av=a->v*scale_v;bu=b->u*scale_u;bv=b->v*scale_v;
+            cu=c->u*scale_u;cv=c->v*scale_v;
+        }
         mosaico_textured_vertex_t va={pa.x,pa.y,au,av};
         mosaico_textured_vertex_t vb={pb.x,pb.y,bu,bv};
         mosaico_textured_vertex_t vc={pc.x,pc.y,cu,cv};
@@ -256,7 +271,8 @@ static void draw_sunrise_cliff(const underwater_world_t *world,
     draw_sunrise_volume_part(&camera,SUNRISE_REAR_VERTICES,SUNRISE_REAR_VERTEX_COUNT,
         SUNRISE_REAR_FACES,SUNRISE_REAR_FACE_COUNT,rear,512,512,3);
     draw_sunrise_volume_part(&camera,SUNRISE_SIDE_VERTICES,SUNRISE_SIDE_VERTEX_COUNT,
-        SUNRISE_SIDE_FACES,SUNRISE_SIDE_FACE_COUNT,side,1024,256,2);
+        SUNRISE_SIDE_FACES,SUNRISE_SIDE_FACE_COUNT,side,
+        (float)side.texture.width,(float)side.texture.height,2);
     draw_sunrise_volume_part(&camera,SUNRISE_FRONT_VERTICES,SUNRISE_FRONT_VERTEX_COUNT,
         SUNRISE_FRONT_FACES,SUNRISE_FRONT_FACE_COUNT,front,768,768,1);
 }
@@ -403,44 +419,55 @@ static bool sunrise_seed_project(const sunrise_camera_t *camera,
     return sunrise_project_xyz(camera,wx,wy,wz,screen);
 }
 
+static Color sunrise_seed_tint(unsigned char r,unsigned char g,unsigned char b,
+                               float alpha,float fade)
+{
+    float value=alpha*fade*255.0f;
+    if(value<0)value=0;
+    if(value>255.0f)value=255.0f;
+    return (Color){r,g,b,(unsigned char)value};
+}
+
 static void draw_dandelion_seed_3d(const sunrise_camera_t *camera,
                                    const underwater_sunrise_seed_t *seed,
                                    int spokes)
 {
-    Vector2 root,base;
-    float radius=seed->radius;
+    const float rad=seed->radius;
+    Vector2 root,base,husk;
     if(!sunrise_seed_project(camera,seed,0,0,0,&root)||
-       !sunrise_seed_project(camera,seed,radius*.07f,-radius*1.62f,0,&base))return;
-    if(root.x<-18||root.x>498||root.y<65||root.y>460)return;
-    float apparent=fabsf(root.x-base.x)+fabsf(root.y-base.y);
-    unsigned char alpha=(unsigned char)fminf(235.0f,115.0f+apparent*23.0f);
-    Color silk=(Color){255,244,216,alpha};
-    Color soft=(Color){225,205,174,(unsigned char)(alpha*3U/5U)};
-    Color husk=(Color){112,75,38,(unsigned char)(alpha*4U/5U)};
-    DrawLine((int)root.x,(int)root.y,(int)base.x,(int)base.y,husk);
-    if(apparent>4.0f)DrawCircle((int)base.x,(int)base.y,1,husk);
-    for(int j=0;j<spokes;++j){
-        float angle=6.2831853f*j/spokes+seed->phase*.31f;
-        float uneven=.82f+.18f*sinf(j*2.37f+seed->phase);
-        float x=cosf(angle)*radius*uneven;
-        float y=radius*(.42f+.16f*sinf(j*1.71f+seed->phase*.7f));
-        float z=sinf(angle)*radius*uneven;
+       !sunrise_seed_project(camera,seed,.005f,-rad*1.5f,0,&base))return;
+    if(root.x<-40||root.x>520||root.y<18||root.y>508)return;
+    float dx=root.x-base.x,dy=root.y-base.y;
+    float apparent=sqrtf(dx*dx+dy*dy);
+    if(apparent<2.2f)return;
+    float fade=fminf(1.0f,.42f+apparent*.055f);
+    float stem_w=fmaxf(1.15f,fminf(2.6f,1.05f+apparent*.085f));
+    float silk_w=fmaxf(1.08f,fminf(2.05f,1.02f+apparent*.055f));
+    if(spokes>16&&apparent<9.0f)spokes=14;
+    DrawLineEx(root,base,stem_w,sunrise_seed_tint(111,70,24,.62f,fade));
+    if(sunrise_seed_project(camera,seed,0,-rad*1.7f,0,&husk))
+        DrawCircle((int)husk.x,(int)husk.y,apparent>8.0f?2:1,
+                   sunrise_seed_tint(139,78,22,.55f,fade));
+    for(int i=0;i<spokes;++i){
+        float angle=6.2831853f*i/(float)spokes;
+        float ca=cosf(angle),sa=sinf(angle);
         Vector2 bend,tip;
-        if(!sunrise_seed_project(camera,seed,x*.46f,y*.33f,z*.46f,&bend)||
-           !sunrise_seed_project(camera,seed,x,y,z,&tip))continue;
-        DrawLine((int)root.x,(int)root.y,(int)bend.x,(int)bend.y,soft);
-        DrawLine((int)bend.x,(int)bend.y,(int)tip.x,(int)tip.y,silk);
-        if(apparent>5.5f&&(j%4)==0)DrawCircle((int)tip.x,(int)tip.y,1,silk);
+        if(!sunrise_seed_project(camera,seed,ca*rad*.45f,rad*.31f,sa*rad*.45f,&bend)||
+           !sunrise_seed_project(camera,seed,ca*rad,rad*(.49f+.06f*sinf(i*2.0f)),sa*rad,&tip))
+            continue;
+        DrawLineEx(root,bend,silk_w,sunrise_seed_tint(203,170,121,.48f,fade));
+        DrawLineEx(bend,tip,silk_w,sunrise_seed_tint(239,218,165,.58f,fade));
+        if(apparent>7.0f&&(i%3)==0)
+            DrawCircle((int)tip.x,(int)tip.y,1,sunrise_seed_tint(255,211,135,.42f,fade));
     }
-    if(apparent>2.0f)DrawCircle((int)root.x,(int)root.y,1,(Color){172,125,70,alpha});
 }
 
 static void draw_sunrise_seeds(const underwater_world_t *world,bool foreground)
 {
     sunrise_camera_t camera=sunrise_camera(world);
     uint8_t order[UNDERWATER_SUNRISE_SEED_CAP];
-    int count=world->effects_level==0?16:world->sunrise_seed_count;
-    if(count>world->sunrise_seed_count)count=world->sunrise_seed_count;
+    int count=world->sunrise_seed_count;
+    if(count>UNDERWATER_SUNRISE_SEED_CAP)count=UNDERWATER_SUNRISE_SEED_CAP;
     for(int i=0;i<count;++i){
         order[i]=(uint8_t)i;
         int j=i;
@@ -449,7 +476,7 @@ static void draw_sunrise_seeds(const underwater_world_t *world,bool foreground)
             uint8_t swap=order[j-1];order[j-1]=order[j];order[j]=swap;--j;
         }
     }
-    int spokes=world->effects_level==2?18:(world->effects_level==0?10:14);
+    int spokes=world->effects_level==0?14:23;
     for(int i=0;i<count;++i){
         const underwater_sunrise_seed_t *seed=&world->sunrise_seeds[order[i]];
         bool is_foreground=seed->z<=6.2f;
