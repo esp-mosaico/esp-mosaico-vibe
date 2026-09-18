@@ -12,6 +12,9 @@ add_custom_target(underwater_assets ALL
     BYPRODUCTS "${GAME_ASSET_OUTPUT}/panorama.atlas" "${GAME_ASSET_OUTPUT}/reef_fish.atlas"
                "${GAME_ASSET_OUTPUT}/marine_creatures.atlas" "${GAME_ASSET_OUTPUT}/aurora.atlas"
                "${GAME_ASSET_OUTPUT}/sunrise.atlas" "${GAME_ASSET_OUTPUT}/reindeer.atlas"
+               "${GAME_ASSET_OUTPUT}/sunrise_cliff_front.atlas"
+               "${GAME_ASSET_OUTPUT}/sunrise_cliff_side.atlas"
+               "${GAME_ASSET_OUTPUT}/sunrise_cliff_rear.atlas"
                "${GAME_ASSET_OUTPUT}/rainforest.atlas"
     DEPENDS "${GAME_ASSET_SOURCE}/game_assets.json"
             "${GAME_ASSET_SOURCE}/panorama.json"
@@ -22,6 +25,9 @@ add_custom_target(underwater_assets ALL
             "${GAME_ASSET_SOURCE}/marine_creatures.png"
             "${GAME_ASSET_SOURCE}/aurora.json" "${GAME_ASSET_SOURCE}/aurora_scene.png"
             "${GAME_ASSET_SOURCE}/sunrise.json" "${GAME_ASSET_SOURCE}/sunrise_scene.png"
+            "${GAME_ASSET_SOURCE}/sunrise_cliff_front.json" "${GAME_ASSET_SOURCE}/sunrise_cliff_front.png"
+            "${GAME_ASSET_SOURCE}/sunrise_cliff_side.json" "${GAME_ASSET_SOURCE}/sunrise_cliff_side.png"
+            "${GAME_ASSET_SOURCE}/sunrise_cliff_rear.json" "${GAME_ASSET_SOURCE}/sunrise_cliff_rear.png"
             "${GAME_ASSET_SOURCE}/reindeer.json" "${GAME_ASSET_SOURCE}/reindeer.png"
             "${GAME_ASSET_SOURCE}/rainforest.json" "${GAME_ASSET_SOURCE}/rainforest_scene.png")
 add_dependencies(${COMPONENT_LIB} underwater_assets)
@@ -31,6 +37,12 @@ target_add_binary_data(${COMPONENT_LIB} "${GAME_ASSET_OUTPUT}/marine_creatures.a
     RENAME_TO marine_creatures_atlas DEPENDS underwater_assets)
 target_add_binary_data(${COMPONENT_LIB} "${GAME_ASSET_OUTPUT}/reindeer.atlas" BINARY
     RENAME_TO reindeer_atlas DEPENDS underwater_assets)
+target_add_binary_data(${COMPONENT_LIB} "${GAME_ASSET_OUTPUT}/sunrise_cliff_front.atlas" BINARY
+    RENAME_TO sunrise_cliff_front_atlas DEPENDS underwater_assets)
+target_add_binary_data(${COMPONENT_LIB} "${GAME_ASSET_OUTPUT}/sunrise_cliff_side.atlas" BINARY
+    RENAME_TO sunrise_cliff_side_atlas DEPENDS underwater_assets)
+target_add_binary_data(${COMPONENT_LIB} "${GAME_ASSET_OUTPUT}/sunrise_cliff_rear.atlas" BINARY
+    RENAME_TO sunrise_cliff_rear_atlas DEPENDS underwater_assets)
 foreach(background ocean aurora sunrise rainforest)
     target_add_binary_data(${COMPONENT_LIB} "${GAME_ASSET_SOURCE}/${background}.jpg" BINARY
         RENAME_TO ${background}_jpg DEPENDS underwater_assets)

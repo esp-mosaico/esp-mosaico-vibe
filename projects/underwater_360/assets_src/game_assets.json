@@ -28,6 +28,21 @@
       "output": "sunrise.atlas"
     },
     {
+      "config": "sunrise_cliff_front.json",
+      "source": "sunrise_cliff_front.png",
+      "output": "sunrise_cliff_front.atlas"
+    },
+    {
+      "config": "sunrise_cliff_side.json",
+      "source": "sunrise_cliff_side.png",
+      "output": "sunrise_cliff_side.atlas"
+    },
+    {
+      "config": "sunrise_cliff_rear.json",
+      "source": "sunrise_cliff_rear.png",
+      "output": "sunrise_cliff_rear.atlas"
+    },
+    {
       "config": "reindeer.json",
       "source": "reindeer.png",
       "output": "reindeer.atlas"

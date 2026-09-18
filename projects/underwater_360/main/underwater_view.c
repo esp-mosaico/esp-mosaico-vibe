@@ -2,6 +2,8 @@
 #include "underwater_view.h"
 #include <math.h>
 #include "mosaico_raylib_fast.h"
+#include "sunrise_depth.h"
+#include "sunrise_volume.h"
 
 #define PANORAMA_WIDTH 1600.0f
 #define PANORAMA_HEIGHT 800.0f
@@ -83,6 +85,168 @@ static void draw_panorama(const underwater_world_t *world,MosaicoAtlas panorama)
         draw_panorama_band(panorama,source_x,y0,view_width,y1-y0,
                            480.0f*v0,480.0f*(v1-v0)+.25f);
     }
+}
+
+typedef struct {
+    float x,y,z;
+    float m[9];
+} sunrise_camera_t;
+
+static sunrise_camera_t sunrise_camera(const underwater_world_t *world)
+{
+    const float focus=10.5f;
+    float yaw=world->yaw*.01745329252f,pitch=world->pitch*.01745329252f;
+    float cp=cosf(pitch),radius=focus;
+    sunrise_camera_t camera={.x=radius*sinf(yaw)*cp,
+        .y=radius*sinf(pitch),.z=focus-radius*cosf(yaw)*cp};
+    float dx=-camera.x,dy=-camera.y,dz=focus-camera.z;
+    float length=sqrtf(dx*dx+dy*dy+dz*dz);
+    float fx=dx/length,fy=dy/length,fz=dz/length;
+    float right_length=sqrtf(fz*fz+fx*fx),rx=fz/right_length,rz=-fx/right_length;
+    camera.m[0]=rx;camera.m[1]=0;camera.m[2]=rz;
+    camera.m[3]=fy*rz;camera.m[4]=fz*rx-fx*rz;camera.m[5]=-fy*rx;
+    camera.m[6]=fx;camera.m[7]=fy;camera.m[8]=fz;
+    return camera;
+}
+
+static bool sunrise_project(const sunrise_camera_t *camera,float u,float v,
+                            uint16_t raw_depth,Vector2 *out)
+{
+    const float focal=480.0f*1.055f;
+    float inverse_depth=(float)raw_depth/65535.0f*.3f;
+    float z=1.0f/fmaxf(.007f,inverse_depth);
+    float x=(u-.5f)*480.0f*z/focal*1.14f;
+    float y=(.5f-v)*480.0f*z/focal*1.14f;
+    float dx=x-camera->x,dy=y-camera->y,dz=z-camera->z;
+    float view_z=dx*camera->m[6]+dy*camera->m[7]+dz*camera->m[8];
+    if(view_z<.2f)return false;
+    out->x=240.0f+focal*(dx*camera->m[0]+dy*camera->m[1]+dz*camera->m[2])/view_z;
+    out->y=240.0f-focal*(dx*camera->m[3]+dy*camera->m[4]+dz*camera->m[5])/view_z;
+    return true;
+}
+
+static bool sunrise_project_xyz(const sunrise_camera_t *camera,float x,float y,
+                                float z,Vector2 *out)
+{
+    const float focal=480.0f*1.055f;
+    float dx=x-camera->x,dy=y-camera->y,dz=z-camera->z;
+    float view_z=dx*camera->m[6]+dy*camera->m[7]+dz*camera->m[8];
+    if(view_z<.2f)return false;
+    out->x=240.0f+focal*(dx*camera->m[0]+dy*camera->m[1]+dz*camera->m[2])/view_z;
+    out->y=240.0f-focal*(dx*camera->m[3]+dy*camera->m[4]+dz*camera->m[5])/view_z;
+    return true;
+}
+
+static float mirror_unit(float value)
+{
+    value=fmodf(value,2.0f);
+    if(value<0)value+=2.0f;
+    return value<=1.0f?value:2.0f-value;
+}
+
+static int sunrise_depth_index(int value)
+{
+    if(value<0)return 0;
+    if(value>SUNRISE_DEPTH_GRID)return SUNRISE_DEPTH_GRID;
+    return value;
+}
+
+static void draw_sunrise_orbit(const underwater_world_t *world,MosaicoAtlas sunrise)
+{
+    sunrise_camera_t camera=sunrise_camera(world);
+    const int n=SUNRISE_DEPTH_GRID;
+    enum { HORIZONTAL_EDGE_TILES=6, VERTICAL_EDGE_TILES=2 };
+    /* Render the prototype's depth surface far-to-near. Small texture patches
+       approximate its perspective triangles while staying on the RGB565 fast
+       path shared by Host and device. */
+    for(int depth_band=0;depth_band<8;++depth_band){
+        for(int y=-VERTICAL_EDGE_TILES;y<n+VERTICAL_EDGE_TILES;++y)
+        for(int x=-HORIZONTAL_EDGE_TILES;x<n+HORIZONTAL_EDGE_TILES;++x){
+            int x0=sunrise_depth_index(x),x1=sunrise_depth_index(x+1);
+            int y0=sunrise_depth_index(y),y1=sunrise_depth_index(y+1);
+            int a=y0*(n+1)+x0,b=y0*(n+1)+x1;
+            int c=y1*(n+1)+x0,d=y1*(n+1)+x1;
+            unsigned average=((unsigned)SUNRISE_DEPTH[a]+SUNRISE_DEPTH[b]+
+                              SUNRISE_DEPTH[c]+SUNRISE_DEPTH[d])/4U;
+            if((int)(average*8U/65536U)!=depth_band)continue;
+            float u0=(float)x/n,u1=(float)(x+1)/n;
+            float v0=(float)y/n,v1=(float)(y+1)/n;
+            Vector2 p[4];
+            if(!sunrise_project(&camera,u0,v0,SUNRISE_DEPTH[a],&p[0])||
+               !sunrise_project(&camera,u1,v0,SUNRISE_DEPTH[b],&p[1])||
+               !sunrise_project(&camera,u0,v1,SUNRISE_DEPTH[c],&p[2])||
+               !sunrise_project(&camera,u1,v1,SUNRISE_DEPTH[d],&p[3]))continue;
+            float left=fminf(fminf(p[0].x,p[1].x),fminf(p[2].x,p[3].x));
+            float right=fmaxf(fmaxf(p[0].x,p[1].x),fmaxf(p[2].x,p[3].x));
+            float top=fminf(fminf(p[0].y,p[1].y),fminf(p[2].y,p[3].y));
+            float bottom=fmaxf(fmaxf(p[0].y,p[1].y),fmaxf(p[2].y,p[3].y));
+            if(right<0||left>480||bottom<0||top>480)continue;
+            float source_u0=mirror_unit(u0),source_u1=mirror_unit(u1);
+            float source_v0=mirror_unit(v0),source_v1=mirror_unit(v1);
+            float tx0=source_u0*(sunrise.texture.width-1);
+            float tx1=source_u1*(sunrise.texture.width-1);
+            float ty0=source_v0*(sunrise.texture.height-1);
+            float ty1=source_v1*(sunrise.texture.height-1);
+            mosaico_textured_vertex_t va={p[0].x,p[0].y,tx0,ty0};
+            mosaico_textured_vertex_t vb={p[1].x,p[1].y,tx1,ty0};
+            mosaico_textured_vertex_t vc={p[2].x,p[2].y,tx0,ty1};
+            mosaico_textured_vertex_t vd={p[3].x,p[3].y,tx1,ty1};
+            Mosaico2DDrawTexturedTriangle(sunrise.texture,va,vc,vb,256);
+            Mosaico2DDrawTexturedTriangle(sunrise.texture,vb,vc,vd,256);
+        }
+    }
+}
+
+static Vector2 sunrise_volume_screen[SUNRISE_SIDE_VERTEX_COUNT];
+static uint8_t sunrise_volume_valid[SUNRISE_SIDE_VERTEX_COUNT];
+
+static void draw_sunrise_volume_part(const sunrise_camera_t *camera,
+    const sunrise_volume_vertex_t *vertices,int vertex_count,
+    const sunrise_volume_face_t *faces,int face_count,MosaicoAtlas atlas,
+    float authored_width,float authored_height,unsigned light)
+{
+    if(!atlas.texture.id||vertex_count>SUNRISE_SIDE_VERTEX_COUNT)return;
+    for(int i=0;i<vertex_count;++i){
+        const sunrise_volume_vertex_t *v=&vertices[i];
+        sunrise_volume_valid[i]=(uint8_t)sunrise_project_xyz(camera,v->x*.001f,
+            v->y*.001f,v->z*.001f,&sunrise_volume_screen[i]);
+    }
+    float scale_u=atlas.texture.width/authored_width;
+    float scale_v=atlas.texture.height/authored_height;
+    for(int i=0;i<face_count;++i){
+        unsigned ia=faces[i].a,ib=faces[i].b,ic=faces[i].c;
+        if(!sunrise_volume_valid[ia]||!sunrise_volume_valid[ib]||
+           !sunrise_volume_valid[ic])continue;
+        const sunrise_volume_vertex_t *a=&vertices[ia],*b=&vertices[ib],*c=&vertices[ic];
+        Vector2 pa=sunrise_volume_screen[ia],pb=sunrise_volume_screen[ib],
+            pc=sunrise_volume_screen[ic];
+        float area=(pb.x-pa.x)*(pc.y-pa.y)-(pb.y-pa.y)*(pc.x-pa.x);
+        if(area<=.25f)continue;
+        float min_x=fminf(pa.x,fminf(pb.x,pc.x));
+        float max_x=fmaxf(pa.x,fmaxf(pb.x,pc.x));
+        float min_y=fminf(pa.y,fminf(pb.y,pc.y));
+        float max_y=fmaxf(pa.y,fmaxf(pb.y,pc.y));
+        if(max_x<0||min_x>=480||max_y<0||min_y>=480)continue;
+        mosaico_textured_vertex_t va={sunrise_volume_screen[ia].x,
+            sunrise_volume_screen[ia].y,a->u*scale_u,a->v*scale_v};
+        mosaico_textured_vertex_t vb={sunrise_volume_screen[ib].x,
+            sunrise_volume_screen[ib].y,b->u*scale_u,b->v*scale_v};
+        mosaico_textured_vertex_t vc={sunrise_volume_screen[ic].x,
+            sunrise_volume_screen[ic].y,c->u*scale_u,c->v*scale_v};
+        Mosaico2DDrawTexturedTriangle(atlas.texture,va,vb,vc,light);
+    }
+}
+
+static void draw_sunrise_cliff(const underwater_world_t *world,
+    MosaicoAtlas front,MosaicoAtlas side,MosaicoAtlas rear)
+{
+    sunrise_camera_t camera=sunrise_camera(world);
+    draw_sunrise_volume_part(&camera,SUNRISE_REAR_VERTICES,SUNRISE_REAR_VERTEX_COUNT,
+        SUNRISE_REAR_FACES,SUNRISE_REAR_FACE_COUNT,rear,512,512,184);
+    draw_sunrise_volume_part(&camera,SUNRISE_SIDE_VERTICES,SUNRISE_SIDE_VERTEX_COUNT,
+        SUNRISE_SIDE_FACES,SUNRISE_SIDE_FACE_COUNT,side,1024,256,225);
+    draw_sunrise_volume_part(&camera,SUNRISE_FRONT_VERTICES,SUNRISE_FRONT_VERTEX_COUNT,
+        SUNRISE_FRONT_FACES,SUNRISE_FRONT_FACE_COUNT,front,768,768,256);
 }
 
 static void draw_rainforest_fx(const underwater_world_t *world)
@@ -201,20 +365,21 @@ static void draw_aurora_fx(const underwater_world_t *world)
 static void draw_sunrise_fx(const underwater_world_t *world)
 {
     float t=world->tick*.028f;
+    float orbit_x=world->yaw/14.0f;
+    float orbit_y=world->pitch/8.0f;
     for(int i=0;i<5;++i){
-        float lon=fmodf(35.0f+i*73.0f+world->tick*.014f*(1+i%2),360.0f);
-        int x=(int)world_to_screen_x(lon,world->yaw);
-        int y=82+i*31+(int)(sinf(t+i)*7.0f)-(int)(world->pitch*2.7f);
+        int x=45+i*96+(int)(sinf(t*.35f+i)*24.0f-orbit_x*13.0f);
+        int y=82+i*13+(int)(sinf(t+i)*7.0f-orbit_y*4.0f);
         if(x<-10||x>490)continue;
         DrawLine(x-8,y+3,x,y,(Color){51,49,44,180});DrawLine(x,y,x+8,y+3,(Color){51,49,44,180});
     }
     int seeds=effect_count(world,6,12,20);
     for(int i=0;i<seeds;++i){
         int layer=i%3;
-        float lon=fmodf(9.0f+i*43.0f+world->tick*.008f*(1+layer),360.0f);
-        int x=(int)world_to_screen_x_layer(lon,world->yaw,1.0f+layer*.025f);
+        int x=(i*43+(int)(world->tick*.008f*(1+layer)))%520-20-
+              (int)(orbit_x*(18.0f+layer*6.0f));
         int y=270+(i*47+(int)(sinf(t+i)*18))%145-
-              (int)(world->pitch*(3.5f+layer*.7f));
+              (int)(orbit_y*(6.0f+layer*2.0f));
         if(x<-6||x>486)continue;
         Color seed=(Color){255,241,205,170};
         DrawLine(x,y,x-3,y+7,(Color){116,91,58,135});
@@ -223,20 +388,19 @@ static void draw_sunrise_fx(const underwater_world_t *world)
     }
     int grass=effect_count(world,5,9,14);
     for(int i=0;i<grass;++i){
-        float lon=fmodf(16.0f+i*39.0f,360.0f);
-        int x=(int)world_to_screen_x_layer(lon,world->yaw,1.12f);
-        int py=(int)(-world->pitch*5.7f);
+        int x=18+i*52-(int)(orbit_x*31.0f);
+        int py=(int)(-orbit_y*14.0f);
         int bend=(int)(sinf(t*.7f+i*.8f)*5.0f);
         if(x>-8&&x<488)DrawLine(x,461+py,x+bend,438+py-(i%3)*5,(Color){77,83,48,120});
     }
     /* Large foreground dandelions keep the original scene idea and add depth. */
-    static const float flower_lon[]={24.0f,112.0f,206.0f,311.0f};
+    static const float flower_x[]={42.0f,166.0f,304.0f,438.0f};
     int flowers=effect_count(world,2,3,4);
     for(int i=0;i<flowers;++i){
-        int x=(int)world_to_screen_x_layer(flower_lon[i],world->yaw,1.16f);
+        int x=(int)(flower_x[i]-orbit_x*38.0f);
         if(x<-32||x>512)continue;
         int bend=(int)(sinf(t*.55f+i*1.9f)*8.0f);
-        int y=391+(i%2)*24-(int)(world->pitch*6.0f);
+        int y=391+(i%2)*24-(int)(orbit_y*18.0f);
         int r=13+(i%3)*3;
         DrawLine(x,y+80,x+bend,y,(Color){74,83,43,210});
         DrawCircleLines(x+bend,y,(float)r,(Color){244,230,190,205});
@@ -419,13 +583,16 @@ static void draw_overlay(const underwater_world_t *world)
 void underwater_view_render(const underwater_world_t *world,MosaicoAtlas panorama,
                             MosaicoAtlas fish,MosaicoAtlas creatures,
                             MosaicoAtlas aurora,MosaicoAtlas sunrise,
+                            MosaicoAtlas sunrise_cliff_front,
+                            MosaicoAtlas sunrise_cliff_side,
+                            MosaicoAtlas sunrise_cliff_rear,
                             MosaicoAtlas reindeer,MosaicoAtlas rainforest)
 {
     if(!world)return;
     BeginDrawing();
     ClearBackground((Color){1,28,44,255});
     if(world->scene==UNDERWATER_SCENE_AURORA){draw_panorama(world,aurora);draw_reindeer(world,reindeer);draw_aurora_fx(world);}
-    else if(world->scene==UNDERWATER_SCENE_SUNRISE){draw_panorama(world,sunrise);draw_sunrise_fx(world);}
+    else if(world->scene==UNDERWATER_SCENE_SUNRISE){draw_sunrise_orbit(world,sunrise);draw_sunrise_cliff(world,sunrise_cliff_front,sunrise_cliff_side,sunrise_cliff_rear);draw_sunrise_fx(world);}
     else if(world->scene==UNDERWATER_SCENE_RAINFOREST){draw_panorama(world,rainforest);draw_rainforest_fx(world);}
     else {draw_panorama(world,panorama);draw_marine_creatures(world,creatures);draw_swimming_fish(world,fish);draw_lens_particles(world);}
     draw_overlay(world);

@@ -8,10 +8,10 @@
 #include "underwater_view.h"
 #include "underwater_world.h"
 
-typedef struct { underwater_world_t world;MosaicoAtlas panorama,fish,creatures,aurora,sunrise,reindeer,rainforest;bool paused; } module_state_t;
+typedef struct { underwater_world_t world;MosaicoAtlas panorama,fish,creatures,aurora,sunrise,sunrise_cliff_front,sunrise_cliff_side,sunrise_cliff_rear,reindeer,rainforest;bool paused; } module_state_t;
 static int initialize(void *value,const char *asset_root)
-{ module_state_t *s=value;mosaico_host_assets_set_root(asset_root);s->panorama=LoadMosaicoAtlas("panorama.atlas");s->fish=LoadMosaicoAtlas("reef_fish.atlas");s->creatures=LoadMosaicoAtlas("marine_creatures.atlas");s->aurora=LoadMosaicoAtlas("aurora.atlas");s->sunrise=LoadMosaicoAtlas("sunrise.atlas");s->reindeer=LoadMosaicoAtlas("reindeer.atlas");s->rainforest=LoadMosaicoAtlas("rainforest.atlas");if(!s->panorama.texture.id||!s->fish.texture.id||!s->creatures.texture.id||!s->aurora.texture.id||!s->sunrise.texture.id||!s->reindeer.texture.id||!s->rainforest.texture.id)return -1;underwater_world_reset(&s->world);InitWindow(480,480,"Living Worlds");SetTargetFPS(30);return 0; }
-static void shutdown(void *value){module_state_t *s=value;if(s){UnloadMosaicoAtlas(s->rainforest);UnloadMosaicoAtlas(s->reindeer);UnloadMosaicoAtlas(s->sunrise);UnloadMosaicoAtlas(s->aurora);UnloadMosaicoAtlas(s->creatures);UnloadMosaicoAtlas(s->fish);UnloadMosaicoAtlas(s->panorama);}}
+{ module_state_t *s=value;mosaico_host_assets_set_root(asset_root);s->panorama=LoadMosaicoAtlas("panorama.atlas");s->fish=LoadMosaicoAtlas("reef_fish.atlas");s->creatures=LoadMosaicoAtlas("marine_creatures.atlas");s->aurora=LoadMosaicoAtlas("aurora.atlas");s->sunrise=LoadMosaicoAtlas("sunrise.atlas");s->sunrise_cliff_front=LoadMosaicoAtlas("sunrise_cliff_front.atlas");s->sunrise_cliff_side=LoadMosaicoAtlas("sunrise_cliff_side.atlas");s->sunrise_cliff_rear=LoadMosaicoAtlas("sunrise_cliff_rear.atlas");s->reindeer=LoadMosaicoAtlas("reindeer.atlas");s->rainforest=LoadMosaicoAtlas("rainforest.atlas");if(!s->panorama.texture.id||!s->fish.texture.id||!s->creatures.texture.id||!s->aurora.texture.id||!s->sunrise.texture.id||!s->sunrise_cliff_front.texture.id||!s->sunrise_cliff_side.texture.id||!s->sunrise_cliff_rear.texture.id||!s->reindeer.texture.id||!s->rainforest.texture.id)return -1;underwater_world_reset(&s->world);InitWindow(480,480,"Living Worlds");SetTargetFPS(30);return 0; }
+static void shutdown(void *value){module_state_t *s=value;if(s){UnloadMosaicoAtlas(s->rainforest);UnloadMosaicoAtlas(s->reindeer);UnloadMosaicoAtlas(s->sunrise_cliff_rear);UnloadMosaicoAtlas(s->sunrise_cliff_side);UnloadMosaicoAtlas(s->sunrise_cliff_front);UnloadMosaicoAtlas(s->sunrise);UnloadMosaicoAtlas(s->aurora);UnloadMosaicoAtlas(s->creatures);UnloadMosaicoAtlas(s->fish);UnloadMosaicoAtlas(s->panorama);}}
 static void input(void *value,const mosaico_host_input_v1_t *event)
 {
  module_state_t *s=value;if(!s||!event)return;
@@ -20,7 +20,7 @@ static void input(void *value,const mosaico_host_input_v1_t *event)
  else if(event->type==MOSAICO_HOST_INPUT_CONTROL){if(event->code==MOSAICO_HOST_CONTROL_PAUSE)s->paused=true;else if(event->code==MOSAICO_HOST_CONTROL_RESUME)s->paused=false;else if(event->code==MOSAICO_HOST_CONTROL_RESET)underwater_world_reset(&s->world);}
 }
 static void update(void *value){module_state_t *s=value;if(!s->paused)underwater_world_update(&s->world);}
-static int render(void *value){module_state_t *s=value;underwater_view_render(&s->world,s->panorama,s->fish,s->creatures,s->aurora,s->sunrise,s->reindeer,s->rainforest);return 0;}
+static int render(void *value){module_state_t *s=value;underwater_view_render(&s->world,s->panorama,s->fish,s->creatures,s->aurora,s->sunrise,s->sunrise_cliff_front,s->sunrise_cliff_side,s->sunrise_cliff_rear,s->reindeer,s->rainforest);return 0;}
 static uint32_t state_hash(const void *value){return underwater_world_hash(&((const module_state_t *)value)->world);}
 static int state_json(const void *value,char *output,size_t capacity)
 {

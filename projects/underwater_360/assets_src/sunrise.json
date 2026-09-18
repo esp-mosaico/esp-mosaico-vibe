@@ -1,11 +1,10 @@
 {
   "image": "sunrise_scene.png",
-  "columns": 2,
+  "columns": 1,
   "rows": 1,
-  "output_cell": 800,
+  "output_cell": 768,
   "alpha_mode": "opaque",
   "frames": [
-    {"name": "sunrise_west", "pivot_x": 0, "pivot_y": 0},
-    {"name": "sunrise_east", "pivot_x": 0, "pivot_y": 0}
+    {"name": "sunrise_space", "pivot_x": 0, "pivot_y": 0}
   ]
 }

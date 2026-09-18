@@ -12,7 +12,8 @@
 #include "underwater_world.h"
 
 static underwater_world_t world;
-static MosaicoAtlas background,fish,creatures,reindeer;
+static MosaicoAtlas background,fish,creatures,sunrise_cliff_front,sunrise_cliff_side,
+    sunrise_cliff_rear,reindeer;
 static void *background_pixels;
 static jpeg_decoder_handle_t background_decoder;
 static uint8_t loaded_scene=UINT8_MAX;
@@ -21,6 +22,9 @@ extern const uint8_t _binary_reef_fish_atlas_end[];
 extern const uint8_t _binary_marine_creatures_atlas_start[];
 extern const uint8_t _binary_marine_creatures_atlas_end[];
 extern const uint8_t _binary_reindeer_atlas_start[],_binary_reindeer_atlas_end[];
+extern const uint8_t _binary_sunrise_cliff_front_atlas_start[],_binary_sunrise_cliff_front_atlas_end[];
+extern const uint8_t _binary_sunrise_cliff_side_atlas_start[],_binary_sunrise_cliff_side_atlas_end[];
+extern const uint8_t _binary_sunrise_cliff_rear_atlas_start[],_binary_sunrise_cliff_rear_atlas_end[];
 extern const uint8_t _binary_ocean_jpg_start[],_binary_ocean_jpg_end[];
 extern const uint8_t _binary_aurora_jpg_start[],_binary_aurora_jpg_end[];
 extern const uint8_t _binary_sunrise_jpg_start[],_binary_sunrise_jpg_end[];
@@ -79,13 +83,27 @@ static esp_err_t before_display(void)
     err=mosaico_game_asset_register_memory("reef_fish.atlas",_binary_reef_fish_atlas_start,
         (size_t)(_binary_reef_fish_atlas_end-_binary_reef_fish_atlas_start));
     if(err!=ESP_OK)return err;
+    err=mosaico_game_asset_register_memory("sunrise_cliff_front.atlas",_binary_sunrise_cliff_front_atlas_start,
+        (size_t)(_binary_sunrise_cliff_front_atlas_end-_binary_sunrise_cliff_front_atlas_start));
+    if(err!=ESP_OK)return err;
+    err=mosaico_game_asset_register_memory("sunrise_cliff_side.atlas",_binary_sunrise_cliff_side_atlas_start,
+        (size_t)(_binary_sunrise_cliff_side_atlas_end-_binary_sunrise_cliff_side_atlas_start));
+    if(err!=ESP_OK)return err;
+    err=mosaico_game_asset_register_memory("sunrise_cliff_rear.atlas",_binary_sunrise_cliff_rear_atlas_start,
+        (size_t)(_binary_sunrise_cliff_rear_atlas_end-_binary_sunrise_cliff_rear_atlas_start));
+    if(err!=ESP_OK)return err;
     const jpeg_decode_engine_cfg_t engine_config={.intr_priority=0,.timeout_ms=250};
     ESP_RETURN_ON_ERROR(jpeg_new_decoder_engine(&engine_config,&background_decoder),"underwater_360","create JPEG decoder");
     ESP_RETURN_ON_ERROR(load_scene_background(UNDERWATER_SCENE_OCEAN),"underwater_360","load initial background");
     fish=LoadMosaicoAtlas("reef_fish.atlas");
     creatures=LoadMosaicoAtlas("marine_creatures.atlas");
+    sunrise_cliff_front=LoadMosaicoAtlas("sunrise_cliff_front.atlas");
+    sunrise_cliff_side=LoadMosaicoAtlas("sunrise_cliff_side.atlas");
+    sunrise_cliff_rear=LoadMosaicoAtlas("sunrise_cliff_rear.atlas");
     reindeer=LoadMosaicoAtlas("reindeer.atlas");
-    return background.texture.id&&fish.texture.id&&creatures.texture.id&&reindeer.texture.id?ESP_OK:ESP_ERR_NOT_FOUND;
+    return background.texture.id&&fish.texture.id&&creatures.texture.id&&
+        sunrise_cliff_front.texture.id&&sunrise_cliff_side.texture.id&&
+        sunrise_cliff_rear.texture.id&&reindeer.texture.id?ESP_OK:ESP_ERR_NOT_FOUND;
 }
 static esp_err_t on_start(void){underwater_world_reset(&world);return ESP_OK;}
 static void on_event(const mosaico_device_event_t *event){
@@ -98,7 +116,9 @@ static void on_event(const mosaico_device_event_t *event){
     }
 }
 static void on_update(void){underwater_world_update(&world);}
-static void on_render(void){underwater_view_render(&world,background,fish,creatures,background,background,reindeer,background);}
+static void on_render(void){underwater_view_render(&world,background,fish,creatures,
+    background,background,sunrise_cliff_front,sunrise_cliff_side,
+    sunrise_cliff_rear,reindeer,background);}
 static void on_stats(void){ESP_LOGI("underwater_360","yaw=%.1f pitch=%.1f hash=%08lx",world.yaw,world.pitch,(unsigned long)underwater_world_hash(&world));}
 static const mosaico_game_app_config_t CONFIG={.tag="underwater_360",.window_title="Living Worlds",.canvas_bind=GSP_UNDERWATER_360_BIND_GAME_CANVAS,.touch_points=1,.target_fps=30,.gsp_bundle=gsp_bundle_config,.register_mirror=raylib_screen_mirror_register,.before_display=before_display,.on_start=on_start,.on_event=on_event,.on_update=on_update,.on_render=on_render,.on_stats=on_stats};
 const mosaico_game_app_config_t *underwater_app_config(void){return &CONFIG;}
