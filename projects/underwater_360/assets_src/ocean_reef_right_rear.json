@@ -1,0 +1,14 @@
+{
+  "image": "ocean_reef_right_rear.png",
+  "columns": 1,
+  "rows": 1,
+  "output_cell": 192,
+  "alpha_mode": "opaque",
+  "frames": [
+    {
+      "name": "ocean_reef_right_rear",
+      "pivot_x": 0,
+      "pivot_y": 0
+    }
+  ]
+}

@@ -23,6 +23,56 @@
       "output": "aurora.atlas"
     },
     {
+      "config": "ocean.json",
+      "source": "ocean_scene.png",
+      "output": "ocean.atlas"
+    },
+    {
+      "config": "aurora_ice_front.json",
+      "source": "aurora_ice_front.png",
+      "output": "aurora_ice_front.atlas"
+    },
+    {
+      "config": "aurora_ice_side.json",
+      "source": "aurora_ice_side.png",
+      "output": "aurora_ice_side.atlas"
+    },
+    {
+      "config": "aurora_ice_rear.json",
+      "source": "aurora_ice_rear.png",
+      "output": "aurora_ice_rear.atlas"
+    },
+    {
+      "config": "ocean_reef_left_front.json",
+      "source": "ocean_reef_left_front.png",
+      "output": "ocean_reef_left_front.atlas"
+    },
+    {
+      "config": "ocean_reef_left_side.json",
+      "source": "ocean_reef_left_side.png",
+      "output": "ocean_reef_left_side.atlas"
+    },
+    {
+      "config": "ocean_reef_left_rear.json",
+      "source": "ocean_reef_left_rear.png",
+      "output": "ocean_reef_left_rear.atlas"
+    },
+    {
+      "config": "ocean_reef_right_front.json",
+      "source": "ocean_reef_right_front.png",
+      "output": "ocean_reef_right_front.atlas"
+    },
+    {
+      "config": "ocean_reef_right_side.json",
+      "source": "ocean_reef_right_side.png",
+      "output": "ocean_reef_right_side.atlas"
+    },
+    {
+      "config": "ocean_reef_right_rear.json",
+      "source": "ocean_reef_right_rear.png",
+      "output": "ocean_reef_right_rear.atlas"
+    },
+    {
       "config": "sunrise.json",
       "source": "sunrise_scene.png",
       "output": "sunrise.atlas"

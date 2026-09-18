@@ -4,6 +4,9 @@
   "sources": [
     "main/game_module.c",
     "main/underwater_world.c",
+    "main/underwater_aurora.c",
+    "main/underwater_ocean.c",
+    "main/underwater_volume.c",
     "main/underwater_view.c"
   ]
 }

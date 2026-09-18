@@ -1,10 +1,10 @@
 {
-  "image": "aurora_scene.png",
+  "image": "ocean_scene.png",
   "columns": 1,
   "rows": 1,
   "output_cell": 768,
   "alpha_mode": "opaque",
   "frames": [
-    {"name": "aurora_space", "pivot_x": 0, "pivot_y": 0}
+    {"name": "ocean_space", "pivot_x": 0, "pivot_y": 0}
   ]
 }

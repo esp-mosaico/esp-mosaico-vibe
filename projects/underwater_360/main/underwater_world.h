@@ -2,11 +2,29 @@
 #pragma once
 #include <stdbool.h>
 #include <stdint.h>
+#include "underwater_aurora.h"
+#include "underwater_ocean.h"
+
+#define UNDERWATER_SUNRISE_SEED_CAP 48
 
 typedef struct {
-    float yaw, pitch, last_x, last_y;
+    float x,y,z;
+    float vx,vy,vz;
+    float radius,rx,ry,rz,phase;
+    uint16_t age,life;
+    uint8_t active;
+} underwater_sunrise_seed_t;
+
+typedef struct {
+    float yaw, pitch, last_x, last_y, press_x, press_y;
     float yaw_velocity, pitch_velocity;
     uint32_t tick;
+    uint32_t sunrise_rng;
+    underwater_sunrise_seed_t sunrise_seeds[UNDERWATER_SUNRISE_SEED_CAP];
+    underwater_aurora_t aurora;
+    underwater_ocean_t ocean;
+    uint16_t sunrise_next_gust,sunrise_gust_ticks;
+    uint8_t sunrise_seed_count;
     uint16_t idle_ticks;
     uint8_t scene,effects_level;
     bool dragging,ui_touch;
