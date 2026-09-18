@@ -17,6 +17,8 @@ python mosaico.py session run --project projects/hello_world
 在“设置 → 项目会话与设备归属”查看候选端点、归属及转让状态。
 Ctrl-C 结束拥有者会话，等待当前操作收尾后退出；关闭其他监控终端不会关闭网关。
 崩溃退出通过父子进程管道触发收尾，而非依赖 PID 或最后一次 HTTP 请求。
+升级客户端若错过网关退出前的最终响应，会在确认本项目网关已经退出后，
+读取本次会话已持久化的完成记录；不会重启网关或重新提交升级。
 普通客户端没有关闭网关的 HTTP 接口。收尾最多等待 15 分钟；未解决的操作
 或维护租约保留归属记录，后续必须显式核对，不会因超时向其他项目自动开放。
 
@@ -147,3 +149,4 @@ CLI、Web 和 Agent 使用同一个项目 Gateway 地址。项目控制 API 只�
 操作 ID 和转让记录。模拟连接及主机测试不能替代真实 OTA/Recovery 验收。
 
 已完成的实机记录见[2026-09-18 双设备项目 Gateway 端到端验收](validation/project-gateway-e2e-2026-09-18.md)。
+Windows 补测及本轮修复见[2026-09-18 Windows 双设备验收](validation/project-gateway-windows-2026-09-18.md)。
