@@ -278,7 +278,7 @@ static void draw_ocean_water(const underwater_ocean_t *ocean,float yaw,float pit
         if((int)(average*8U/65536U)!=band)continue;
         unsigned reef=((unsigned)OCEAN_MASK_R[a]+OCEAN_MASK_R[b]+
                        OCEAN_MASK_R[c]+OCEAN_MASK_R[d])/4U;
-        if(reef<40U&&(x0<=2||x1>=6))continue;
+        unsigned background_light=reef<40U?232U:256U;
         Vector2 p[4];
         if(!ocean_project_depth(&camera,(float)x/n,(float)y/n,OCEAN_DEPTH[a],&p[0])||
            !ocean_project_depth(&camera,(float)(x+1)/n,(float)y/n,OCEAN_DEPTH[b],&p[1])||
@@ -293,8 +293,8 @@ static void draw_ocean_water(const underwater_ocean_t *ocean,float yaw,float pit
             ocean_mirror((float)(y+1)/n)*tex_h};
         mosaico_textured_vertex_t vd={p[3].x,p[3].y,ocean_mirror((float)(x+1)/n)*tex_w,
             ocean_mirror((float)(y+1)/n)*tex_h};
-        Mosaico2DDrawTexturedTriangle(water.texture,va,vc,vb,256);
-        Mosaico2DDrawTexturedTriangle(water.texture,vb,vc,vd,256);
+        Mosaico2DDrawTexturedTriangle(water.texture,va,vc,vb,background_light);
+        Mosaico2DDrawTexturedTriangle(water.texture,vb,vc,vd,background_light);
     }
     (void)ocean;
 }
@@ -305,15 +305,21 @@ static void draw_ocean_reefs(float yaw,float pitch,MosaicoAtlas left_front,
                              MosaicoAtlas right_rear)
 {
     living_camera_t camera=living_camera_orbit(yaw,pitch,OCEAN_FOCUS);
-    living_draw_volume(&camera,OCEAN_LEFT_REAR_VERTICES,OCEAN_LEFT_REAR_VERTEX_COUNT,
-        OCEAN_LEFT_REAR_FACES,OCEAN_LEFT_REAR_FACE_COUNT,left_rear,512,512,3);
-    living_draw_volume(&camera,OCEAN_RIGHT_REAR_VERTICES,OCEAN_RIGHT_REAR_VERTEX_COUNT,
-        OCEAN_RIGHT_REAR_FACES,OCEAN_RIGHT_REAR_FACE_COUNT,right_rear,512,512,3);
-    living_draw_volume(&camera,OCEAN_LEFT_FRONT_VERTICES,OCEAN_LEFT_FRONT_VERTEX_COUNT,
-        OCEAN_LEFT_FRONT_FACES,OCEAN_LEFT_FRONT_FACE_COUNT,left_front,768,768,1);
-    living_draw_volume(&camera,OCEAN_RIGHT_FRONT_VERTICES,OCEAN_RIGHT_FRONT_VERTEX_COUNT,
-        OCEAN_RIGHT_FRONT_FACES,OCEAN_RIGHT_FRONT_FACE_COUNT,right_front,768,768,1);
-    (void)left_side;(void)right_side;
+    /* Painter order: farther reef first.  Reef fronts sit over the continuous
+       water mesh.  The authored side UVs stretch into detached diagonal slabs
+       at oblique angles, so both side walls and rear caps stay omitted. */
+    if(yaw<0){
+        living_draw_volume(&camera,OCEAN_RIGHT_FRONT_VERTICES,OCEAN_RIGHT_FRONT_VERTEX_COUNT,
+            OCEAN_RIGHT_FRONT_FACES,OCEAN_RIGHT_FRONT_FACE_COUNT,right_front,768,768,1);
+        living_draw_volume(&camera,OCEAN_LEFT_FRONT_VERTICES,OCEAN_LEFT_FRONT_VERTEX_COUNT,
+            OCEAN_LEFT_FRONT_FACES,OCEAN_LEFT_FRONT_FACE_COUNT,left_front,768,768,1);
+    }else{
+        living_draw_volume(&camera,OCEAN_LEFT_FRONT_VERTICES,OCEAN_LEFT_FRONT_VERTEX_COUNT,
+            OCEAN_LEFT_FRONT_FACES,OCEAN_LEFT_FRONT_FACE_COUNT,left_front,768,768,1);
+        living_draw_volume(&camera,OCEAN_RIGHT_FRONT_VERTICES,OCEAN_RIGHT_FRONT_VERTEX_COUNT,
+            OCEAN_RIGHT_FRONT_FACES,OCEAN_RIGHT_FRONT_FACE_COUNT,right_front,768,768,1);
+    }
+    (void)left_side;(void)left_rear;(void)right_side;(void)right_rear;
 }
 
 static void ocean_tri(const living_camera_t *camera,float ax,float ay,float az,
