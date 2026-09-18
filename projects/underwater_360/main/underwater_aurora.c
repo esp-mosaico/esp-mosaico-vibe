@@ -270,7 +270,9 @@ static void draw_aurora_light_field(const underwater_aurora_t *aurora,
         float right=fmaxf(fmaxf(mesh[a].x,mesh[b].x),fmaxf(mesh[c].x,mesh[d].x));
         float top=fminf(fminf(mesh[a].y,mesh[b].y),fminf(mesh[c].y,mesh[d].y));
         float bottom=fmaxf(fmaxf(mesh[a].y,mesh[b].y),fmaxf(mesh[c].y,mesh[d].y));
-        if(right<0||left>480||bottom<0||top>480)continue;
+        if(right<0||left>=480||bottom<0||top>=480)continue;
+        if((right-left)*(bottom-top)<1.5f)continue;
+        if(living_cover_quad(mesh[a],mesh[b],mesh[c],mesh[d]))continue;
         int slot=band_n[band]++;
         band_ix[band][slot]=(uint16_t)ix;
         band_iy[band][slot]=(uint16_t)iy;
@@ -320,6 +322,14 @@ void underwater_aurora_draw(const underwater_aurora_t *aurora,float yaw,float pi
 {
     aurora_clamp_cone(&yaw,&pitch);
     living_camera_t camera=living_camera_orbit(yaw,pitch,AURORA_FOCUS);
+    living_cover_reset();
+    living_cover_volume(&camera,AURORA_ICE_REAR_VERTICES,AURORA_ICE_REAR_VERTEX_COUNT,
+        AURORA_ICE_REAR_FACES,AURORA_ICE_REAR_FACE_COUNT,3);
+    living_cover_volume(&camera,AURORA_ICE_SIDE_VERTICES,AURORA_ICE_SIDE_VERTEX_COUNT,
+        AURORA_ICE_SIDE_FACES,AURORA_ICE_SIDE_FACE_COUNT,2);
+    living_cover_volume(&camera,AURORA_ICE_FRONT_VERTICES,AURORA_ICE_FRONT_VERTEX_COUNT,
+        AURORA_ICE_FRONT_FACES,AURORA_ICE_FRONT_FACE_COUNT,1);
+    living_cover_seal();
     draw_aurora_light_field(aurora,&camera,space);
     draw_aurora_ice(&camera,ice_front,ice_side,ice_rear);
     float t=aurora->tick*AURORA_DT;

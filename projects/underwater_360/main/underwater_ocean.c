@@ -345,7 +345,9 @@ static void draw_ocean_water(const underwater_ocean_t *ocean,const living_camera
         float right=fmaxf(fmaxf(mesh[a].x,mesh[b].x),fmaxf(mesh[c].x,mesh[d].x));
         float top=fminf(fminf(mesh[a].y,mesh[b].y),fminf(mesh[c].y,mesh[d].y));
         float bottom=fmaxf(fmaxf(mesh[a].y,mesh[b].y),fmaxf(mesh[c].y,mesh[d].y));
-        if(right<0||left>480||bottom<0||top>480)continue;
+        if(right<0||left>=480||bottom<0||top>=480)continue;
+        if((right-left)*(bottom-top)<1.5f)continue;
+        if(living_cover_quad(mesh[a],mesh[b],mesh[c],mesh[d]))continue;
         unsigned reef=(unsigned)((mask[a]+mask[b]+mask[c]+mask[d])*.25f);
         int slot=band_n[band]++;
         band_ix[band][slot]=(uint16_t)ix;
@@ -520,6 +522,12 @@ void underwater_ocean_draw(const underwater_ocean_t *ocean,float yaw,float pitch
     float nx=yaw/OCEAN_YAW_LIMIT,ny=pitch/OCEAN_PITCH_LIMIT,length=sqrtf(nx*nx+ny*ny);
     if(length>1.0f){yaw/=length;pitch/=length;}
     living_camera_t camera=living_camera_orbit(yaw,pitch,OCEAN_FOCUS);
+    living_cover_reset();
+    living_cover_volume(&camera,OCEAN_LEFT_FRONT_VERTICES,OCEAN_LEFT_FRONT_VERTEX_COUNT,
+        OCEAN_LEFT_FRONT_FACES,OCEAN_LEFT_FRONT_FACE_COUNT,1);
+    living_cover_volume(&camera,OCEAN_RIGHT_FRONT_VERTICES,OCEAN_RIGHT_FRONT_VERTEX_COUNT,
+        OCEAN_RIGHT_FRONT_FACES,OCEAN_RIGHT_FRONT_FACE_COUNT,1);
+    living_cover_seal();
     draw_ocean_water(ocean,&camera,water);
     draw_ocean_reefs(&camera,yaw,left_front,left_side,left_rear,right_front,right_side,right_rear);
     float t=ocean->tick*OCEAN_DT;

@@ -8,6 +8,7 @@
 #include "sunrise_volume.h"
 #include "underwater_aurora_draw.h"
 #include "underwater_ocean_draw.h"
+#include "underwater_volume.h"
 
 #define PANORAMA_WIDTH 1600.0f
 #define PANORAMA_HEIGHT 800.0f
@@ -218,7 +219,9 @@ static void draw_sunrise_orbit(const underwater_world_t *world,MosaicoAtlas sunr
         float right=fmaxf(fmaxf(p0.x,p1.x),fmaxf(p2.x,p3.x));
         float top=fminf(fminf(p0.y,p1.y),fminf(p2.y,p3.y));
         float bottom=fmaxf(fmaxf(p0.y,p1.y),fmaxf(p2.y,p3.y));
-        if(right<0||left>480||bottom<0||top>480)continue;
+        if(right<0||left>=480||bottom<0||top>=480)continue;
+        if((right-left)*(bottom-top)<1.5f)continue;
+        if(living_cover_quad(p0,p1,p2,p3))continue;
         int slot=band_n[band]++;
         band_ix[band][slot]=(uint16_t)ix;
         band_iy[band][slot]=(uint16_t)iy;
@@ -242,9 +245,10 @@ static uint8_t sunrise_volume_valid[SUNRISE_FRONT_VERTEX_COUNT];
 static void draw_sunrise_volume_part(const sunrise_camera_t *camera,
     const sunrise_volume_vertex_t *vertices,int vertex_count,
     const sunrise_volume_face_t *faces,int face_count,MosaicoAtlas atlas,
-    float authored_width,float authored_height,int part)
+    float authored_width,float authored_height,int part,int cover_only)
 {
-    if(!atlas.texture.id||vertex_count>SUNRISE_FRONT_VERTEX_COUNT)return;
+    if(vertex_count>SUNRISE_FRONT_VERTEX_COUNT)return;
+    if(!cover_only&&!atlas.texture.id)return;
     for(int i=0;i<vertex_count;++i){
         const sunrise_volume_vertex_t *v=&vertices[i];
         sunrise_volume_valid[i]=(uint8_t)sunrise_project_xyz(camera,v->x*.001f,
@@ -276,6 +280,10 @@ static void draw_sunrise_volume_part(const sunrise_camera_t *camera,
         float min_y=fminf(pa.y,fminf(pb.y,pc.y));
         float max_y=fmaxf(pa.y,fmaxf(pb.y,pc.y));
         if(max_x<0||min_x>=480||max_y<0||min_y>=480)continue;
+        if(cover_only){
+            living_cover_add_triangle(pa,pb,pc);
+            continue;
+        }
         float au,av,bu,bv,cu,cv;
         if(part==2||part==3){
             /* HTML ClosedLandscape sides use world-space UVs, not the strip unwrap. */
@@ -301,15 +309,15 @@ static void draw_sunrise_volume_part(const sunrise_camera_t *camera,
 }
 
 static void draw_sunrise_cliff(const sunrise_camera_t *camera,
-    MosaicoAtlas front,MosaicoAtlas side,MosaicoAtlas rear)
+    MosaicoAtlas front,MosaicoAtlas side,MosaicoAtlas rear,int cover_only)
 {
     draw_sunrise_volume_part(camera,SUNRISE_REAR_VERTICES,SUNRISE_REAR_VERTEX_COUNT,
-        SUNRISE_REAR_FACES,SUNRISE_REAR_FACE_COUNT,rear,512,512,3);
+        SUNRISE_REAR_FACES,SUNRISE_REAR_FACE_COUNT,rear,512,512,3,cover_only);
     draw_sunrise_volume_part(camera,SUNRISE_SIDE_VERTICES,SUNRISE_SIDE_VERTEX_COUNT,
         SUNRISE_SIDE_FACES,SUNRISE_SIDE_FACE_COUNT,side,
-        (float)side.texture.width,(float)side.texture.height,2);
+        (float)side.texture.width,(float)side.texture.height,2,cover_only);
     draw_sunrise_volume_part(camera,SUNRISE_FRONT_VERTICES,SUNRISE_FRONT_VERTEX_COUNT,
-        SUNRISE_FRONT_FACES,SUNRISE_FRONT_FACE_COUNT,front,768,768,1);
+        SUNRISE_FRONT_FACES,SUNRISE_FRONT_FACE_COUNT,front,768,768,1,cover_only);
 }
 
 typedef struct {
@@ -877,10 +885,14 @@ void underwater_view_render(const underwater_world_t *world,
             atlases->aurora_ice_rear);
     }else if(world->scene==UNDERWATER_SCENE_SUNRISE){
         sunrise_camera_t camera=sunrise_camera(world);
+        living_cover_reset();
+        draw_sunrise_cliff(&camera,atlases->sunrise_cliff_front,atlases->sunrise_cliff_side,
+                           atlases->sunrise_cliff_rear,1);
+        living_cover_seal();
         draw_sunrise_orbit(world,atlases->sunrise);
         draw_sunrise_seeds(world,false);
         draw_sunrise_cliff(&camera,atlases->sunrise_cliff_front,atlases->sunrise_cliff_side,
-                           atlases->sunrise_cliff_rear);
+                           atlases->sunrise_cliff_rear,0);
         draw_sunrise_seeds(world,true);
         draw_sunrise_fx(world);
     }else if(world->scene==UNDERWATER_SCENE_RAINFOREST){

@@ -21,3 +21,10 @@ void living_draw_volume_uv(const living_camera_t *camera,
                            MosaicoAtlas atlas,float src_w,float src_h,
                            float dst_u0,float dst_v0,float dst_u1,float dst_v1,
                            int part);
+void living_cover_reset(void);
+void living_cover_add_triangle(Vector2 a,Vector2 b,Vector2 c);
+void living_cover_volume(const living_camera_t *camera,
+                         const living_volume_vertex_t *vertices,int vertex_count,
+                         const living_volume_face_t *faces,int face_count,int part);
+void living_cover_seal(void);
+int living_cover_quad(Vector2 a,Vector2 b,Vector2 c,Vector2 d);
