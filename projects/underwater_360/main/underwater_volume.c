@@ -50,7 +50,7 @@ void living_draw_volume_uv(const living_camera_t *camera,
         living_valid[i]=(uint8_t)living_project_xyz(camera,v->x*.001f,v->y*.001f,
             v->z*.001f,&living_screen[i]);
     }
-    float span_u=dst_u1-dst_u0,span_v=dst_v1-dst_v0;
+    float su=(dst_u1-dst_u0)/src_w,sv=(dst_v1-dst_v0)/src_h;
     for(int i=0;i<face_count;++i){
         unsigned ia=faces[i].a,ib=faces[i].b,ic=faces[i].c;
         if(!living_valid[ia]||!living_valid[ib]||!living_valid[ic])continue;
@@ -73,12 +73,9 @@ void living_draw_volume_uv(const living_camera_t *camera,
         float min_y=fminf(pa.y,fminf(pb.y,pc.y));
         float max_y=fmaxf(pa.y,fmaxf(pb.y,pc.y));
         if(max_x<0||min_x>=480||max_y<0||min_y>=480)continue;
-        mosaico_textured_vertex_t va={pa.x,pa.y,dst_u0+a->u/src_w*span_u,
-            dst_v0+a->v/src_h*span_v};
-        mosaico_textured_vertex_t vb={pb.x,pb.y,dst_u0+b->u/src_w*span_u,
-            dst_v0+b->v/src_h*span_v};
-        mosaico_textured_vertex_t vc={pc.x,pc.y,dst_u0+c->u/src_w*span_u,
-            dst_v0+c->v/src_h*span_v};
+        mosaico_textured_vertex_t va={pa.x,pa.y,dst_u0+a->u*su,dst_v0+a->v*sv};
+        mosaico_textured_vertex_t vb={pb.x,pb.y,dst_u0+b->u*su,dst_v0+b->v*sv};
+        mosaico_textured_vertex_t vc={pc.x,pc.y,dst_u0+c->u*su,dst_v0+c->v*sv};
         Mosaico2DDrawTexturedTriangle(atlas.texture,va,vb,vc,faces[i].light);
     }
 }

@@ -213,10 +213,11 @@ static int aurora_depth_index(int value)
 static bool aurora_project_depth(const living_camera_t *camera,float u,float v,
                                  uint16_t raw,Vector2 *out)
 {
-    float inverse=(float)raw/65535.0f*.3f;
+    const float xy_scale=480.0f*1.14f/AURORA_FOCAL;
+    float inverse=(float)raw*(.3f/65535.0f);
     float z=1.0f/fmaxf(.007f,inverse);
-    return living_project_xyz(camera,(u-.5f)*480.0f*z/AURORA_FOCAL*1.14f,
-                              (.5f-v)*480.0f*z/AURORA_FOCAL*1.14f,z,out);
+    float scale=z*xy_scale;
+    return living_project_xyz(camera,(u-.5f)*scale,(.5f-v)*scale,z,out);
 }
 
 static void draw_aurora_light_field(const underwater_aurora_t *aurora,
@@ -282,8 +283,7 @@ static void draw_aurora_light_field(const underwater_aurora_t *aurora,
             mosaico_textured_vertex_t vb={mesh[b].x,mesh[b].y,tu[ix+1],tv[iy]};
             mosaico_textured_vertex_t vc={mesh[c].x,mesh[c].y,tu[ix],tv[iy+1]};
             mosaico_textured_vertex_t vd={mesh[d].x,mesh[d].y,tu[ix+1],tv[iy+1]};
-            Mosaico2DDrawTexturedTriangle(space.texture,va,vc,vb,256);
-            Mosaico2DDrawTexturedTriangle(space.texture,vb,vc,vd,256);
+            Mosaico2DDrawTexturedQuad(space.texture,va,vb,vc,vd,256);
         }
     }
     (void)aurora;

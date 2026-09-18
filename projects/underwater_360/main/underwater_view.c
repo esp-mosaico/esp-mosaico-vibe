@@ -117,10 +117,12 @@ static bool sunrise_project(const sunrise_camera_t *camera,float u,float v,
                             uint16_t raw_depth,Vector2 *out)
 {
     const float focal=480.0f*1.055f;
-    float inverse_depth=(float)raw_depth/65535.0f*.3f;
+    const float xy_scale=480.0f*1.14f/focal;
+    float inverse_depth=(float)raw_depth*(.3f/65535.0f);
     float z=1.0f/fmaxf(.007f,inverse_depth);
-    float x=(u-.5f)*480.0f*z/focal*1.14f;
-    float y=(.5f-v)*480.0f*z/focal*1.14f;
+    float scale=z*xy_scale;
+    float x=(u-.5f)*scale;
+    float y=(.5f-v)*scale;
     float dx=x-camera->x,dy=y-camera->y,dz=z-camera->z;
     float view_z=dx*camera->m[6]+dy*camera->m[7]+dz*camera->m[8];
     if(view_z<.2f)return false;
@@ -229,8 +231,7 @@ static void draw_sunrise_orbit(const underwater_world_t *world,MosaicoAtlas sunr
             mosaico_textured_vertex_t vb={mesh[b].x,mesh[b].y,tu[ix+1],tv[iy]};
             mosaico_textured_vertex_t vc={mesh[c].x,mesh[c].y,tu[ix],tv[iy+1]};
             mosaico_textured_vertex_t vd={mesh[d].x,mesh[d].y,tu[ix+1],tv[iy+1]};
-            Mosaico2DDrawTexturedTriangle(sunrise.texture,va,vc,vb,256);
-            Mosaico2DDrawTexturedTriangle(sunrise.texture,vb,vc,vd,256);
+            Mosaico2DDrawTexturedQuad(sunrise.texture,va,vb,vc,vd,256);
         }
     }
 }
@@ -278,15 +279,15 @@ static void draw_sunrise_volume_part(const sunrise_camera_t *camera,
         float au,av,bu,bv,cu,cv;
         if(part==2||part==3){
             /* HTML ClosedLandscape sides use world-space UVs, not the strip unwrap. */
-            const float shell=56.0f;
+            const float k=.056f;
             if(abs(faces[i].ny)>abs(faces[i].nx)){
-                au=a->x*.001f*shell;av=a->z*.001f*shell;
-                bu=b->x*.001f*shell;bv=b->z*.001f*shell;
-                cu=c->x*.001f*shell;cv=c->z*.001f*shell;
+                au=a->x*k;av=a->z*k;
+                bu=b->x*k;bv=b->z*k;
+                cu=c->x*k;cv=c->z*k;
             }else{
-                au=a->z*.001f*shell;av=a->y*.001f*shell;
-                bu=b->z*.001f*shell;bv=b->y*.001f*shell;
-                cu=c->z*.001f*shell;cv=c->y*.001f*shell;
+                au=a->z*k;av=a->y*k;
+                bu=b->z*k;bv=b->y*k;
+                cu=c->z*k;cv=c->y*k;
             }
         }else{
             au=a->u*scale_u;av=a->v*scale_v;bu=b->u*scale_u;bv=b->v*scale_v;
@@ -352,7 +353,7 @@ static Vector2 rainforest_flow_project(const underwater_world_t *world,
 
 static int rainforest_on_screen(Vector2 p)
 {
-    return p.x>-16.0f&&p.x<496.0f&&p.y>-12.0f&&p.y<468.0f;
+    return p.x>-16.0f&&p.x<496.0f&&p.y>8.0f&&p.y<412.0f;
 }
 
 /* Specular glints travel on the photographed water. The JPEG already holds
@@ -427,23 +428,29 @@ static void draw_rainforest_water(const underwater_world_t *world,
     if(!rainforest.texture.id||rainforest.texture.height<=0)return;
     /* Traced on rainforest_scene.png so glints stay in the photographed
        channel while yaw wraps and the horizon-anchored pitch changes. */
-    static const rainforest_flow_point_t creek[]={
-        {120.0f,.688f},{132.0f,.678f},{144.0f,.658f},{156.0f,.646f},
-        {166.0f,.668f},{176.0f,.678f},{188.0f,.670f},{200.0f,.660f},
-        {214.0f,.674f},{228.0f,.684f},{244.0f,.672f},{262.0f,.660f},
-        {280.0f,.650f},{296.0f,.644f},{310.0f,.652f},{322.0f,.668f},
-        {334.0f,.686f},{346.0f,.698f}
+    /* Two photographed channels only. The mid-stream island at 220-296 is
+       leaves and rock; a single polyline through it parks glints on land. */
+    static const rainforest_flow_point_t left_creek[]={
+        {140.0f,.690f},{150.0f,.700f},{160.0f,.708f},{170.0f,.718f},
+        {180.0f,.730f},{190.0f,.745f},{200.0f,.758f},{210.0f,.768f},
+        {218.0f,.772f}
+    };
+    static const rainforest_flow_point_t right_creek[]={
+        {298.0f,.700f},{308.0f,.675f},{318.0f,.690f},
+        {328.0f,.710f},{338.0f,.720f},{348.0f,.730f}
     };
     static const rainforest_flow_point_t fall[]={
         {265.2f,.400f},{265.4f,.428f},{265.6f,.456f}
     };
-    draw_rainforest_glints(world,rainforest,creek,
-        (int)(sizeof(creek)/sizeof(creek[0])),5,8,11,.0044f,1.0f);
+    draw_rainforest_glints(world,rainforest,left_creek,
+        (int)(sizeof(left_creek)/sizeof(left_creek[0])),4,6,8,.0052f,1.0f);
+    draw_rainforest_glints(world,rainforest,right_creek,
+        (int)(sizeof(right_creek)/sizeof(right_creek[0])),3,4,6,.0060f,1.0f);
     draw_rainforest_fall(world,rainforest,fall,
         (int)(sizeof(fall)/sizeof(fall[0])));
 
     static const rainforest_flow_point_t foam_sites[]={
-        {156.0f,.646f},{322.0f,.668f}
+        {152.0f,.700f},{322.0f,.700f}
     };
     int foam=effect_count(world,1,2,2);
     for(int i=0;i<foam;++i){

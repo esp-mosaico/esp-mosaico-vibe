@@ -285,10 +285,11 @@ static float ocean_mask_sample(float u,float v)
 static bool ocean_project_depth(const living_camera_t *camera,float u,float v,
                                 uint16_t raw,Vector2 *out)
 {
-    float inverse=(float)raw/65535.0f*.3f;
+    const float xy_scale=480.0f*1.14f/OCEAN_FOCAL;
+    float inverse=(float)raw*(.3f/65535.0f);
     float z=1.0f/fmaxf(.007f,inverse);
-    return living_project_xyz(camera,(u-.5f)*480.0f*z/OCEAN_FOCAL*1.14f,
-                              (.5f-v)*480.0f*z/OCEAN_FOCAL*1.14f,z,out);
+    float scale=z*xy_scale;
+    return living_project_xyz(camera,(u-.5f)*scale,(.5f-v)*scale,z,out);
 }
 
 static void draw_ocean_water(const underwater_ocean_t *ocean,const living_camera_t *camera,
@@ -360,8 +361,7 @@ static void draw_ocean_water(const underwater_ocean_t *ocean,const living_camera
             mosaico_textured_vertex_t vb={mesh[b].x,mesh[b].y,tu[ix+1],tv[iy]};
             mosaico_textured_vertex_t vc={mesh[c].x,mesh[c].y,tu[ix],tv[iy+1]};
             mosaico_textured_vertex_t vd={mesh[d].x,mesh[d].y,tu[ix+1],tv[iy+1]};
-            Mosaico2DDrawTexturedTriangle(water.texture,va,vc,vb,background_light);
-            Mosaico2DDrawTexturedTriangle(water.texture,vb,vc,vd,background_light);
+            Mosaico2DDrawTexturedQuad(water.texture,va,vb,vc,vd,background_light);
         }
     }
     (void)ocean;
@@ -444,12 +444,15 @@ static void draw_ocean_jelly(const living_camera_t *camera,const ocean_jelly_t *
         float height=rim_y-top.y;
         float radius=fabsf(right.x-left.x)*.5f;
         if(height>1.0f&&radius>1.0f){
-            int first_x=(int)ceilf(rim_x-radius),last_x=(int)floorf(rim_x+radius);
+            int first_x=(int)(rim_x-radius);if((float)first_x<rim_x-radius)++first_x;
+            int last_x=(int)(rim_x+radius);if((float)last_x>rim_x+radius)--last_x;
             for(int x=first_x;x<=last_x;++x){
                 float q=ocean_clamp(((float)x+.5f-rim_x)/radius,-1.0f,1.0f);
                 float curve=sqrtf(fmaxf(0.0f,1.0f-q*q));
-                int first_y=(int)ceilf(rim_y-height*curve);
-                int last_y=(int)floorf(rim_y+height*.055f*curve*curve);
+                float top_y=rim_y-height*curve;
+                float bot_y=rim_y+height*.055f*curve*curve;
+                int first_y=(int)top_y;if((float)first_y<top_y)++first_y;
+                int last_y=(int)bot_y;if((float)last_y>bot_y)--last_y;
                 unsigned char alpha=(unsigned char)(96+(1.0f-curve)*24+jelly->flash*42);
                 Color fill=(Color){92,190,229,alpha};
                 if(last_y>=first_y)DrawRectangle(x,first_y,1,last_y-first_y+1,fill);
