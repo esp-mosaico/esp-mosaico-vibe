@@ -62,7 +62,17 @@ python mosaico.py monitor
 git submodule update --init submodule/esp-mosaico-utils
 ```
 
-`list` 会连接 Gateway，列出由出厂 eFuse Base MAC 派生的 Device ID、原始硬件
+Gateway 由项目会话持有。前台运行 `python mosaico.py session run --project
+projects/hello_world`，同项目的其他命令复用该会话；输出中提供 Web 工作台地址。
+Ctrl-C 结束拥有者会话并等待当前操作收尾。未启动持续会话时，单次命令创建
+临时 Gateway，操作完成后关闭。不同项目使用独立端口、数据库和日志。
+
+发现设备不会自动连接。在持续会话中用 `device claim --project
+projects/hello_world --endpoint <发现到的端点>` 显式认领，或在设备操作中指定
+`--device-id` / `--endpoint`。仅当前所有者自动重连设备。
+详见[项目会话、设备归属与转让](docs/project-gateway.zh-CN.md)。
+
+`list` 列出发现的候选端点，以及已验证的、由出厂 eFuse Base MAC 派生的 Device ID、原始硬件
 MAC、在线状态、连接方式、固件身份、运行模式和 Boot ID，并保留 Gateway 缓存中的离线设备。使用 `list --details` 查看 endpoint、
 ESP-IDF 版本、Session ID 和能力列表，或使用 `list --json` 查看完整 Gateway 记录。
 

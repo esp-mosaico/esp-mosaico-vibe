@@ -70,7 +70,20 @@ BSP, ESP-Iris, and build paths. Initialize the tool checkout with:
 git submodule update --init submodule/esp-mosaico-utils
 ```
 
-`list` connects to the Gateway and prints eFuse-MAC-derived Device IDs, the raw
+Gateways belong to project sessions. Run `python mosaico.py session run --project
+projects/hello_world` in a terminal to keep that project's Gateway alive; other
+commands for the same project reuse it. Its output provides the Web workbench
+URL. Ctrl-C ends the owning session after active operations drain. Single
+commands create and close a temporary Gateway when no persistent session exists.
+Different projects use separate ports, databases, and logs.
+
+Discovery does not connect unclaimed devices. Use `device claim --project
+projects/hello_world --endpoint <discovered-endpoint>` in a persistent session,
+or select `--device-id` / `--endpoint` on a device operation. Devices reconnect
+only for their current owner. See the [project session and transfer guide](docs/project-gateway.zh-CN.md)
+for explicit handoff, interrupted transfers, and migration from a shared Gateway.
+
+`list` prints discovery candidates and previously verified eFuse-MAC-derived Device IDs, the raw
 hardware MAC, online state, connection
 type, firmware identity, mode, and Boot ID. It includes cached offline devices;
 use `list --details` for endpoint, ESP-IDF version, Session ID, and capabilities,
