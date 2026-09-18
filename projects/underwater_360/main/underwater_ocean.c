@@ -291,63 +291,99 @@ static bool ocean_project_depth(const living_camera_t *camera,float u,float v,
                               (.5f-v)*480.0f*z/OCEAN_FOCAL*1.14f,z,out);
 }
 
-static void draw_ocean_water(const underwater_ocean_t *ocean,float yaw,float pitch,
+static void draw_ocean_water(const underwater_ocean_t *ocean,const living_camera_t *camera,
                              MosaicoAtlas water)
 {
-    if(!water.texture.id)return;
-    living_camera_t camera=living_camera_orbit(yaw,pitch,OCEAN_FOCUS);
+    if(!water.texture.id||!camera)return;
     const int n=OCEAN_RENDER_GRID;
+    enum { X0=-8, Y0=-4, GW=33, GH=25 };
+    static Vector2 mesh[GW*GH];
+    static uint8_t ok[GW*GH];
+    static float depth[GW*GH];
+    static float mask[GW*GH];
+    static float tu[GW],tv[GH],uu[GW],vv[GH];
+    static float cached_tw=-1.0f,cached_th=-1.0f;
     float tex_w=(float)water.texture.width-1.0f,tex_h=(float)water.texture.height-1.0f;
-    for(int band=0;band<8;++band)
-    for(int y=-n/4;y<n+n/4;++y)
-    for(int x=-n/2;x<n+n/2;++x){
-        float u0=(float)x/n,u1=(float)(x+1)/n;
-        float v0=(float)y/n,v1=(float)(y+1)/n;
-        float depth[4]={ocean_depth_sample(u0,v0),ocean_depth_sample(u1,v0),
-                        ocean_depth_sample(u0,v1),ocean_depth_sample(u1,v1)};
-        unsigned average=(unsigned)((depth[0]+depth[1]+depth[2]+depth[3])*.25f);
-        if((int)(average*8U/65536U)!=band)continue;
-        unsigned reef=(unsigned)((ocean_mask_sample(u0,v0)+ocean_mask_sample(u1,v0)+
-                                  ocean_mask_sample(u0,v1)+ocean_mask_sample(u1,v1))*.25f);
-        unsigned background_light=reef<40U?232U:256U;
-        Vector2 p[4];
-        if(!ocean_project_depth(&camera,u0,v0,(uint16_t)depth[0],&p[0])||
-           !ocean_project_depth(&camera,u1,v0,(uint16_t)depth[1],&p[1])||
-           !ocean_project_depth(&camera,u0,v1,(uint16_t)depth[2],&p[2])||
-           !ocean_project_depth(&camera,u1,v1,(uint16_t)depth[3],&p[3]))
-            continue;
-        mosaico_textured_vertex_t va={p[0].x,p[0].y,ocean_mirror(u0)*tex_w,
-            ocean_mirror(v0)*tex_h};
-        mosaico_textured_vertex_t vb={p[1].x,p[1].y,ocean_mirror(u1)*tex_w,
-            ocean_mirror(v0)*tex_h};
-        mosaico_textured_vertex_t vc={p[2].x,p[2].y,ocean_mirror(u0)*tex_w,
-            ocean_mirror(v1)*tex_h};
-        mosaico_textured_vertex_t vd={p[3].x,p[3].y,ocean_mirror(u1)*tex_w,
-            ocean_mirror(v1)*tex_h};
-        Mosaico2DDrawTexturedTriangle(water.texture,va,vc,vb,background_light);
-        Mosaico2DDrawTexturedTriangle(water.texture,vb,vc,vd,background_light);
+    if(cached_tw!=tex_w||cached_th!=tex_h){
+        for(int ix=0;ix<GW;++ix){
+            uu[ix]=(float)(X0+ix)/n;
+            tu[ix]=ocean_mirror(uu[ix])*tex_w;
+        }
+        for(int iy=0;iy<GH;++iy){
+            vv[iy]=(float)(Y0+iy)/n;
+            tv[iy]=ocean_mirror(vv[iy])*tex_h;
+        }
+        for(int iy=0;iy<GH;++iy)
+        for(int ix=0;ix<GW;++ix){
+            int idx=iy*GW+ix;
+            depth[idx]=ocean_depth_sample(uu[ix],vv[iy]);
+            mask[idx]=ocean_mask_sample(uu[ix],vv[iy]);
+        }
+        cached_tw=tex_w;cached_th=tex_h;
+    }
+    for(int iy=0;iy<GH;++iy)
+    for(int ix=0;ix<GW;++ix){
+        int idx=iy*GW+ix;
+        ok[idx]=(uint8_t)ocean_project_depth(camera,uu[ix],vv[iy],(uint16_t)depth[idx],&mesh[idx]);
+    }
+    enum { QUAD_CAP=(GW-1)*(GH-1) };
+    static uint16_t band_ix[8][QUAD_CAP];
+    static uint16_t band_iy[8][QUAD_CAP];
+    static uint16_t band_light[8][QUAD_CAP];
+    int band_n[8];
+    memset(band_n,0,sizeof band_n);
+    for(int iy=0;iy<GH-1;++iy)
+    for(int ix=0;ix<GW-1;++ix){
+        int a=iy*GW+ix,b=a+1,c=a+GW,d=c+1;
+        if(!ok[a]||!ok[b]||!ok[c]||!ok[d])continue;
+        unsigned average=(unsigned)((depth[a]+depth[b]+depth[c]+depth[d])*.25f);
+        int band=(int)(average*8U/65536U);
+        if(band<0)band=0;
+        if(band>7)band=7;
+        float left=fminf(fminf(mesh[a].x,mesh[b].x),fminf(mesh[c].x,mesh[d].x));
+        float right=fmaxf(fmaxf(mesh[a].x,mesh[b].x),fmaxf(mesh[c].x,mesh[d].x));
+        float top=fminf(fminf(mesh[a].y,mesh[b].y),fminf(mesh[c].y,mesh[d].y));
+        float bottom=fmaxf(fmaxf(mesh[a].y,mesh[b].y),fmaxf(mesh[c].y,mesh[d].y));
+        if(right<0||left>480||bottom<0||top>480)continue;
+        unsigned reef=(unsigned)((mask[a]+mask[b]+mask[c]+mask[d])*.25f);
+        int slot=band_n[band]++;
+        band_ix[band][slot]=(uint16_t)ix;
+        band_iy[band][slot]=(uint16_t)iy;
+        band_light[band][slot]=(uint16_t)(reef<40U?232U:256U);
+    }
+    for(int band=0;band<8;++band){
+        for(int i=0;i<band_n[band];++i){
+            int ix=band_ix[band][i],iy=band_iy[band][i];
+            int a=iy*GW+ix,b=a+1,c=a+GW,d=c+1;
+            unsigned background_light=band_light[band][i];
+            mosaico_textured_vertex_t va={mesh[a].x,mesh[a].y,tu[ix],tv[iy]};
+            mosaico_textured_vertex_t vb={mesh[b].x,mesh[b].y,tu[ix+1],tv[iy]};
+            mosaico_textured_vertex_t vc={mesh[c].x,mesh[c].y,tu[ix],tv[iy+1]};
+            mosaico_textured_vertex_t vd={mesh[d].x,mesh[d].y,tu[ix+1],tv[iy+1]};
+            Mosaico2DDrawTexturedTriangle(water.texture,va,vc,vb,background_light);
+            Mosaico2DDrawTexturedTriangle(water.texture,vb,vc,vd,background_light);
+        }
     }
     (void)ocean;
 }
 
-static void draw_ocean_reefs(float yaw,float pitch,MosaicoAtlas left_front,
+static void draw_ocean_reefs(const living_camera_t *camera,float yaw,MosaicoAtlas left_front,
                              MosaicoAtlas left_side,MosaicoAtlas left_rear,
                              MosaicoAtlas right_front,MosaicoAtlas right_side,
                              MosaicoAtlas right_rear)
 {
-    living_camera_t camera=living_camera_orbit(yaw,pitch,OCEAN_FOCUS);
     /* Painter order: farther reef first.  Reef fronts sit over the continuous
        water mesh.  The authored side UVs stretch into detached diagonal slabs
        at oblique angles, so both side walls and rear caps stay omitted. */
     if(yaw<0){
-        living_draw_volume(&camera,OCEAN_RIGHT_FRONT_VERTICES,OCEAN_RIGHT_FRONT_VERTEX_COUNT,
+        living_draw_volume(camera,OCEAN_RIGHT_FRONT_VERTICES,OCEAN_RIGHT_FRONT_VERTEX_COUNT,
             OCEAN_RIGHT_FRONT_FACES,OCEAN_RIGHT_FRONT_FACE_COUNT,right_front,768,768,1);
-        living_draw_volume(&camera,OCEAN_LEFT_FRONT_VERTICES,OCEAN_LEFT_FRONT_VERTEX_COUNT,
+        living_draw_volume(camera,OCEAN_LEFT_FRONT_VERTICES,OCEAN_LEFT_FRONT_VERTEX_COUNT,
             OCEAN_LEFT_FRONT_FACES,OCEAN_LEFT_FRONT_FACE_COUNT,left_front,768,768,1);
     }else{
-        living_draw_volume(&camera,OCEAN_LEFT_FRONT_VERTICES,OCEAN_LEFT_FRONT_VERTEX_COUNT,
+        living_draw_volume(camera,OCEAN_LEFT_FRONT_VERTICES,OCEAN_LEFT_FRONT_VERTEX_COUNT,
             OCEAN_LEFT_FRONT_FACES,OCEAN_LEFT_FRONT_FACE_COUNT,left_front,768,768,1);
-        living_draw_volume(&camera,OCEAN_RIGHT_FRONT_VERTICES,OCEAN_RIGHT_FRONT_VERTEX_COUNT,
+        living_draw_volume(camera,OCEAN_RIGHT_FRONT_VERTICES,OCEAN_RIGHT_FRONT_VERTEX_COUNT,
             OCEAN_RIGHT_FRONT_FACES,OCEAN_RIGHT_FRONT_FACE_COUNT,right_front,768,768,1);
     }
     (void)left_side;(void)left_rear;(void)right_side;(void)right_rear;
@@ -480,9 +516,9 @@ void underwater_ocean_draw(const underwater_ocean_t *ocean,float yaw,float pitch
 {
     float nx=yaw/OCEAN_YAW_LIMIT,ny=pitch/OCEAN_PITCH_LIMIT,length=sqrtf(nx*nx+ny*ny);
     if(length>1.0f){yaw/=length;pitch/=length;}
-    draw_ocean_water(ocean,yaw,pitch,water);
-    draw_ocean_reefs(yaw,pitch,left_front,left_side,left_rear,right_front,right_side,right_rear);
     living_camera_t camera=living_camera_orbit(yaw,pitch,OCEAN_FOCUS);
+    draw_ocean_water(ocean,&camera,water);
+    draw_ocean_reefs(&camera,yaw,left_front,left_side,left_rear,right_front,right_side,right_rear);
     float t=ocean->tick*OCEAN_DT;
     int shoals=effects_level==0?3:ocean->shoal_count;
     int wanderers=effects_level==0?3:ocean->wanderer_count;

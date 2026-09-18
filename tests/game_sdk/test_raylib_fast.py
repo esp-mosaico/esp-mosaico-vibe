@@ -42,6 +42,7 @@ class RaylibFastHostTests(unittest.TestCase):
                 str(ROOT / "submodule/raylib-lite-engine/host/host_raylib_port.c"),
                 str(ROOT / "submodule/raylib-lite-engine/host/host_asset_runtime.c"),
                 str(ROOT / "submodule/raylib-lite-engine/components/mosaico_game_2d/mosaico_game_2d.c"),
+                str(ROOT / "submodule/raylib-lite-engine/components/mosaico_game_2d/mosaico_rgb565.c"),
                 str(ROOT / "submodule/raylib-lite-engine/components/mosaico_raylib_fast/mosaico_raylib_fast.c"),
                 "-I", str(ROOT / "submodule/raylib-lite-engine/host/include"),
                 "-I", str(ROOT / "submodule/raylib-lite-engine/host"),

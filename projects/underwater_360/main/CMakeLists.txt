@@ -76,6 +76,9 @@ foreach(background ocean aurora sunrise rainforest)
         RENAME_TO ${background}_jpg DEPENDS underwater_assets)
 endforeach()
 target_include_directories(${COMPONENT_LIB} PRIVATE "${GAME_ASSET_OUTPUT}")
+set_source_files_properties(
+    underwater_aurora.c underwater_ocean.c underwater_view.c underwater_volume.c
+    PROPERTIES COMPILE_OPTIONS "-O3;-funroll-loops")
 
 set(canvas_png "${CMAKE_CURRENT_BINARY_DIR}/canvas_480.png")
 execute_process(

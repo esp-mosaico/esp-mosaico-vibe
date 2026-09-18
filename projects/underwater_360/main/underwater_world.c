@@ -142,6 +142,9 @@ static void enter_scene(underwater_world_t *world,uint8_t scene)
     }else if(scene==UNDERWATER_SCENE_OCEAN){
         world->yaw=0;world->pitch=0;
         underwater_ocean_reset(&world->ocean);
+    }else if(scene==UNDERWATER_SCENE_RAINFOREST){
+        /* Left-edge yaw that frames the photographed creek, not the tree. */
+        world->yaw=140.0f;world->pitch=0;
     }
 }
 

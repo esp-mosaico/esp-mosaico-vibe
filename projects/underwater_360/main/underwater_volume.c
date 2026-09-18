@@ -30,8 +30,10 @@ bool living_project_xyz(const living_camera_t *camera,float x,float y,float z,Ve
     float dx=x-camera->x,dy=y-camera->y,dz=z-camera->z;
     float view_z=dx*camera->m[6]+dy*camera->m[7]+dz*camera->m[8];
     if(view_z<.2f)return false;
-    out->x=240.0f+LIVING_FOCAL*(dx*camera->m[0]+dy*camera->m[1]+dz*camera->m[2])/view_z;
-    out->y=240.0f-LIVING_FOCAL*(dx*camera->m[3]+dy*camera->m[4]+dz*camera->m[5])/view_z;
+    float inv=LIVING_FOCAL/view_z;
+    /* Orbit cameras keep m[1]=0. */
+    out->x=240.0f+inv*(dx*camera->m[0]+dz*camera->m[2]);
+    out->y=240.0f-inv*(dx*camera->m[3]+dy*camera->m[4]+dz*camera->m[5]);
     return true;
 }
 

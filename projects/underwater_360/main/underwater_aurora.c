@@ -219,53 +219,86 @@ static bool aurora_project_depth(const living_camera_t *camera,float u,float v,
                               (.5f-v)*480.0f*z/AURORA_FOCAL*1.14f,z,out);
 }
 
-static void draw_aurora_light_field(const underwater_aurora_t *aurora,float yaw,float pitch,
-                                    MosaicoAtlas space)
+static void draw_aurora_light_field(const underwater_aurora_t *aurora,
+                                    const living_camera_t *camera,MosaicoAtlas space)
 {
-    if(!space.texture.id)return;
-    living_camera_t camera=living_camera_orbit(yaw,pitch,AURORA_FOCUS);
+    if(!space.texture.id||!camera)return;
     const int n=AURORA_DEPTH_GRID;
+    enum { X0=-4, Y0=-2, GW=17, GH=13 };
+    static Vector2 mesh[GW*GH];
+    static uint8_t ok[GW*GH];
+    static uint16_t rawz[GW*GH];
+    static float tu[GW],tv[GH],uu[GW],vv[GH];
+    static float cached_tw=-1.0f,cached_th=-1.0f;
     float tex_w=(float)space.texture.width-1.0f,tex_h=(float)space.texture.height-1.0f;
-    for(int band=0;band<8;++band)
-    for(int y=-2;y<n+2;++y)
-    for(int x=-4;x<n+4;++x){
-        int x0=aurora_depth_index(x),x1=aurora_depth_index(x+1);
-        int y0=aurora_depth_index(y),y1=aurora_depth_index(y+1);
-        int a=y0*(n+1)+x0,b=y0*(n+1)+x1,c=y1*(n+1)+x0,d=y1*(n+1)+x1;
-        unsigned average=((unsigned)AURORA_DEPTH[a]+AURORA_DEPTH[b]+
-                          AURORA_DEPTH[c]+AURORA_DEPTH[d])/4U;
-        if((int)(average*8U/65536U)!=band)continue;
-        Vector2 p[4];
-        if(!aurora_project_depth(&camera,(float)x/n,(float)y/n,AURORA_DEPTH[a],&p[0])||
-           !aurora_project_depth(&camera,(float)(x+1)/n,(float)y/n,AURORA_DEPTH[b],&p[1])||
-           !aurora_project_depth(&camera,(float)x/n,(float)(y+1)/n,AURORA_DEPTH[c],&p[2])||
-           !aurora_project_depth(&camera,(float)(x+1)/n,(float)(y+1)/n,AURORA_DEPTH[d],&p[3]))
-            continue;
-        mosaico_textured_vertex_t va={p[0].x,p[0].y,aurora_mirror((float)x/n)*tex_w,
-            aurora_mirror((float)y/n)*tex_h};
-        mosaico_textured_vertex_t vb={p[1].x,p[1].y,aurora_mirror((float)(x+1)/n)*tex_w,
-            aurora_mirror((float)y/n)*tex_h};
-        mosaico_textured_vertex_t vc={p[2].x,p[2].y,aurora_mirror((float)x/n)*tex_w,
-            aurora_mirror((float)(y+1)/n)*tex_h};
-        mosaico_textured_vertex_t vd={p[3].x,p[3].y,aurora_mirror((float)(x+1)/n)*tex_w,
-            aurora_mirror((float)(y+1)/n)*tex_h};
-        Mosaico2DDrawTexturedTriangle(space.texture,va,vc,vb,256);
-        Mosaico2DDrawTexturedTriangle(space.texture,vb,vc,vd,256);
+    if(cached_tw!=tex_w||cached_th!=tex_h){
+        for(int ix=0;ix<GW;++ix){
+            uu[ix]=(float)(X0+ix)/n;
+            tu[ix]=aurora_mirror(uu[ix])*tex_w;
+        }
+        for(int iy=0;iy<GH;++iy){
+            vv[iy]=(float)(Y0+iy)/n;
+            tv[iy]=aurora_mirror(vv[iy])*tex_h;
+        }
+        for(int iy=0;iy<GH;++iy){
+            int dj=aurora_depth_index(Y0+iy);
+            for(int ix=0;ix<GW;++ix)
+                rawz[iy*GW+ix]=AURORA_DEPTH[dj*(n+1)+aurora_depth_index(X0+ix)];
+        }
+        cached_tw=tex_w;cached_th=tex_h;
+    }
+    for(int iy=0;iy<GH;++iy)
+    for(int ix=0;ix<GW;++ix){
+        int idx=iy*GW+ix;
+        ok[idx]=(uint8_t)aurora_project_depth(camera,uu[ix],vv[iy],rawz[idx],&mesh[idx]);
+    }
+    enum { QUAD_CAP=(GW-1)*(GH-1) };
+    static uint16_t band_ix[8][QUAD_CAP];
+    static uint16_t band_iy[8][QUAD_CAP];
+    int band_n[8];
+    memset(band_n,0,sizeof band_n);
+    for(int iy=0;iy<GH-1;++iy)
+    for(int ix=0;ix<GW-1;++ix){
+        int a=iy*GW+ix,b=a+1,c=a+GW,d=c+1;
+        if(!ok[a]||!ok[b]||!ok[c]||!ok[d])continue;
+        unsigned average=((unsigned)rawz[a]+rawz[b]+rawz[c]+rawz[d])/4U;
+        int band=(int)(average*8U/65536U);
+        if(band<0)band=0;
+        if(band>7)band=7;
+        float left=fminf(fminf(mesh[a].x,mesh[b].x),fminf(mesh[c].x,mesh[d].x));
+        float right=fmaxf(fmaxf(mesh[a].x,mesh[b].x),fmaxf(mesh[c].x,mesh[d].x));
+        float top=fminf(fminf(mesh[a].y,mesh[b].y),fminf(mesh[c].y,mesh[d].y));
+        float bottom=fmaxf(fmaxf(mesh[a].y,mesh[b].y),fmaxf(mesh[c].y,mesh[d].y));
+        if(right<0||left>480||bottom<0||top>480)continue;
+        int slot=band_n[band]++;
+        band_ix[band][slot]=(uint16_t)ix;
+        band_iy[band][slot]=(uint16_t)iy;
+    }
+    for(int band=0;band<8;++band){
+        for(int i=0;i<band_n[band];++i){
+            int ix=band_ix[band][i],iy=band_iy[band][i];
+            int a=iy*GW+ix,b=a+1,c=a+GW,d=c+1;
+            mosaico_textured_vertex_t va={mesh[a].x,mesh[a].y,tu[ix],tv[iy]};
+            mosaico_textured_vertex_t vb={mesh[b].x,mesh[b].y,tu[ix+1],tv[iy]};
+            mosaico_textured_vertex_t vc={mesh[c].x,mesh[c].y,tu[ix],tv[iy+1]};
+            mosaico_textured_vertex_t vd={mesh[d].x,mesh[d].y,tu[ix+1],tv[iy+1]};
+            Mosaico2DDrawTexturedTriangle(space.texture,va,vc,vb,256);
+            Mosaico2DDrawTexturedTriangle(space.texture,vb,vc,vd,256);
+        }
     }
     (void)aurora;
 }
 
-static void draw_aurora_ice(float yaw,float pitch,MosaicoAtlas front,MosaicoAtlas side,
+static void draw_aurora_ice(const living_camera_t *camera,MosaicoAtlas front,MosaicoAtlas side,
                             MosaicoAtlas rear)
 {
-    living_camera_t camera=living_camera_orbit(yaw,pitch,AURORA_FOCUS);
     float fw=(float)front.texture.width,fh=(float)front.texture.height;
-    living_draw_volume(&camera,AURORA_ICE_REAR_VERTICES,AURORA_ICE_REAR_VERTEX_COUNT,
+    living_draw_volume(camera,AURORA_ICE_REAR_VERTICES,AURORA_ICE_REAR_VERTEX_COUNT,
         AURORA_ICE_REAR_FACES,AURORA_ICE_REAR_FACE_COUNT,rear,512,512,3);
-    living_draw_volume_uv(&camera,AURORA_ICE_SIDE_VERTICES,AURORA_ICE_SIDE_VERTEX_COUNT,
+    living_draw_volume_uv(camera,AURORA_ICE_SIDE_VERTICES,AURORA_ICE_SIDE_VERTEX_COUNT,
         AURORA_ICE_SIDE_FACES,AURORA_ICE_SIDE_FACE_COUNT,front,1024,256,
         0.0f,fh*.58f,fw,fh,2);
-    living_draw_volume(&camera,AURORA_ICE_FRONT_VERTICES,AURORA_ICE_FRONT_VERTEX_COUNT,
+    living_draw_volume(camera,AURORA_ICE_FRONT_VERTICES,AURORA_ICE_FRONT_VERTEX_COUNT,
         AURORA_ICE_FRONT_FACES,AURORA_ICE_FRONT_FACE_COUNT,front,768,768,1);
     (void)side;
 }
@@ -286,9 +319,9 @@ void underwater_aurora_draw(const underwater_aurora_t *aurora,float yaw,float pi
                             MosaicoAtlas ice_rear)
 {
     aurora_clamp_cone(&yaw,&pitch);
-    draw_aurora_light_field(aurora,yaw,pitch,space);
-    draw_aurora_ice(yaw,pitch,ice_front,ice_side,ice_rear);
     living_camera_t camera=living_camera_orbit(yaw,pitch,AURORA_FOCUS);
+    draw_aurora_light_field(aurora,&camera,space);
+    draw_aurora_ice(&camera,ice_front,ice_side,ice_rear);
     float t=aurora->tick*AURORA_DT;
     int streams=effects_level==0?3:(effects_level==2?6:5);
     if(streams>aurora->stream_count)streams=aurora->stream_count;
