@@ -3,7 +3,7 @@
 	url = https://github.com/esp-mosaico/esp-mosaico-bsp
 [submodule "submodule/esp-mosaico-utils"]
 	path = submodule/esp-mosaico-utils
-	url = https://github.com/lisir233/esp-mosaico-utils.git
+	url = git@github.com:esp-mosaico/esp-mosaico-utils.git
 [submodule "submodule/raylib-lite-engine"]
 	path = submodule/raylib-lite-engine
 	url = git@github.com:espressif2022/raylib-lite-engine.git
