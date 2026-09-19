@@ -92,6 +92,8 @@ class ToolSubmoduleIntegrationTests(unittest.TestCase):
             config_path = root / ".mosaico.json"
             config_path.write_text(json.dumps(config), encoding="utf-8")
             for filename in ("components/esp_mosaico_app_recovery/CMakeLists.txt",
+                             "components/esp_mosaico_app_recovery/sdkconfig.defaults",
+                             "cmake/mosaico_application.cmake",
                              "cmake/system_update.cmake", "tools/prepare_system_update.py"):
                 target = root / filename
                 target.parent.mkdir(parents=True, exist_ok=True)
