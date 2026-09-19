@@ -9,7 +9,7 @@ import sys
 
 REPOSITORY_ROOT = Path(__file__).resolve().parent
 UTILS_ROOT = REPOSITORY_ROOT / "submodule" / "esp-mosaico-utils"
-TOOLS_ROOT = UTILS_ROOT / "esp-mosaico-recovery"
+TOOLS_ROOT = UTILS_ROOT / "mosaico-tools"
 PACKAGE_ROOT = TOOLS_ROOT / "tools"
 
 def command_index(arguments):

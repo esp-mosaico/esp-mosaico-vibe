@@ -9,7 +9,7 @@ Use the runner pinned in `submodule/esp-mosaico-utils/esp-mosaico-recovery`. Res
 workspace root; do not depend on a globally installed `esp-idf-debug` skill.
 
 ```text
-python3 <workspace>/submodule/esp-mosaico-utils/esp-mosaico-recovery/skills/idf-low-noise-build/scripts/idf_low_noise_build.py
+python3 <workspace>/submodule/esp-mosaico-utils/mosaico-tools/skills/idf-low-noise-build/scripts/idf_low_noise_build.py
 ```
 
 ## Prepare the build

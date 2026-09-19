@@ -13,7 +13,9 @@
 #include "esp_flash.h"
 #include "esp_heap_caps.h"
 #include "esp_iris.h"
+#include "esp_iris_service_profiles.h"
 #include "esp_iris_system_inventory.h"
+#include "mosaico_recovery_contract.h"
 #include "esp_log.h"
 #include "esp_ota_ops.h"
 #include "esp_partition.h"
@@ -37,24 +39,20 @@
 #define OTA_SERVICE_ID          0x1200U
 #define OTA_STATE_METHOD_ID     1U
 #define OTA_ACCEPT_METHOD_ID    2U
-#define RECOVERY_SERVICE_ID     0x7FFFU
-#define ENTER_RECOVERY_METHOD   2U
-#define RECOVERY_OTA_NAMESPACE  "iris_ota_demo"
-#define SYSTEM_METADATA_PARTITION "sysmeta"
-#define SYSTEM_UPDATE_NAMESPACE "update"
-#define SYSTEM_UPDATE_RESULT_KEY "last_result"
-#define SYSTEM_METADATA_MAGIC   0x49535953U
-#define SYSTEM_METADATA_VERSION 2U
-#define SYSTEM_LAYOUT_VERSION   4U
+#define RECOVERY_SERVICE_ID     ESP_IRIS_RECOVERY_SERVICE_ID
+#define ENTER_RECOVERY_METHOD   ESP_IRIS_ENTER_RECOVERY_METHOD_ID
+#define RECOVERY_OTA_NAMESPACE  MOSAICO_OTA_NAMESPACE
+#define SYSTEM_METADATA_PARTITION MOSAICO_SYSMETA_PARTITION
+#define SYSTEM_UPDATE_NAMESPACE MOSAICO_UPDATE_NAMESPACE
+#define SYSTEM_UPDATE_RESULT_KEY MOSAICO_UPDATE_RESULT_KEY
+#define SYSTEM_METADATA_MAGIC   MOSAICO_SYSMETA_MAGIC
+#define SYSTEM_METADATA_VERSION MOSAICO_SYSMETA_VERSION
+#define SYSTEM_LAYOUT_VERSION   MOSAICO_LAYOUT_VERSION
 #define SYSTEM_HASH_CHUNK_BYTES 1024U
 
-typedef struct {
-    uint32_t magic;
-    uint32_t version;
-    uint8_t operation_id[ESP_IRIS_SYSTEM_OPERATION_ID_BYTES];
-    int32_t result;
-    uint8_t reserved[36];
-} system_metadata_record_t;
+typedef mosaico_sysmeta_record_t system_metadata_record_t;
+_Static_assert(ESP_IRIS_SYSTEM_OPERATION_ID_BYTES == MOSAICO_OPERATION_ID_BYTES,
+               "Iris operation ID must fit the Mosaico product ABI");
 
 static const char *TAG = "app_recovery";
 

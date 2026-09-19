@@ -72,21 +72,27 @@ BSP, ESP-Iris, and build paths. Initialize the tool checkout with:
 git submodule update --init submodule/esp-mosaico-utils
 ```
 
-Gateways belong to project sessions. Run `python mosaico.py iris run --project
-projects/hello_world` in a terminal to keep that project's Gateway alive; other
-commands for the same project reuse it. Its output provides the Web workbench
-URL. Ctrl-C ends the owning session after active operations drain. Single
-commands create and close a temporary Gateway when no persistent session exists.
-Different projects use separate ports, databases, and logs.
+Gateways are shared by clients of one workspace/application. Device commands
+start or reuse that project's Gateway and hold a renewable client lease for the
+command. `python mosaico.py iris run --project projects/hello_world` holds an
+independent client until Ctrl-C; an open Web workbench also holds a client.
+The first command has no special shutdown authority. After all clients leave
+and active work finishes, the Gateway exits after **10 idle seconds**. Opening
+the workbench after shutdown requires restarting through the CLI.
+
+`python mosaico.py iris status --all` passively lists same-user Gateways across
+workspaces, their clients, device ownership, and reasons for staying alive.
+Queries neither start Gateways nor reset the idle timer. Each project keeps
+separate ports, databases, and logs; there is no explicit stop command.
 
 Discovery and status queries do not connect unclaimed devices. Device operations
 automatically connect the sole available USB device when no target is supplied;
 an existing project-owned device takes priority, including while reconnecting.
 Multiple candidates require an explicit target. Use `iris claim --project
-projects/hello_world --endpoint <discovered-endpoint>` in a persistent session,
+projects/hello_world --endpoint <discovered-endpoint>` in a shared session,
 or select `--device-id` / `--endpoint` on a device operation. Devices reconnect
 only for their current owner. See the [project session and transfer guide](docs/project-gateway.zh-CN.md)
-for explicit handoff, interrupted transfers, and migration from a shared Gateway.
+for explicit handoff, interrupted transfers, and migration from legacy Gateways.
 
 `iris list` prints discovery candidates and previously verified eFuse-MAC-derived Device IDs, the raw
 hardware MAC, online state, connection
@@ -233,8 +239,8 @@ partitions without explicit user authorization.
 - `espressif/esp-gsp==1.2.0` — remote ESP-GSP component (device prebuilts via the registry; sim/gspc fetched separately).
 - `tools/gsp-sim/` — packs scenes and runs the standalone ESP-GSP `sim`.
 - `submodule/esp-mosaico-utils/` — pinned utilities monorepo containing the
-  `esp-mosaico-recovery` CLI/firmware and the sibling `ESP-Iris`
-  firmware/host runtime; no global CLI installation is required.
+  `mosaico-tools` CLI, `esp-mosaico-recovery` firmware and the sibling
+  `ESP-Iris` firmware/host runtime; no global CLI installation is required.
 - `skills/` — task-oriented integration guides for agents and humans. See
   [`skills/README.md`](skills/README.md).
 - `docs/` — user-facing documentation.

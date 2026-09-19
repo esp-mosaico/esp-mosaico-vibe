@@ -41,7 +41,7 @@ class RetainedRecoveryContractTests(unittest.TestCase):
         source = (ROOT / "components/esp_mosaico_app_recovery/iris_ota_support.c").read_text(
             encoding="utf-8"
         )
-        self.assertIn('#define SYSTEM_METADATA_PARTITION "sysmeta"', source)
+        self.assertIn('#define SYSTEM_METADATA_PARTITION MOSAICO_SYSMETA_PARTITION', source)
         self.assertIn(
             "nvs_open_from_partition(SYSTEM_METADATA_PARTITION,\n"
             "                                SYSTEM_UPDATE_NAMESPACE, NVS_READONLY",
@@ -88,7 +88,7 @@ class RetainedRecoveryContractTests(unittest.TestCase):
                     self.assertEqual(actual, recovery)
 
     def test_firmware_identity_matches_host_expectation(self):
-        tree = ast.parse((TOOLS / "tools/mosaico_cli/gateway.py").read_text(encoding="utf-8"))
+        tree = ast.parse((TOOLS.parent / "mosaico-tools/tools/mosaico_cli/gateway.py").read_text(encoding="utf-8"))
         expectations = [ast.literal_eval(node) for node in ast.walk(tree)
                         if isinstance(node, ast.Dict)
                         and any(isinstance(key, ast.Constant) and key.value == "layout_id"
