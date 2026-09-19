@@ -1,7 +1,7 @@
 # ESP-Iris Crash 诊断专项固件
 
 本夹具只用于实机破坏性测试。它保留产品的 Recovery 分区契约，通过
-`mosaico.py rpc` 注入计划重启、断言、非法内存访问、任务看门狗以及连续三次
+`mosaico.py iris rpc` 注入计划重启、断言、非法内存访问、任务看门狗以及连续三次
 启动崩溃。USB High-Speed 始终归 ESP-Iris 所有，不能同时打开串口会话。
 
 Service ID 为 `0x6A03`，方法如下：

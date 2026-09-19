@@ -9,16 +9,16 @@ Install it from the repository root after the device Recovery image has been
 initialized and verified:
 
 ```sh
-python mosaico.py install --project projects/hello_world
+python mosaico.py iris app-update --project projects/hello_world
 ```
 
 To build and install an atomic System Update containing the application,
 bootloader, and partition table, use:
 
 ```sh
-python mosaico.py system-update --project projects/hello_world
+python mosaico.py iris system-update --project projects/hello_world
 ```
 
-Use `python mosaico.py monitor --timeout 20` to observe the periodic log. USB
+Use `python mosaico.py iris logs --timeout 20` to observe the periodic log. USB
 and firmware operations remain owned by ESP-Iris; do not open the serial port
 directly.

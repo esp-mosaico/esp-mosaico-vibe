@@ -218,7 +218,7 @@ jobs:
           config["workspace"]["projects_dir"] = "tests/firmware"
           path.write_text(json.dumps(config), encoding="utf-8")
           PY
-          python3 mosaico.py init init_smoke
+          python3 mosaico.py project init init_smoke
 
       - name: Verify ESP-IDF environment
         shell: bash

@@ -93,16 +93,21 @@ Unless the developer approves another architecture, every application must:
    enter-recovery RPC.
 3. Run `python mosaico.py recover` before the first application install on a
    blank or unverified device.
-4. Install normal firmware only with `python mosaico.py install --project ...`.
+4. Install normal firmware only with `python mosaico.py iris app-update --project ...`.
 
 Verify the same Device ID completes normal -> Recovery -> normal with new Boot
 IDs, a ready Recovery service, and a healthy application.
 
 ## Operate devices through ESP-Iris
 
-- Use `python mosaico.py install`, `system-update`, `recover`, and `monitor` for
-  routine device operations. Use `python mosaico.py list` for live Device ID
+- Use `python mosaico.py iris app-update`, `iris system-update`, `recover`, and `iris logs` for
+  routine device operations. Use `python mosaico.py iris list` for live Device ID
   discovery.
+- For a single available USB device, omit device selectors: device operations
+  automatically connect it and pin the verified Device ID. Prefer the current
+  project's existing device, and never switch to another device after a failed
+  explicit selection or while waiting for a reconnect. Use `iris run` for parallel
+  monitoring and updates; `iris list/status` remain passive queries.
 - Do not call ESP-Iris or ESP-IDF device-write commands directly; `mosaico.py`
   owns Gateway lifecycle, evidence capture, device selection, and validation.
 - Avoid USB Serial/JTAG for application flashing and monitoring. Do not adopt

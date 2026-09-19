@@ -9,7 +9,7 @@ latency and are presented without an extra full-frame copy.
 ```bash
 python mosaico.py game run --project projects/raylib_shooter
 python mosaico.py game build --project projects/raylib_shooter
-python mosaico.py install --project projects/raylib_shooter
+python mosaico.py iris app-update --project projects/raylib_shooter
 ```
 
 The Registry GSP package needs a standalone scene compiler. This workspace

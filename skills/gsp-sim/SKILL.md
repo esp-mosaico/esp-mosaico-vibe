@@ -124,4 +124,4 @@ New GSP apps copy `projects/gsp_hello/pc/` and point `gsp_add_backend`
 2. `run.py --headless --dump-ppm` stays scene-only, exits 0, and writes a
    480×480 PPM.
 3. The same scene JSON is what firmware will pack with the pinned ESP-GSP.
-4. True-device validation still uses `python mosaico.py install` after Recovery.
+4. True-device validation still uses `python mosaico.py iris app-update` after Recovery.

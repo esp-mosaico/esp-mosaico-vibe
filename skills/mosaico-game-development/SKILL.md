@@ -62,7 +62,7 @@ Every normal game build must:
   the first frame succeeds;
 - retain the factory-compatible partition layout and `game_assets` partition when assets are used.
 
-Never flash with raw ESP-IDF or ESP-Iris write commands. Query the live Device ID with `python mosaico.py list`, run `python mosaico.py recover` before the first install on a blank or unverified device, and install only with `python mosaico.py install --project ...`.
+Never flash with raw ESP-IDF or ESP-Iris write commands. Query the live Device ID with `python mosaico.py iris list`, run `python mosaico.py recover` before the first install on a blank or unverified device, and install only with `python mosaico.py iris app-update --project ...`.
 
 For boot loops, missing crash logs, failed OTA/system updates, or Recovery fallback, follow [`esp-iris-device-debugging`](../esp-iris-device-debugging/SKILL.md) before another write. If a system update containing `game_assets` is interrupted, treat that partition as absent or partial until verified. Do not install an asset-dependent application by app-only OTA unless the exact assets are verified or the application has a tested embedded fallback.
 

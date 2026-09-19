@@ -27,8 +27,8 @@ python mosaico.py game run --project projects/sky_hop
 python mosaico.py game run --project projects/sky_hop --headless --frames 300
 python mosaico.py game build --project projects/sky_hop
 python mosaico.py recover  # 空白或未验证设备首次安装前
-python mosaico.py install --project projects/sky_hop
-python mosaico.py monitor
+python mosaico.py iris app-update --project projects/sky_hop
+python mosaico.py iris logs
 ```
 
 浏览器模拟器地址为 `http://127.0.0.1:8460/`。键盘使用 `A/D` 或方向键移动、

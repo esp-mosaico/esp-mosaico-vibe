@@ -63,12 +63,12 @@
           "replacement": "It was created from the Hello World reference\napplication. Preserve its partition layout,"
         },
         {
-          "pattern": "^python mosaico\\.py install --project projects/hello_world$",
-          "replacement": "python mosaico.py install --project {{project_path|shell}}"
+          "pattern": "^python mosaico\\.py iris app-update --project projects/hello_world$",
+          "replacement": "python mosaico.py iris app-update --project {{project_path|shell}}"
         },
         {
-          "pattern": "^python mosaico\\.py system-update --project projects/hello_world$",
-          "replacement": "python mosaico.py system-update --project {{project_path|shell}}"
+          "pattern": "^python mosaico\\.py iris system-update --project projects/hello_world$",
+          "replacement": "python mosaico.py iris system-update --project {{project_path|shell}}"
         }
       ],
       "append": "\nFor a blank or unverified device, initialize and verify retained Recovery\nfrom the workspace root before the first application install:\n\n```sh\npython mosaico.py recover\n```\n"
