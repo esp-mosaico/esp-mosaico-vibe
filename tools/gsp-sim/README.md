@@ -21,7 +21,7 @@ This wrapper does not include Mosaic claw hub, Lua apps, or HTML review tooling.
 Headless smoke (writes a PPM):
 
 ```sh
-python3 tools/gsp-sim/run.py --headless --dump-ppm /tmp/gsp-hello.ppm
+python3 tools/gsp-sim/run.py --headless --dump-ppm /tmp/hello-world.ppm
 ```
 
 Interactive preview (opens the official local browser canvas):
@@ -30,7 +30,7 @@ Interactive preview (opens the official local browser canvas):
 python3 tools/gsp-sim/run.py --interactive
 ```
 
-The default scene is [`projects/gsp_hello/ui/main.json`](../../projects/gsp_hello/ui/main.json).
+The default scene is [`projects/hello_world/ui/main.json`](../../projects/hello_world/ui/main.json).
 Preview another scene:
 
 ```sh
@@ -44,7 +44,7 @@ Pass a precompiled `.gspb` to skip `gspc`. Set `GSPC_EXECUTABLE` or
 ## New GSP projects
 
 Keep scene JSON under the application, typically `projects/<name>/ui/`.
-The reference demo is [`projects/gsp_hello`](../../projects/gsp_hello).
+The reference demo is [`projects/hello_world`](../../projects/hello_world).
 Author at **480×480 RGB565** to match the CO5300 panel. Firmware should depend
 on `espressif/esp-gsp` `==1.2.0` from the ESP Component Registry.
 New apps need `pc/CMakeLists.txt` so `run.py` can default to `sim_bridge`.

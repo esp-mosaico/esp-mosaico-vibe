@@ -12,7 +12,7 @@ from pathlib import Path
 
 TOOLS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TOOLS_DIR.parents[1]
-DEFAULT_SCENE = REPO_ROOT / "projects" / "gsp_hello" / "ui" / "main.json"
+DEFAULT_SCENE = REPO_ROOT / "projects" / "hello_world" / "ui" / "main.json"
 
 sys.path.insert(0, str(TOOLS_DIR))
 from fetch_gspc import resolve_gsp_root, resolve_gspc, resolve_sim  # noqa: E402
@@ -96,7 +96,7 @@ def main() -> int:
         nargs="?",
         type=Path,
         default=DEFAULT_SCENE,
-        help="scene JSON or precompiled .gspb (default: projects/gsp_hello/ui/main.json)",
+        help="scene JSON or precompiled .gspb (default: projects/hello_world/ui/main.json)",
     )
     parser.add_argument("--headless", action="store_true")
     parser.add_argument("--interactive", action="store_true")

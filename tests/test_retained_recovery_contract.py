@@ -15,7 +15,6 @@ NORMAL_FIRMWARE_PROJECTS = tuple(sorted((ROOT / "projects").glob("*/sdkconfig.ap
 NORMAL_FIRMWARE_PROJECTS = tuple(path.parent for path in NORMAL_FIRMWARE_PROJECTS)
 USER_EXAMPLE_PROJECTS = (
     ROOT / "projects/hello_world",
-    ROOT / "projects/gsp_hello",
 )
 
 
@@ -84,7 +83,7 @@ class RetainedRecoveryContractTests(unittest.TestCase):
                 for label, entry in actual.items():
                     if label not in ("otadata", "phy_init", "sysmeta", "factory", "coredump"):
                         self.assertGreaterEqual(entry[2], 0x200000)
-                if project.name in ("hello_world", "iris_acceptance", "iris_crash"):
+                if project.name in ("iris_acceptance", "iris_crash"):
                     self.assertEqual(actual, recovery)
 
     def test_firmware_identity_matches_host_expectation(self):

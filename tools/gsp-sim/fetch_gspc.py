@@ -40,7 +40,7 @@ def resolve_gsp_root(project_dir: Path | None = None) -> Path | None:
         candidates.append(_managed_gsp_dir(project))
         if project.name == "pc":
             candidates.append(_managed_gsp_dir(project.parent))
-    candidates.append(_managed_gsp_dir(REPO_ROOT / "projects" / "gsp_hello"))
+    candidates.append(_managed_gsp_dir(REPO_ROOT / "projects" / "hello_world"))
 
     seen: set[Path] = set()
     for candidate in candidates:

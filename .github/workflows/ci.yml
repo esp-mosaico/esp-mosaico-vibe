@@ -150,8 +150,6 @@ jobs:
             project: projects/hello_world
           - name: init-generated
             project: tests/firmware/init_smoke
-          - name: gsp-hello
-            project: projects/gsp_hello
           - name: iris-acceptance
             project: tests/firmware/iris_acceptance
           - name: recovery
@@ -236,21 +234,26 @@ jobs:
           build
 
       - name: Build GSP PC bridge and render scene
-        if: matrix.name == 'gsp-hello'
+        if: matrix.name == 'hello-world'
         shell: bash
         run: |
-          gsp_root="$GITHUB_WORKSPACE/projects/gsp_hello/managed_components/espressif__esp-gsp"
+          gsp_root="$GITHUB_WORKSPACE/projects/hello_world/managed_components/espressif__esp-gsp"
           gspc="$(python3 tools/gsp-sim/fetch_gspc.py)"
           cmake \
-            -S projects/gsp_hello/pc \
+            -S projects/hello_world/pc \
             -B "$RUNNER_TEMP/gsp-pc-build" \
+            -D "CMAKE_BUILD_TYPE=Release" \
             -D "ESP_GSP_COMPONENT_DIR=$gsp_root" \
             -D "GSPC_EXECUTABLE=$gspc"
           cmake --build "$RUNNER_TEMP/gsp-pc-build"
+          python3 tests/hello_world_ui/run.py \
+            --manifest "$RUNNER_TEMP/gsp-pc-build/hello_backend-Release.json" \
+            --sim "$(python3 tools/gsp-sim/fetch_gspc.py --sim)" \
+            --output "$RUNNER_TEMP/hello-world-ui"
           python3 tools/gsp-sim/run.py \
             --headless \
-            --dump-ppm "$RUNNER_TEMP/gsp-hello.ppm"
-          python3 - "$RUNNER_TEMP/gsp-hello.ppm" <<'PY'
+            --dump-ppm "$RUNNER_TEMP/hello-world.ppm"
+          python3 - "$RUNNER_TEMP/hello-world.ppm" <<'PY'
           from pathlib import Path
           import sys
 
@@ -285,12 +288,21 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: Upload GSP interaction evidence
+        if: always() && matrix.name == 'hello-world'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: firmware-${{ matrix.name }}-ui-evidence
+          path: ${{ runner.temp }}/hello-world-ui/
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Upload GSP screenshot
-        if: success() && matrix.name == 'gsp-hello'
+        if: success() && matrix.name == 'hello-world'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: firmware-${{ matrix.name }}-screenshot
-          path: ${{ runner.temp }}/gsp-hello.ppm
+          path: ${{ runner.temp }}/hello-world.ppm
           if-no-files-found: error
           retention-days: 14
 

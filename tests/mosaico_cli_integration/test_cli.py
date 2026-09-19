@@ -94,7 +94,8 @@ class ToolSubmoduleIntegrationTests(unittest.TestCase):
             for filename in ("components/esp_mosaico_app_recovery/CMakeLists.txt",
                              "components/esp_mosaico_app_recovery/sdkconfig.defaults",
                              "cmake/mosaico_application.cmake",
-                             "cmake/system_update.cmake", "tools/prepare_system_update.py"):
+                             "cmake/system_update.cmake", "tools/prepare_system_update.py",
+                             "tools/gsp-sim/fetch_gspc.py", "tools/pack_gsp_partition.py"):
                 target = root / filename
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(REPOSITORY / filename, target)
@@ -117,7 +118,8 @@ class ToolSubmoduleIntegrationTests(unittest.TestCase):
             self.assertEqual(resolve_project(workspace, None, project / "main"), project)
             self.assertEqual(json.loads(config_path.read_text()), config)
             reference = REPOSITORY / "projects/hello_world"
-            for filename in ("partitions.csv", "sdkconfig.defaults", "main/CMakeLists.txt"):
+            for filename in ("partitions.csv", "sdkconfig.defaults", "main/hello_ui.c",
+                             "pc/CMakeLists.txt", "ui/main.json", "ui/fonts/DejaVuSans-Bold.ttf"):
                 self.assertEqual((project / filename).read_bytes(), (reference / filename).read_bytes())
             application = (project / "sdkconfig.application.defaults").read_text()
             original = (reference / "sdkconfig.application.defaults").read_text()
@@ -126,7 +128,14 @@ class ToolSubmoduleIntegrationTests(unittest.TestCase):
             source = (project / "main/main.c").read_text()
             self.assertIn("iris_ota_support_start();", source)
             self.assertIn("esp_iris_boot_probe()", source)
-            self.assertIn('"Hello World!"', source)
+            self.assertIn("hello_ui_init(ui, &s_hello)", source)
+            self.assertIn("Say hello", (project / "ui/main.json").read_text())
+            for filename, resource in (("CMakeLists.txt", "tools/gsp-sim/fetch_gspc.py"),
+                                       ("main/CMakeLists.txt", "tools/pack_gsp_partition.py")):
+                rendered = (project / filename).read_text()
+                references = re.findall(r'\$\{CMAKE_CURRENT_LIST_DIR\}/([^"\n]+)', rendered)
+                self.assertIn((root / resource).resolve(),
+                              [(project / filename).parent.joinpath(ref).resolve() for ref in references])
             self.assertIn('TAG = "my_app"', source)
             self.assertFalse((project / "build").exists())
             self.assertFalse(workspace.run_dir.exists())
@@ -170,7 +179,7 @@ class ToolSubmoduleIntegrationTests(unittest.TestCase):
             workspace = load_workspace(TOOL_ROOT, explicit=str(root))
             result = initialize_project(workspace, "evolved_app")
             project = Path(result["project"])
-            self.assertEqual(len(result["files"]), 9)
+            self.assertEqual(len(result["files"]), len(descriptor["files"]))
             self.assertFalse((project / "main/main.c").exists())
             self.assertIn('APP_TAG = "evolved_app"', (project / "source/entry.c").read_text())
             self.assertIn("iris_ota_support_start();", (project / "source/entry.c").read_text())

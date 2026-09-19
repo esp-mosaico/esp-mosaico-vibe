@@ -91,7 +91,7 @@ class GspSimRunTests(unittest.TestCase):
 
         self.assertEqual(result, 7)
         run_bridge.assert_called_once_with(
-            REPO_ROOT / "projects" / "gsp_hello" / "pc",
+            REPO_ROOT / "projects" / "hello_world" / "pc",
             component,
             headless=True,
         )

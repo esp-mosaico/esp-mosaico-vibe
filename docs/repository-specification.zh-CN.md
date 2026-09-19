@@ -204,8 +204,7 @@ ESP-Mosaico 真实设备
 | 仓库入口 | `README.md`、`README_CN.md` | 说明定位、创建工程和设备运维规则 | 保持中英文语义一致 |
 | Agent 规则 | `AGENTS.md` | 路由开发任务、约束设备操作和恢复流程 | 规则应简洁且可执行 |
 | 应用工程 | `projects/` | 容纳参考应用和用户应用 | 一个应用一个目录 |
-| 参考应用 | `projects/hello_world` | 提供显示、ESP-Iris 和 recovery-first 接入 | 可复制为具体用户应用 |
-| GSP 参考应用 | `projects/gsp_hello` | 提供可在 PC 仿真和真机运行的 GSP Hello World | 作为 GSP 应用起点 |
+| 参考应用 | `projects/hello_world` | 唯一的 GSP Hello World，提供 PC 仿真、显示、ESP-Iris 和 recovery-first 接入 | 可复制为具体用户应用 |
 | 测试固件 | `tests/firmware/` | 容纳集成和验收测试使用的可烧录设备固件 | 不作为用户应用模板 |
 | Recovery 工程 | `submodule/esp-mosaico-utils/esp-mosaico-recovery/firmware/recovery` | 提供固定的保留 Recovery、OTA writer 和系统恢复能力 | 与 `mosaico.py recover` 同版本维护，不承载普通应用代码 |
 | 应用恢复组件 | `components/esp_mosaico_app_recovery` | 提供正常应用进入 Recovery 和健康确认能力 | 仅供正常应用使用，不包含 OTA writer |
@@ -296,7 +295,7 @@ ESP-Mosaico 真实设备
 | --- | --- | --- |
 | FR-201 | 参考固件必须初始化 NVS 和板载显示 | 启动后显示 normal 或 recovery 对应界面，并报告 480×480 显示启动状态 |
 | FR-202 | 参考固件必须接入 ESP-Iris | `esp_iris_start()` 成功，Gateway 能获取设备状态和启动记录 |
-| FR-203 | 参考固件必须提供屏幕镜像后端 | 将活动 LVGL RGB565 帧经 ESP-Iris screen backend 提供给工作台 |
+| FR-203 | 参考固件必须提供屏幕镜像后端 | 将活动 GSP RGB565 帧经 ESP-Iris screen backend 提供给工作台 |
 | FR-204 | normal 固件必须提供进入 Recovery 的能力 | Gateway 可以将同一设备切换到 Recovery，用户无需了解内部调用 |
 | FR-205 | 固件必须提供安装状态与健康确认 | Gateway 可以判定写入、重启、固件身份和健康结果 |
 | FR-206 | recovery 界面必须反映 Gateway 连接状态 | 至少区分启动中、等待连接、协商中、已就绪和失败 |

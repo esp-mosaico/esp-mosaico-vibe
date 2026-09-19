@@ -50,8 +50,8 @@ install.
 1. Translate the user's request into a project-level goal and identify the
    required board capabilities.
 2. Use `projects/hello_world` as the reference application and create the new
-   application under `projects/<project-name>`. For a GSP Hello World that
-   runs on the PC simulator and on device, start from `projects/gsp_hello`.
+   application under `projects/<project-name>`. This single GSP Hello World
+   reference runs on both the PC simulator and the device.
    Keep flashable test-only firmware under `tests/firmware/<fixture-name>`;
    do not place test fixtures in `projects/`.
    The utilities-owned Recovery project is an internal `mosaico.py recover`
