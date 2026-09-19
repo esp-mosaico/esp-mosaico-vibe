@@ -147,6 +147,3 @@ CLI、Web 和 Agent 使用同一个项目 Gateway 地址。项目控制 API 只�
 
 实机验收应通过 `mosaico.py` 执行，核对 CLI 与 Web 中的 Device ID、Boot ID、
 操作 ID 和转让记录。模拟连接及主机测试不能替代真实 OTA/Recovery 验收。
-
-已完成的实机记录见[2026-09-18 双设备项目 Gateway 端到端验收](validation/project-gateway-e2e-2026-09-18.md)。
-Windows 补测及本轮修复见[2026-09-18 Windows 双设备验收](validation/project-gateway-windows-2026-09-18.md)。
