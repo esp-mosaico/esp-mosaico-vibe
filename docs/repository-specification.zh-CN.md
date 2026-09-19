@@ -126,7 +126,7 @@ Agent-Led 的默认主导关系是：**Agent 持续推进，用户在关键节�
 
 ### 2.9 最小化不可恢复操作
 
-- 普通应用只通过 `python mosaico.py iris app-update` 安装。
+- 新应用、分区表或外部资源变化优先通过 `python mosaico.py iris system-update --project ...` 安装；完整分区表一致且只改代码时使用 `iris app-update`。保留 Recovery 固定分区前缀，不应为通过 app-update 而套用设备原来的可变分区布局。
 - 空白/未验证设备和最后恢复只通过 `python mosaico.py recover` 处理，底层实现不作为用户接口。
 - 不以恢复连接为由擦除整片 Flash。
 - 未经明确授权，不覆盖凭据、设备身份、recovery 数据或相关分区。

@@ -110,7 +110,7 @@ Raylib 游戏通过 `mosaico_game_app_run()` 走同一条启动路径，项目 `
 4. 初始化电源、显示、资源和游戏；
 5. 首帧成功提交后调用 `esp_iris_mark_healthy()`。
 
-正常固件保持 `CONFIG_ESP_IRIS_OTA_DEFAULT_VIA_RECOVERY=y`，不包含 OTA writer。空白或未验证设备首次安装先执行 `python mosaico.py recover`，应用只通过 `python mosaico.py iris app-update --project ...` 安装。
+正常固件保持 `CONFIG_ESP_IRIS_OTA_DEFAULT_VIA_RECOVERY=y`，不包含 OTA writer。空白或未验证设备首次安装先执行 `python mosaico.py recover`，新应用、分区表或外部资源变化优先通过 `python mosaico.py iris system-update --project ...` 安装；完整分区表一致且只改代码时使用 `iris app-update`。保留 Recovery 固定分区前缀，不应为通过 app-update 而套用设备原来的可变分区布局。
 
 ## 参考项目
 

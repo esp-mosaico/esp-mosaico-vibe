@@ -18,6 +18,7 @@ class IrisCrashFixtureTests(unittest.TestCase):
         self.assertIn("coredump,  data, coredump,0x1e0000, 0x20000", partitions)
         self.assertIn("CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH=y", defaults)
         self.assertIn("CONFIG_ESP_TASK_WDT_PANIC=y", defaults)
+        application += (ROOT / "components/esp_mosaico_app_recovery/sdkconfig.defaults").read_text()
         self.assertIn("CONFIG_ESP_IRIS_OTA_DEFAULT_VIA_RECOVERY=y", application)
         self.assertIn("# CONFIG_ESP_IRIS_OTA is not set", application)
 

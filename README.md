@@ -29,7 +29,7 @@ to copy reference sources, set the project name, and adjust dependency paths.
 Maintain the description alongside Hello World; the tools contain no application-specific rules. It preserves the retained Recovery integration and
 leaves `default_project` unchanged. It requires no ESP-IDF environment or device.
 Existing destinations are rejected. Use `--json` for automation, then install
-with `python mosaico.py iris app-update --project projects/my_app`.
+with `python mosaico.py iris system-update --project projects/my_app`.
 See the [project initialization guide (中文)](docs/project-init.zh-CN.md) for details.
 
 The retained Recovery firmware is an internal resource of the pinned
@@ -174,13 +174,14 @@ Gateway**. An uninitialized device is told to run `recover`; the command never
 silently falls back to a lower-level write. `recover` uses the reviewed bundle
 by default and leaves the device Recovery-ready.
 
-Use `iris system-update` when system content must change together with the
-application. With `--project`, it builds a complete `.irisfw` bundle containing
-the normal application, bootloader, partition table, and the project's optional
-`ui_apps` data image, then asks the retained Recovery service to validate and
-write it through Gateway and verifies the result. Use `iris app-update` for an
-application-only change; use `iris system-update` when changing GSP scenes, fonts,
-images, the partition layout, or the bootloader. Pass `--bundle PATH` to reuse
+Prefer `iris system-update` for a new application or changed layout/resources.
+With `--project`, it builds a `.irisfw` bundle containing the normal application,
+partition table, and declared resource images (`ui_apps`, `game_assets`, etc.).
+It preserves the immutable Recovery prefix and bootloader. A reserved resource
+partition without external assets needs no image. The build reports each image,
+write offset, size, and hash. Use `iris app-update` for code-only changes with an
+identical full partition table; a mismatch reports both hashes and a ready-to-run
+system-update command. Pass `--bundle PATH` to reuse
 an existing complete bundle. See the
 [Recovery documentation](submodule/esp-mosaico-utils/esp-mosaico-recovery/firmware/recovery/README.md#recovery-从-https-拉取系统更新)
 for HTTP(S) and NAND sources and their security constraints.
@@ -223,7 +224,7 @@ developer for the required physical steps when necessary:
 
 The developer is responsible only for those button and power operations. The
 agent then continues `recover` and verifies device identity, Recovery version,
-and readiness. The normal application is installed later with `iris app-update`.
+and readiness. The normal application is installed later with `iris system-update`.
 
 Manual ROM download mode is a last-resort recovery strategy, not the routine
 development path. Do not erase the whole flash merely to restore connectivity,
@@ -258,3 +259,16 @@ and the changes needed for a default ESP32 programming and debugging workflow:
 - [ESP-Iris fixes and acceptance (Chinese)](docs/esp-iris-fix-acceptance.zh-CN.md)
 - [Upstream migration and validation (Chinese)](docs/upstream-migration-20260906.zh-CN.md)
 - [esp-mosaico-tools assessment (Chinese)](docs/esp-mosaico-tools-review.zh-CN.md)
+
+Device selection accepts `--device-id` independently of the number of transports.
+The Gateway reuses its verified connection or tries candidates with a bounded
+HELLO check, preferring live USB. Unowned USB descriptors may be probed to locate
+the requested identity. Failed new claims are released. An explicit `--endpoint`
+is binding, and another project's ownership is respected. Passive queries do
+not open interfaces. Transport retries only occur before update submission.
+
+Normal builds share `cmake/mosaico_application.cmake`. Both build configuration
+and CLI artifact preflight enforce the Mosaico role/product contract, including
+with `--skip-build`. Final OTA and System Update acceptance requires the same
+Device ID, a healthy new boot, the intended image, and the expected firmware role
+and product contract. Old Gateways lacking `update-acceptance/v1` must be updated.

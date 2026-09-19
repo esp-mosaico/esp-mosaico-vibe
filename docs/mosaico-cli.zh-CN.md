@@ -35,8 +35,8 @@ mosaico.py
 | `iris memory` | 读取内存状态；`--follow` 持续采样 |
 | `iris crash` | 查看崩溃信息；`--archive` 归档并解码 Core Dump |
 | `iris rpc` | 调用指定的应用 RPC |
-| `iris app-update` | 构建并安装正常应用，保留 Recovery 流程及启动验证 |
-| `iris system-update` | 按经过验证的更新包清单更新固件，实际范围由清单决定 |
+| `iris app-update` | 仅更新正常应用代码，要求完整分区表与设备一致 |
+| `iris system-update` | 新应用、分区布局或资源变化的推荐入口，按更新包清单写入 |
 | `recover` | 初始化或恢复设备基础固件，包括 ESP-Iris 不可达时的恢复 |
 
 `iris test` 下的命令用于分别测试 Recovery 流程：
@@ -151,3 +151,9 @@ Gateway 上已连接的设备，不从当前电脑自动认领 USB。
 
 `recover`、`doctor` 和工作区的 `game` 入口保留。操作记录中的内部操作标识、
 JSON 业务结果及取证目录格式继续沿用；`iris status` 新增 `running` 字段。
+
+新建项目优先使用 `iris system-update --project ...`。由项目构建的包包含应用、分区表及声明的资源镜像，保留 Recovery 固定前缀和 bootloader。`game_assets` 仅预留但未使用时不需要镜像；有外部资源的游戏通过 CMake 声明将镜像纳入包。
+
+`--device-id` 可独立选定设备：Gateway 优先复用已验证连接，否则先尝试在线 USB，再验证其他候选端点。HELLO 身份必须匹配；失败的新连接释放本次占用。`--endpoint` 是严格限定，其他工作区占用不会被抢走。候选连接重试只发生在写入提交之前。
+
+`app-update` 遇到分区表不同会返回 `partition_layout_mismatch`、设备/构建 SHA-256 及可执行的 `system-update` 建议。它不会自动扩大写入范围或修改工程分区表。实际构建配置（包括 `--skip-build`）与更新完成后的应用都必须通过角色、产品、板型、布局契约、Recovery ABI 检查。

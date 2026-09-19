@@ -27,7 +27,7 @@ python mosaico.py game run --project projects/sky_hop
 python mosaico.py game run --project projects/sky_hop --headless --frames 300
 python mosaico.py game build --project projects/sky_hop
 python mosaico.py recover  # 空白或未验证设备首次安装前
-python mosaico.py iris app-update --project projects/sky_hop
+python mosaico.py iris system-update --project projects/sky_hop
 python mosaico.py iris logs
 ```
 
@@ -38,3 +38,5 @@ python mosaico.py iris logs
 效果仍以真机为准。
 
 应用保留 factory Recovery，并通过 `iris_ota_support_start()` 暴露进入 Recovery 的 RPC。
+
+首次安装或布局、资源变化使用 `iris system-update`；分区表完全一致且仅修改代码时可用 `iris app-update`。

@@ -85,7 +85,7 @@ install.
 
 Unless the developer approves another architecture, every application must:
 
-1. Retain the partition contract from
+1. Retain the immutable prefix partition contract from
    `submodule/esp-mosaico-utils/esp-mosaico-recovery/firmware/recovery` and the compatible
    normal-application workflow from `projects/hello_world`.
 2. Set `CONFIG_ESP_IRIS_OTA_DEFAULT_VIA_RECOVERY=y` in normal builds, use the
@@ -94,7 +94,14 @@ Unless the developer approves another architecture, every application must:
    enter-recovery RPC.
 3. Run `python mosaico.py recover` before the first application install on a
    blank or unverified device.
-4. Install normal firmware only with `python mosaico.py iris app-update --project ...`.
+4. Prefer `python mosaico.py iris system-update --project ...` for a new
+   application, changed partition layout, or changed external resources. Use
+   `python mosaico.py iris app-update --project ...` for code-only updates when
+   the full partition table matches the device. Do not reshape an application's
+   intended layout merely to make app-update pass.
+5. Include `cmake/mosaico_application.cmake` before ESP-IDF project.cmake;
+   `esp_mosaico_app_recovery` validates the effective normal role, product/board/
+   layout/ABI contract, Recovery routing, and disabled application OTA writer.
 
 Verify the same Device ID completes normal -> Recovery -> normal with new Boot
 IDs, a ready Recovery service, and a healthy application.

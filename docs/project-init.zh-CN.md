@@ -99,9 +99,11 @@ ESP-IDF 环境。
 创建成功后，从工作区根目录显式选择新工程安装：
 
 ```sh
-python mosaico.py iris app-update --project projects/my_app
+python mosaico.py iris system-update --project projects/my_app
 ```
 
 空白或未经验证的设备须先执行 `python mosaico.py recover` 并验证 Recovery 就绪。
 安装后可用 `python mosaico.py iris logs --timeout 20` 观察日志。默认工程不会因
-`project init` 改变，因此在工作区根目录使用 `iris app-update` 时应保留 `--project` 参数。
+`project init` 改变，因此在工作区根目录使用 `iris system-update` 时应保留 `--project` 参数。
+
+后续仅修改代码且完整分区表与设备一致时可用 `iris app-update`。角色及产品契约来自共享应用配置，已有 `sdkconfig` 的实际值仍需通过构建检查。
