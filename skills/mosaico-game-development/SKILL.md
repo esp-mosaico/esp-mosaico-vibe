@@ -60,9 +60,9 @@ Every normal game build must:
   (`mosaico_game_app_run()` already does this);
 - register system inventory via `mosaico_game_iris` and mark healthy only after
   the first frame succeeds;
-- retain the factory-compatible partition layout and `game_assets` partition when assets are used.
+- retain the immutable Recovery partition prefix and `game_assets` partition when assets are used.
 
-Never flash with raw ESP-IDF or ESP-Iris write commands. Query the live Device ID with `python mosaico.py list`, run `python mosaico.py recover` before the first install on a blank or unverified device, and install only with `python mosaico.py install --project ...`.
+Never flash with raw ESP-IDF or ESP-Iris write commands. Query the live Device ID with `python mosaico.py iris list`, run `python mosaico.py recover` before the first install on a blank or unverified device, and prefer `python mosaico.py iris system-update --project ...` for a new game or changed layout/resources. Use `iris app-update` only for code changes with an identical full partition table. Do not copy the device's old layout just to bypass this check.
 
 For boot loops, missing crash logs, failed OTA/system updates, or Recovery fallback, follow [`esp-iris-device-debugging`](../esp-iris-device-debugging/SKILL.md) before another write. If a system update containing `game_assets` is interrupted, treat that partition as absent or partial until verified. Do not install an asset-dependent application by app-only OTA unless the exact assets are verified or the application has a tested embedded fallback.
 
@@ -80,3 +80,10 @@ At minimum:
 6. Capture a screenshot and inspect actual sprite scale, alpha, labels, and clipping. For audio, confirm readiness/errors from device logs and exercise each cue when feasible.
 
 Do not claim device or audio success from a successful build alone.
+
+All game templates include `cmake/mosaico_application.cmake` and validate the
+normal firmware contract through `esp_mosaico_app_recovery`. Keep this inclusion
+when copying a template. Declare generated resource images using the
+`MOSAICO_SYSTEM_UPDATE_DATA_LABELS` and per-label `IMAGE`/`TARGET` CMake properties;
+`sky_hop/main/CMakeLists.txt` is the game_assets reference. A reserved but unused
+resource partition needs no image.

@@ -54,3 +54,10 @@ configure_file("${CMAKE_CURRENT_LIST_DIR}/scene.json.in"
 gsp_add_bundle(${COMPONENT_LIB}
     SCENES "${CMAKE_CURRENT_BINARY_DIR}/scene.json"
     PIXEL_FORMAT rgb565)
+
+# Ship the generated resources with the application's partition layout.
+set_property(GLOBAL APPEND PROPERTY MOSAICO_SYSTEM_UPDATE_DATA_LABELS game_assets)
+set_property(GLOBAL PROPERTY MOSAICO_SYSTEM_UPDATE_DATA_game_assets_IMAGE
+    "${CMAKE_BINARY_DIR}/mmap_build/generated/game_assets/game_assets.bin")
+set_property(GLOBAL PROPERTY MOSAICO_SYSTEM_UPDATE_DATA_game_assets_TARGET
+    assets_game_assets_bin)

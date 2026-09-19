@@ -74,7 +74,7 @@ callback 升级，频繁变化的数据用 debounce 合并写入。
 
 本地游戏闭环统一使用 `python3 mosaico.py game sim projects/<game>`。它根据
 `game.sim.json` 编译同一份玩法和 view，用 Host RGB565 runner 做确定性输入、像素和
-状态验证。`game sim` 不启动 GSP。设备 Canvas 提交只通过 `game build`、`install`、
+状态验证。`game sim` 不启动 GSP。设备 Canvas 提交只通过 `game build`、`iris app-update`、
 ESP-Iris 日志和截图验证。协议见 [`host-simulator.md`](host-simulator.md)，兼容 API 见
 [`raylib-api.md`](raylib-api.md)。
 
@@ -110,7 +110,7 @@ Raylib 游戏通过 `mosaico_game_app_run()` 走同一条启动路径，项目 `
 4. 初始化电源、显示、资源和游戏；
 5. 首帧成功提交后调用 `esp_iris_mark_healthy()`。
 
-正常固件保持 `CONFIG_ESP_IRIS_OTA_DEFAULT_VIA_RECOVERY=y`，不包含 OTA writer。空白或未验证设备首次安装先执行 `python mosaico.py recover`，应用只通过 `python mosaico.py install --project ...` 安装。
+正常固件保持 `CONFIG_ESP_IRIS_OTA_DEFAULT_VIA_RECOVERY=y`，不包含 OTA writer。空白或未验证设备首次安装先执行 `python mosaico.py recover`，新应用、分区表或外部资源变化优先通过 `python mosaico.py iris system-update --project ...` 安装；完整分区表一致且只改代码时使用 `iris app-update`。保留 Recovery 固定分区前缀，不应为通过 app-update 而套用设备原来的可变分区布局。
 
 ## 参考项目
 

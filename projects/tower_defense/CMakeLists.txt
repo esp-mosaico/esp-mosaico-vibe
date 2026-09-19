@@ -9,6 +9,8 @@ endif()
 include("${CMAKE_CURRENT_LIST_DIR}/../../cmake/raylib_lite_engine.cmake")
 mosaico_game_sdk_configure_gsp_compiler()
 mosaico_game_sdk_add_components(RAYLIB AUDIO TILEMAP)
+include(../../cmake/mosaico_application.cmake)
+
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(tower_defense VERSION 0.1.0)
 

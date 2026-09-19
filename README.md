@@ -20,16 +20,16 @@ Create each new application as its own directory under `projects/`.
 Create a Hello World application from the workspace root with:
 
 ```sh
-python mosaico.py init my_app
-python mosaico.py init another_app --dry-run
+python mosaico.py project init my_app
+python mosaico.py project init another_app --dry-run
 ```
 
-`init` follows the workspace-owned [template description](projects/hello_world/mosaico-template.json)
+`project init` follows the workspace-owned [template description](projects/hello_world/mosaico-template.json)
 to copy reference sources, set the project name, and adjust dependency paths.
 Maintain the description alongside Hello World; the tools contain no application-specific rules. It preserves the retained Recovery integration and
 leaves `default_project` unchanged. It requires no ESP-IDF environment or device.
 Existing destinations are rejected. Use `--json` for automation, then install
-with `python mosaico.py install --project projects/my_app`.
+with `python mosaico.py iris system-update --project projects/my_app`.
 See the [project initialization guide (中文)](docs/project-init.zh-CN.md) for details.
 
 The retained Recovery firmware is an internal resource of the pinned
@@ -54,12 +54,14 @@ logs, and recovery:
 
 ```sh
 python mosaico.py doctor
-python mosaico.py list
+python mosaico.py iris list
 python mosaico.py recover
-python mosaico.py install --project projects/<project>
-python mosaico.py system-update --project projects/<project>
-python mosaico.py monitor
+python mosaico.py iris app-update --project projects/<project>
+python mosaico.py iris system-update --project projects/<project>
+python mosaico.py iris logs
 ```
+
+See the [CLI command reference (中文)](docs/mosaico-cli.zh-CN.md) for the command tree, lifecycle rules and legacy aliases.
 
 The root launcher delegates to `esp-mosaico-recovery` in the pinned
 `submodule/esp-mosaico-utils` checkout; the CLI is not installed into the active Python environment. The
@@ -70,15 +72,37 @@ BSP, ESP-Iris, and build paths. Initialize the tool checkout with:
 git submodule update --init submodule/esp-mosaico-utils
 ```
 
-`list` connects to the Gateway and prints eFuse-MAC-derived Device IDs, the raw
+Gateways are shared by clients of one workspace/application. Device commands
+start or reuse that project's Gateway and hold a renewable client lease for the
+command. `python mosaico.py iris run --project projects/hello_world` holds an
+independent client until Ctrl-C; an open Web workbench also holds a client.
+The first command has no special shutdown authority. After all clients leave
+and active work finishes, the Gateway exits after **10 idle seconds**. Opening
+the workbench after shutdown requires restarting through the CLI.
+
+`python mosaico.py iris status --all` passively lists same-user Gateways across
+workspaces, their clients, device ownership, and reasons for staying alive.
+Queries neither start Gateways nor reset the idle timer. Each project keeps
+separate ports, databases, and logs; there is no explicit stop command.
+
+Discovery and status queries do not connect unclaimed devices. Device operations
+automatically connect the sole available USB device when no target is supplied;
+an existing project-owned device takes priority, including while reconnecting.
+Multiple candidates require an explicit target. Use `iris claim --project
+projects/hello_world --endpoint <discovered-endpoint>` in a shared session,
+or select `--device-id` / `--endpoint` on a device operation. Devices reconnect
+only for their current owner. See the [project session and transfer guide](docs/project-gateway.zh-CN.md)
+for explicit handoff, interrupted transfers, and migration from legacy Gateways.
+
+`iris list` prints discovery candidates and previously verified eFuse-MAC-derived Device IDs, the raw
 hardware MAC, online state, connection
 type, firmware identity, mode, and Boot ID. It includes cached offline devices;
-use `list --details` for endpoint, ESP-IDF version, Session ID, and capabilities,
-or `list --json` for the complete Gateway record.
+use `iris list --details` for endpoint, ESP-IDF version, Session ID, and capabilities,
+or `iris list --json` for the complete Gateway record.
 
 When upgrading from legacy ESP-Iris firmware, each device changes once from its
 old NVS-stored random Device ID to the hardware-derived Device ID. Refresh saved
-selectors with `python mosaico.py list`; old operation history remains attached
+selectors with `python mosaico.py iris list`; old operation history remains attached
 to the offline legacy ID. Upgrade retained Recovery and normal firmware
 together so both modes use the same identity scheme.
 
@@ -117,9 +141,9 @@ fixtures hard-code POSIX path rendering; those contracts still run on Linux and
 macOS. Device-aware host smoke checks remain manual:
 
 ```sh
-python mosaico.py --json list
+python mosaico.py --json iris list
 python mosaico.py --json doctor
-python mosaico.py monitor --timeout 1 --grep __mosaico_host_smoke__
+python mosaico.py iris logs --timeout 1 --grep __mosaico_host_smoke__
 ```
 
 ## Continuous integration
@@ -127,7 +151,7 @@ python mosaico.py monitor --timeout 1 --grep __mosaico_host_smoke__
 The [GitHub Actions workflow](.github/workflows/ci.yml) runs for pull requests,
 pushes to `main`, and manual dispatches. It tests Python 3.8 and 3.12 on native
 Linux, macOS, and Windows runners, then builds `hello_world`, an application
-generated by `init`, `gsp_hello`, the ESP-Iris acceptance firmware, and retained Recovery on GitHub-hosted
+generated by `project init`, `gsp_hello`, the ESP-Iris acceptance firmware, and retained Recovery on GitHub-hosted
 `ubuntu-22.04` runners. Each firmware job installs ESP-IDF revision
 `7b9cc1ac79f865983f59bb8ff3ff43eb74ff1dbe` from the 6.2 development line with
 ESP-IDF's official `install.sh` before the low-noise environment check and
@@ -145,18 +169,19 @@ CI never discovers, flashes, or controls a physical device and does not publish
 a release. Configure `CI / required` as the required `main` branch protection
 check after the first successful workflow run.
 
-`install` updates normal applications only through the **ESP-Iris Developer
+`iris app-update` updates normal applications only through the **ESP-Iris Developer
 Gateway**. An uninitialized device is told to run `recover`; the command never
 silently falls back to a lower-level write. `recover` uses the reviewed bundle
 by default and leaves the device Recovery-ready.
 
-Use `system-update` when system content must change together with the
-application. With `--project`, it builds a complete `.irisfw` bundle containing
-the normal application, bootloader, partition table, and the project's optional
-`ui_apps` data image, then asks the retained Recovery service to validate and
-write it through Gateway and verifies the result. Use `install` for an
-application-only change; use `system-update` when changing GSP scenes, fonts,
-images, the partition layout, or the bootloader. Pass `--bundle PATH` to reuse
+Prefer `iris system-update` for a new application or changed layout/resources.
+With `--project`, it builds a `.irisfw` bundle containing the normal application,
+partition table, and declared resource images (`ui_apps`, `game_assets`, etc.).
+It preserves the immutable Recovery prefix and bootloader. A reserved resource
+partition without external assets needs no image. The build reports each image,
+write offset, size, and hash. Use `iris app-update` for code-only changes with an
+identical full partition table; a mismatch reports both hashes and a ready-to-run
+system-update command. Pass `--bundle PATH` to reuse
 an existing complete bundle. See the
 [Recovery documentation](submodule/esp-mosaico-utils/esp-mosaico-recovery/firmware/recovery/README.md#recovery-从-https-拉取系统更新)
 for HTTP(S) and NAND sources and their security constraints.
@@ -199,7 +224,7 @@ developer for the required physical steps when necessary:
 
 The developer is responsible only for those button and power operations. The
 agent then continues `recover` and verifies device identity, Recovery version,
-and readiness. The normal application is installed later with `install`.
+and readiness. The normal application is installed later with `iris system-update`.
 
 Manual ROM download mode is a last-resort recovery strategy, not the routine
 development path. Do not erase the whole flash merely to restore connectivity,
@@ -215,8 +240,8 @@ partitions without explicit user authorization.
 - `espressif/esp-gsp==1.2.0` — remote ESP-GSP component (device prebuilts via the registry; sim/gspc fetched separately).
 - `tools/gsp-sim/` — packs scenes and runs the standalone ESP-GSP `sim`.
 - `submodule/esp-mosaico-utils/` — pinned utilities monorepo containing the
-  `esp-mosaico-recovery` CLI/firmware and the sibling `ESP-Iris`
-  firmware/host runtime; no global CLI installation is required.
+  `mosaico-tools` CLI, `esp-mosaico-recovery` firmware and the sibling
+  `ESP-Iris` firmware/host runtime; no global CLI installation is required.
 - `skills/` — task-oriented integration guides for agents and humans. See
   [`skills/README.md`](skills/README.md).
 - `docs/` — user-facing documentation.
@@ -234,3 +259,16 @@ and the changes needed for a default ESP32 programming and debugging workflow:
 - [ESP-Iris fixes and acceptance (Chinese)](docs/esp-iris-fix-acceptance.zh-CN.md)
 - [Upstream migration and validation (Chinese)](docs/upstream-migration-20260906.zh-CN.md)
 - [esp-mosaico-tools assessment (Chinese)](docs/esp-mosaico-tools-review.zh-CN.md)
+
+Device selection accepts `--device-id` independently of the number of transports.
+The Gateway reuses its verified connection or tries candidates with a bounded
+HELLO check, preferring live USB. Unowned USB descriptors may be probed to locate
+the requested identity. Failed new claims are released. An explicit `--endpoint`
+is binding, and another project's ownership is respected. Passive queries do
+not open interfaces. Transport retries only occur before update submission.
+
+Normal builds share `cmake/mosaico_application.cmake`. Both build configuration
+and CLI artifact preflight enforce the Mosaico role/product contract, including
+with `--skip-build`. Final OTA and System Update acceptance requires the same
+Device ID, a healthy new boot, the intended image, and the expected firmware role
+and product contract. Old Gateways lacking `update-acceptance/v1` must be updated.

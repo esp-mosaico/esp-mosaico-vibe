@@ -7,10 +7,10 @@ Build with the workspace low-noise IDF build runner and a compatible ESP32-S31
 ESP-IDF environment, then install only through the product workflow:
 
 ```sh
-python mosaico.py install --project tests/firmware/iris_internal_budget --skip-build
+python mosaico.py iris app-update --project tests/firmware/iris_internal_budget --skip-build
 ```
 
-Discover the live Device ID with `python mosaico.py list`. Run `run_test.py`
+Discover the live Device ID with `python mosaico.py iris list`. Run `run_test.py`
 using the prepared ESP-Iris host Python (with aiohttp), with the same
 `MOSAICO_LOCAL_GATEWAY_URL` as `mosaico.py` when a non-default Gateway is used:
 
@@ -23,12 +23,12 @@ The script uses only the existing managed Gateway HTTP/WebSocket API. It tests
 mirroring, complete 480x480 RGB565 frames, unchanged Boot ID, and error counters.
 JSON results, operation IDs, PNGs and raw responses are retained under
 `.codex-runs/mosaico/*-iris-budget-test/`. A failed request is not a passing run.
-Restore normal GSP firmware afterwards with `mosaico.py install`.
+Restore normal GSP firmware afterwards with `mosaico.py iris app-update`.
 
 Metrics also report the named TinyUSB task's minimum free stack; acceptance
 requires at least 512 B. A test-only timer allocated before attribution emits
 `iris_budget: EXIT current=... peak=... errors=...` after the enter-Recovery
-task is created, before reset. Use managed `mosaico.py monitor` to preserve
+task is created, before reset. Use managed `mosaico.py iris logs` to preserve
 that record during the final normal -> Recovery -> normal installation.
 
 After restoring production firmware, `--production-check --rpc-count 10

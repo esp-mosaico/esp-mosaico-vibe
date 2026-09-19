@@ -184,7 +184,9 @@ def resolve_release(
         return executable
 
     cache = cache_dir or default_cache_dir(product, version)
-    binary = cache / product
+    os_name, _ = host_os_arch()
+    binary_name = product + (".exe" if os_name == "windows" else "")
+    binary = cache / binary_name
     if binary.is_file():
         return binary
     name = archive_name(product, version)
@@ -192,7 +194,7 @@ def resolve_release(
     archive = cache / name
     download(base + name, archive)
     download(base + LICENSE_NAME, cache / LICENSE_NAME)
-    extract_binary(archive, product, binary)
+    extract_binary(archive, binary_name, binary)
     return binary
 
 

@@ -200,3 +200,45 @@ class PrepareSystemUpdateTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ResourceSystemUpdateTests(unittest.TestCase):
+    def stage(self, root, declarations):
+        (root / "partitions.csv").write_text(PARTITIONS.replace("ui_apps,data,0x40", "game_assets,data,0x40"))
+        (root / "partition.bin").write_bytes(b"table")
+        (root / "application.bin").write_bytes(b"app")
+        argv = ["prepare", "--partition-csv", str(root / "partitions.csv"),
+                "--partition-table", str(root / "partition.bin"), "--application", str(root / "application.bin"),
+                "--stage-dir", str(root / "stage"), "--release", "1"]
+        for declaration in declarations:
+            argv += ["--data", declaration]
+        with mock.patch.object(sys, "argv", argv):
+            MODULE.main()
+        return json.loads((root / "stage/manifest.json").read_text())
+
+    def test_reserved_game_partition_needs_no_empty_image(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest = self.stage(Path(tmp), [])
+            self.assertEqual([item["kind"] for item in manifest["components"]], ["partition_table", "application"])
+
+    def test_declared_game_assets_are_included(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            image = root / "game.bin"
+            image.write_bytes(b"resources")
+            manifest = self.stage(root, ["game_assets=" + str(image)])
+            self.assertEqual(manifest["components"][-1]["target_offset"], 0xf00000)
+            self.assertEqual((root / "stage/game_assets.bin").read_bytes(), b"resources")
+
+    def test_rejects_missing_duplicate_oversized_or_protected_images(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            image = root / "game.bin"
+            image.write_bytes(b"resources")
+            for declarations in (["game_assets=/missing"], [f"game_assets={image}"] * 2,
+                                 [f"sysmeta={image}"], [f"nvs={image}"], [f"../game={image}"]):
+                with self.subTest(declarations=declarations), self.assertRaises(ValueError):
+                    self.stage(root, declarations)
+            image.write_bytes(b"a" * (0x100000 + 1))
+            with self.assertRaisesRegex(ValueError, "capacity"):
+                self.stage(root, [f"game_assets={image}"])

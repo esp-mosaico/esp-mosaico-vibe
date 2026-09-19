@@ -77,6 +77,7 @@ install.
 5. Follow component source, examples, and upstream documentation. Do not
    invent board or component APIs.
 6. Keep user-facing documentation in `docs/`, public product tooling in
+   `submodule/esp-mosaico-utils/mosaico-tools`, Recovery firmware and product ABI in
    `submodule/esp-mosaico-utils/esp-mosaico-recovery`, workspace-specific tool settings in
    `.mosaico.json`, and private agent-facing documentation or tools in `.agents/`.
 
@@ -84,7 +85,7 @@ install.
 
 Unless the developer approves another architecture, every application must:
 
-1. Retain the partition contract from
+1. Retain the immutable prefix partition contract from
    `submodule/esp-mosaico-utils/esp-mosaico-recovery/firmware/recovery` and the compatible
    normal-application workflow from `projects/hello_world`.
 2. Set `CONFIG_ESP_IRIS_OTA_DEFAULT_VIA_RECOVERY=y` in normal builds, use the
@@ -93,16 +94,34 @@ Unless the developer approves another architecture, every application must:
    enter-recovery RPC.
 3. Run `python mosaico.py recover` before the first application install on a
    blank or unverified device.
-4. Install normal firmware only with `python mosaico.py install --project ...`.
+4. Prefer `python mosaico.py iris system-update --project ...` for a new
+   application, changed partition layout, or changed external resources. Use
+   `python mosaico.py iris app-update --project ...` for code-only updates when
+   the full partition table matches the device. Do not reshape an application's
+   intended layout merely to make app-update pass.
+5. Include `cmake/mosaico_application.cmake` before ESP-IDF project.cmake;
+   `esp_mosaico_app_recovery` validates the effective normal role, product/board/
+   layout/ABI contract, Recovery routing, and disabled application OTA writer.
 
 Verify the same Device ID completes normal -> Recovery -> normal with new Boot
 IDs, a ready Recovery service, and a healthy application.
 
 ## Operate devices through ESP-Iris
 
-- Use `python mosaico.py install`, `system-update`, `recover`, and `monitor` for
-  routine device operations. Use `python mosaico.py list` for live Device ID
+- Use `python mosaico.py iris app-update`, `iris system-update`, `recover`, and `iris logs` for
+  routine device operations. Use `python mosaico.py iris list` for live Device ID
   discovery.
+- For a single available USB device, omit device selectors: device operations
+  automatically connect it and pin the verified Device ID. Prefer the current
+  project's existing device, and never switch to another device after a failed
+  explicit selection or while waiting for a reconnect. Use `iris run` to retain
+  a debugging session across commands; every invocation holds its own client
+  and Ctrl-C releases only that client.
+  Device commands share the project's Gateway, which exits after 10 idle seconds
+  with no clients or active work. `iris list` remains passive device discovery;
+  `iris status` and `iris status --all` neither start nor keep a Gateway alive.
+  Use `iris status --all` to inspect same-user cross-workspace clients and device
+  ownership; never stop another client's Gateway merely to obtain a device.
 - Do not call ESP-Iris or ESP-IDF device-write commands directly; `mosaico.py`
   owns Gateway lifecycle, evidence capture, device selection, and validation.
 - Avoid USB Serial/JTAG for application flashing and monitoring. Do not adopt

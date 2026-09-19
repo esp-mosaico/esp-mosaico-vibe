@@ -11,9 +11,9 @@ Recovery 分区为 1.75 MiB。此前验收报告记录的是旧布局，不能�
 实机验收证据。旧布局设备须先完成保留数据的产品迁移，不能直接安装本构建；
 普通安装仍校验实际分区表摘要。
 
-从仓库根目录通过 `python mosaico.py install --project tests/firmware/iris_acceptance`
+从仓库根目录通过 `python mosaico.py iris app-update --project tests/firmware/iris_acceptance`
 安装；空白或未验证设备须先执行 `python mosaico.py recover`。
-使用 `python mosaico.py monitor --timeout 20` 观察
+使用 `python mosaico.py iris logs --timeout 20` 观察
 `IRIS_READY ... mode=normal writer=0`、`IRIS_OTA_HEALTHY` 和
 `ACCEPTANCE_ALIVE service=0x6a02`。安装后须记录同一 Device ID 的
 normal → Recovery → normal、新 Boot ID、目标 ELF SHA 和 healthy 证据。

@@ -19,15 +19,15 @@
 在工作区根目录创建 Hello World 应用：
 
 ```sh
-python mosaico.py init my_app
-python mosaico.py init another_app --dry-run
+python mosaico.py project init my_app
+python mosaico.py project init another_app --dry-run
 ```
 
-`init` 按主仓库的[模板描述](projects/hello_world/mosaico-template.json)生成源文件，
+`project init` 按主仓库的[模板描述](projects/hello_world/mosaico-template.json)生成源文件，
 更新工程名与依赖路径，保留 Recovery 接入，不更改默认工程。描述与 Hello World
 源码一起维护；工具子仓库不包含应用专用的生成规则。
 创建过程无需 ESP-IDF 环境或设备；目标已存在时直接报错。支持 `--json` 自动化输出。
-生成后使用 `python mosaico.py install --project projects/my_app` 显式选择新工程。
+生成后使用 `python mosaico.py iris app-update --project projects/my_app` 显式选择新工程。
 详细用法见[工程初始化指南](docs/project-init.zh-CN.md)。
 
 组件仓库和其他项目资料通过 Git 子模组提供。只加载或初始化当前任务所需的
@@ -47,12 +47,14 @@ python mosaico.py init another_app --dry-run
 
 ```sh
 python mosaico.py doctor
-python mosaico.py list
+python mosaico.py iris list
 python mosaico.py recover
-python mosaico.py install --project projects/<project>
-python mosaico.py system-update --project projects/<project>
-python mosaico.py monitor
+python mosaico.py iris app-update --project projects/<project>
+python mosaico.py iris system-update --project projects/<project>
+python mosaico.py iris logs
 ```
+
+完整命令树、生命周期规则及旧命令映射见[CLI 命令说明](docs/mosaico-cli.zh-CN.md)。
 
 根目录启动器会转发到固定版本的 `submodule/esp-mosaico-utils/esp-mosaico-recovery`，不会把 CLI
 安装到当前 Python 环境。[`.mosaico.json`](.mosaico.json) 由主仓库维护，声明
@@ -62,12 +64,24 @@ python mosaico.py monitor
 git submodule update --init submodule/esp-mosaico-utils
 ```
 
-`list` 会连接 Gateway，列出由出厂 eFuse Base MAC 派生的 Device ID、原始硬件
-MAC、在线状态、连接方式、固件身份、运行模式和 Boot ID，并保留 Gateway 缓存中的离线设备。使用 `list --details` 查看 endpoint、
-ESP-IDF 版本、Session ID 和能力列表，或使用 `list --json` 查看完整 Gateway 记录。
+Gateway 由项目会话持有。前台运行 `python mosaico.py iris run --project
+projects/hello_world`，同项目的其他命令复用该会话；输出中提供 Web 工作台地址。
+Ctrl-C 结束拥有者会话并等待当前操作收尾。未启动持续会话时，单次命令创建
+临时 Gateway，操作完成后关闭。不同项目使用独立端口、数据库和日志。
+
+设备发现和状态查询不会自动连接。设备操作省略目标时，会自动连接唯一可用 USB
+设备，优先跟随当前项目已有设备（包括等待重连）；多个候选时才需要选择。
+在持续会话中用 `iris claim --project
+projects/hello_world --endpoint <发现到的端点>` 显式认领，或在设备操作中指定
+`--device-id` / `--endpoint`。仅当前所有者自动重连设备。
+详见[项目会话、设备归属与转让](docs/project-gateway.zh-CN.md)。
+
+`iris list` 列出发现的候选端点，以及已验证的、由出厂 eFuse Base MAC 派生的 Device ID、原始硬件
+MAC、在线状态、连接方式、固件身份、运行模式和 Boot ID，并保留 Gateway 缓存中的离线设备。使用 `iris list --details` 查看 endpoint、
+ESP-IDF 版本、Session ID 和能力列表，或使用 `iris list --json` 查看完整 Gateway 记录。
 
 从旧版 ESP-Iris 升级时，每台设备会从原先保存在 NVS 中的随机 Device ID 一次性
-切换为硬件派生 Device ID。请用 `python mosaico.py list` 刷新保存的选择器；旧操作
+切换为硬件派生 Device ID。请用 `python mosaico.py iris list` 刷新保存的选择器；旧操作
 历史仍保留在离线的旧 ID 下。保留 Recovery 与普通应用应一起升级，确保两种模式
 采用相同的身份规则。
 
@@ -104,9 +118,9 @@ CI 还会在 Windows 上取消选择 4 项 fixture 硬编码 POSIX 路径显示�
 按需运行：
 
 ```sh
-python mosaico.py --json list
+python mosaico.py --json iris list
 python mosaico.py --json doctor
-python mosaico.py monitor --timeout 1 --grep __mosaico_host_smoke__
+python mosaico.py iris logs --timeout 1 --grep __mosaico_host_smoke__
 ```
 
 ## 持续集成
@@ -114,7 +128,7 @@ python mosaico.py monitor --timeout 1 --grep __mosaico_host_smoke__
 [GitHub Actions 工作流](.github/workflows/ci.yml)在 Pull Request、`main` 分支
 push 和手动触发时运行。主机矩阵在原生 Linux、macOS、Windows 上测试 Python
 3.8 和 3.12；固件矩阵在 GitHub 托管的 `ubuntu-22.04` runner 上构建
-`hello_world`、由 `init` 生成的应用、`gsp_hello`、ESP-Iris 验收固件和保留 Recovery。每个固件任务
+`hello_world`、由 `project init` 生成的应用、`gsp_hello`、ESP-Iris 验收固件和保留 Recovery。每个固件任务
 先递归检出 6.2 开发线上的固定 ESP-IDF revision
 `7b9cc1ac79f865983f59bb8ff3ff43eb74ff1dbe`，并用 ESP-IDF 官方 `install.sh`
 安装工具链，再执行 low-noise 环境检查和构建。GSP 任务还会编译 PC bridge，并
@@ -128,15 +142,15 @@ ESP32-S31 preview 支持。runner 只需能够访问 GitHub、ESP Component Regi
 CI 不发现、烧录或控制真机，也不发布正式 Release。首次流水线成功后，在 `main`
 分支保护规则中把 `CI / required` 配置为必选检查。
 
-`install` 只通过 **ESP-Iris Developer Gateway** 更新普通应用；设备未完成初始化
+`iris app-update` 只通过 **ESP-Iris Developer Gateway** 更新普通应用；设备未完成初始化
 时会明确提示先运行 `recover`，不会自动切换成底层烧录。`recover` 默认使用仓库
 内经过评审的 Recovery 基础包，并在完成后停留于 Recovery 就绪状态。
 
-`system-update` 用于应用之外还需同步更新系统内容的场景。指定 `--project` 时，
+`iris system-update` 用于应用之外还需同步更新系统内容的场景。指定 `--project` 时，
 命令会构建一个 `.irisfw` 完整更新包，其中包含普通应用、bootloader、分区表，
 以及工程声明的可选 `ui_apps` 数据镜像，再通过 Gateway 交给保留的 Recovery
-校验、写入并核对更新结果。只修改普通应用时使用 `install`；修改 GSP 场景、字体、
-图片、分区布局或 bootloader 时使用 `system-update`。已有完整更新包可通过
+校验、写入并核对更新结果。只修改普通应用时使用 `iris app-update`；修改 GSP 场景、字体、
+图片、分区布局或 bootloader 时使用 `iris system-update`。已有完整更新包可通过
 `--bundle PATH` 复用；从 HTTP(S) 或 NAND 发起更新的流程及安全限制见
 [`Recovery 说明`](submodule/esp-mosaico-utils/esp-mosaico-recovery/firmware/recovery/README.md#recovery-从-https-拉取系统更新)。
 
@@ -170,7 +184,7 @@ normal 固件必须记录这一例外，并通过其它可用传输保留 ESP-Ir
 4. 设备进入 ROM 下载模式后松开 **Boot** 键，并告知 Agent 物理操作已完成。
 
 开发者只需完成上述按键和上电操作。之后由 Agent 继续运行 `recover` 并验证
-设备身份、Recovery 版本和就绪状态；后续应用通过 `install` 安装。
+设备身份、Recovery 版本和就绪状态；后续应用通过 `iris app-update` 安装。
 
 手动进入 ROM 下载模式仅用于最后恢复。不要仅为恢复连接而擦除整片 Flash，
 也不应在未经用户明确授权时覆盖凭据、设备身份、recovery 数据或相关分区。

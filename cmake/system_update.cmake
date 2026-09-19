@@ -1,5 +1,5 @@
 # Build the local, unsigned ESP-Iris System Update bundle used by
-# `python mosaico.py system-update --project projects/<application>`.
+# `python mosaico.py iris system-update --project projects/<application>`.
 # The application supplies its partition layout and binary; the retained
 # Recovery bootloader is intentionally not part of normal application updates.
 # It is installed and repaired only by `mosaico.py recover`.
@@ -13,7 +13,7 @@ add_custom_target(mosaico-reject-direct-app-flash
     COMMAND "${CMAKE_COMMAND}" -E echo
         "Direct IDF flashing is disabled: factory contains retained Recovery."
     COMMAND "${CMAKE_COMMAND}" -E echo
-        "Use: python3 mosaico.py install --project ${PROJECT_SOURCE_DIR}"
+        "Use: python3 mosaico.py iris system-update --project ${PROJECT_SOURCE_DIR}"
     COMMAND "${CMAKE_COMMAND}" -E false
     VERBATIM)
 add_dependencies(flash mosaico-reject-direct-app-flash)
@@ -45,6 +45,18 @@ if(system_update_ui_apps)
     list(APPEND system_update_dependencies
         "${system_update_ui_apps}" ${system_update_ui_apps_target})
 endif()
+
+# Each resource producer declares its label, generated image, and build target.
+get_property(system_update_data_labels GLOBAL PROPERTY MOSAICO_SYSTEM_UPDATE_DATA_LABELS)
+foreach(label IN LISTS system_update_data_labels)
+    get_property(data_image GLOBAL PROPERTY "MOSAICO_SYSTEM_UPDATE_DATA_${label}_IMAGE")
+    get_property(data_target GLOBAL PROPERTY "MOSAICO_SYSTEM_UPDATE_DATA_${label}_TARGET")
+    if(NOT data_image OR NOT data_target)
+        message(FATAL_ERROR "System Update resource ${label} requires IMAGE and TARGET properties")
+    endif()
+    list(APPEND system_update_preparer_args --data "${label}=${data_image}")
+    list(APPEND system_update_dependencies "${data_image}" "${data_target}")
+endforeach()
 
 # The ESP-Iris bundle builder imports Gateway runtime dependencies (for
 # example zeroconf), so mosaico.py passes its prepared host Python explicitly.
@@ -81,7 +93,7 @@ if(system_update_python)
 else()
     add_custom_target(system-update-bundle
         COMMAND "${CMAKE_COMMAND}" -E echo
-            "ESP-Iris host environment unavailable; use mosaico.py system-update"
+            "ESP-Iris host environment unavailable; use mosaico.py iris system-update"
         COMMAND "${CMAKE_COMMAND}" -E false
         VERBATIM)
 endif()

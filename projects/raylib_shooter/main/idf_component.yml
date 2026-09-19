@@ -10,3 +10,6 @@ dependencies:
   esp_iris:
     version: "*"
     override_path: ../../../submodule/esp-mosaico-utils/ESP-Iris/components/esp_iris
+  lvgl/lvgl:
+    # Keep esp_lvgl_adapter compatible, as in the Hello World reference.
+    version: "==9.5.0"

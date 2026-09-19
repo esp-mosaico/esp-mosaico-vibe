@@ -1,9 +1,9 @@
-# 使用 mosaico.py init 创建工程
+# 使用 mosaico.py project init 创建工程
 
 在已有 ESP-Mosaico 工作区中运行：
 
 ```sh
-python mosaico.py init my_app
+python mosaico.py project init my_app
 ```
 
 命令以 `projects/hello_world` 为参考，创建 `projects/my_app`。可以从工作区的
@@ -17,8 +17,8 @@ python mosaico.py init my_app
 ## 预览与自动化
 
 ```sh
-python mosaico.py init my_app --dry-run
-python mosaico.py init my_app --json
+python mosaico.py project init my_app --dry-run
+python mosaico.py project init my_app --json
 ```
 
 `--dry-run` 完成与实际创建相同的模板和路径校验，列出目标目录与文件，但不创建
@@ -72,7 +72,7 @@ projects/my_app/
 
 以上仅展示相关字段，保留配置中的其他字段。`init_template` 指向 JSON 描述文件，
 相对路径从配置文件所在目录解析。子仓库没有默认模板；未配置此字段时，其他命令
-正常使用，`init` 会提示补充配置。
+正常使用，`project init` 会提示补充配置。
 
 Hello World 源码和 `projects/hello_world/mosaico-template.json` 均由主仓库维护。
 描述文件声明复制哪些文件、如何替换工程名和文案，以及共享资源的位置。主仓库
@@ -99,9 +99,11 @@ ESP-IDF 环境。
 创建成功后，从工作区根目录显式选择新工程安装：
 
 ```sh
-python mosaico.py install --project projects/my_app
+python mosaico.py iris system-update --project projects/my_app
 ```
 
 空白或未经验证的设备须先执行 `python mosaico.py recover` 并验证 Recovery 就绪。
-安装后可用 `python mosaico.py monitor --timeout 20` 观察日志。默认工程不会因
-`init` 改变，因此在工作区根目录使用 `install` 时应保留 `--project` 参数。
+安装后可用 `python mosaico.py iris logs --timeout 20` 观察日志。默认工程不会因
+`project init` 改变，因此在工作区根目录使用 `iris system-update` 时应保留 `--project` 参数。
+
+后续仅修改代码且完整分区表与设备一致时可用 `iris app-update`。角色及产品契约来自共享应用配置，已有 `sdkconfig` 的实际值仍需通过构建检查。

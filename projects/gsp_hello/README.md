@@ -29,7 +29,7 @@ Recovery must already be on the device (`python mosaico.py recover`). A normal
 application-only update can reuse the installed UI bundle:
 
 ```sh
-python mosaico.py install --project projects/gsp_hello
+python mosaico.py iris app-update --project projects/gsp_hello
 ```
 
 To install a changed scene, font, or image, use a System Update containing the
@@ -37,7 +37,7 @@ application, `ui_apps`, and compatible partition table (preserving Recovery and
 the installed bootloader):
 
 ```sh
-python mosaico.py system-update --project projects/gsp_hello
+python mosaico.py iris system-update --project projects/gsp_hello
 ```
 
 The command updates this project's partition table as part of the transaction.

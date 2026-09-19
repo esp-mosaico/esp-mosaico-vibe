@@ -17,6 +17,8 @@ if(NOT GSPC_EXECUTABLE)
 endif()
 set(GSPC_EXECUTABLE "${GSPC_EXECUTABLE}" CACHE FILEPATH "Pinned gspc")
 set(ENV{GSPC_EXECUTABLE} "${GSPC_EXECUTABLE}")
+include(../../../cmake/mosaico_application.cmake)
+
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(iris_internal_budget VERSION 1.0.0)
 include("${mosaico_root}/cmake/system_update.cmake")

@@ -8,11 +8,11 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 TOOLS = ROOT / "submodule/esp-mosaico-utils/esp-mosaico-recovery"
 LAYOUT_ID = "mosaico-retained-recovery-2m-v1"
-NORMAL_FIRMWARE_PROJECTS = (
-    ROOT / "projects/hello_world",
-    ROOT / "tests/firmware/iris_acceptance",
-    ROOT / "projects/gsp_hello",
+NORMAL_FIRMWARE_PROJECTS = tuple(sorted((ROOT / "projects").glob("*/sdkconfig.application.defaults"))) + (
+    ROOT / "tests/firmware/iris_acceptance/sdkconfig.application.defaults",
+    ROOT / "tests/firmware/iris_crash/sdkconfig.application.defaults",
 )
+NORMAL_FIRMWARE_PROJECTS = tuple(path.parent for path in NORMAL_FIRMWARE_PROJECTS)
 USER_EXAMPLE_PROJECTS = (
     ROOT / "projects/hello_world",
     ROOT / "projects/gsp_hello",
@@ -41,7 +41,7 @@ class RetainedRecoveryContractTests(unittest.TestCase):
         source = (ROOT / "components/esp_mosaico_app_recovery/iris_ota_support.c").read_text(
             encoding="utf-8"
         )
-        self.assertIn('#define SYSTEM_METADATA_PARTITION "sysmeta"', source)
+        self.assertIn('#define SYSTEM_METADATA_PARTITION MOSAICO_SYSMETA_PARTITION', source)
         self.assertIn(
             "nvs_open_from_partition(SYSTEM_METADATA_PARTITION,\n"
             "                                SYSTEM_UPDATE_NAMESPACE, NVS_READONLY",
@@ -84,11 +84,11 @@ class RetainedRecoveryContractTests(unittest.TestCase):
                 for label, entry in actual.items():
                     if label not in ("otadata", "phy_init", "sysmeta", "factory", "coredump"):
                         self.assertGreaterEqual(entry[2], 0x200000)
-                if project.name != "gsp_hello":
+                if project.name in ("hello_world", "iris_acceptance", "iris_crash"):
                     self.assertEqual(actual, recovery)
 
     def test_firmware_identity_matches_host_expectation(self):
-        tree = ast.parse((TOOLS / "tools/mosaico_cli/gateway.py").read_text(encoding="utf-8"))
+        tree = ast.parse((TOOLS.parent / "mosaico-tools/tools/mosaico_cli/product_contract.py").read_text(encoding="utf-8"))
         expectations = [ast.literal_eval(node) for node in ast.walk(tree)
                         if isinstance(node, ast.Dict)
                         and any(isinstance(key, ast.Constant) and key.value == "layout_id"
@@ -101,7 +101,10 @@ class RetainedRecoveryContractTests(unittest.TestCase):
         configs.append((TOOLS / "firmware/recovery/sdkconfig.recovery.defaults", 2))
         for path, role in configs:
             with self.subTest(config=str(path)):
-                config = defaults(path)
+                config = defaults(ROOT / "components/esp_mosaico_app_recovery/sdkconfig.defaults") if role == 1 else {}
+                config.update(defaults(path))
+                if role == 1:
+                    self.assertIn("mosaico_application.cmake", (path.parent / "CMakeLists.txt").read_text())
                 self.assertEqual(int(config["CONFIG_ESP_IRIS_FIRMWARE_ROLE"]), role)
                 for key in ("product_contract", "board_id", "layout_id", "recovery_abi"):
                     self.assertEqual(ast.literal_eval(config["CONFIG_ESP_IRIS_" + key.upper()]),

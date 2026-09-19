@@ -24,11 +24,13 @@ python mosaico.py game run --project projects/tower_defense --headless \
 python mosaico.py game run --project projects/tower_defense
 python mosaico.py game build --project projects/tower_defense
 python mosaico.py recover  # 第一次部署 game_assets 分区时执行
-python mosaico.py install --project projects/tower_defense
-python mosaico.py monitor
+python mosaico.py iris system-update --project projects/tower_defense
+python mosaico.py iris logs
 ```
 
 非 headless 预览地址为 `http://127.0.0.1:8460/`；局域网预览可加
 `--listen 0.0.0.0`。安装使用 Recovery system-update，先校验并写资源分区，再写应用。
 网页工作台和 `python mosaico.py tap X Y` 可远程操作，
 `python mosaico.py screenshot` 可取得真机 RGB565 画面。
+
+首次安装或布局、资源变化使用 `iris system-update`；分区表完全一致且仅修改代码时可用 `iris app-update`。

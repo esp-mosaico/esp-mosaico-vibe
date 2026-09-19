@@ -7,6 +7,7 @@ import argparse
 import csv
 import hashlib
 import json
+import re
 import shutil
 from pathlib import Path
 from typing import NamedTuple
@@ -85,6 +86,8 @@ def main() -> int:
     parser.add_argument("--partition-table", type=Path, required=True)
     parser.add_argument("--application", type=Path, required=True)
     parser.add_argument("--ui-apps", type=Path)
+    parser.add_argument("--data", action="append", default=[], metavar="LABEL=IMAGE",
+                        help="Include a declared application resource partition (repeatable)")
     parser.add_argument("--stage-dir", type=Path, required=True)
     parser.add_argument("--release", required=True)
     args = parser.parse_args()
@@ -106,23 +109,38 @@ def main() -> int:
         raise ValueError(
             f"ota_0 must be a writable app/ota_0 partition: {ota_partition!r}"
         )
-    ui_partition = layout.get("ui_apps")
-    if args.ui_apps is not None and ui_partition is None:
-        raise ValueError("ui_apps image provided but the partition is missing")
-    if args.ui_apps is not None and (ui_partition.type != "data" or ui_partition.flags):
-        raise ValueError(f"ui_apps must be a writable data partition: {ui_partition!r}")
+    data_images = {}
+    if args.ui_apps is not None:
+        data_images["ui_apps"] = args.ui_apps
+    for declaration in args.data:
+        label, separator, image = declaration.partition("=")
+        if not separator or not image or not re.fullmatch(r"[A-Za-z0-9_-]{1,16}", label):
+            raise ValueError("data image must be LABEL=IMAGE with a valid partition label")
+        if label in data_images:
+            raise ValueError(f"duplicate data image: {label}")
+        data_images[label] = Path(image)
+    for label, image in data_images.items():
+        partition = layout.get(label)
+        subtype = partition.subtype if partition else ""
+        try:
+            private_data = int(subtype, 0) in (2, 4)
+        except ValueError:
+            private_data = subtype in ("nvs", "nvs_keys")
+        if (partition is None or partition.type != "data" or partition.flags
+                or partition.offset < 0x200000 or label in IMMUTABLE_LAYOUT
+                or private_data):
+            raise ValueError(f"{label} must be a writable application resource partition: {partition!r}")
+        _require_image(image, label, partition.size)
 
     target_layout = _layout_sha256(args.partition_table)
     _require_image(args.application, "application", ota_partition.size)
-    if args.ui_apps is not None:
-        _require_image(args.ui_apps, "ui_apps", ui_partition.size)
 
     stage_dir = args.stage_dir.resolve()
     stage_dir.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(args.application, stage_dir / "ota_0.bin")
     shutil.copyfile(args.partition_table, stage_dir / "partition-table.bin")
-    if args.ui_apps is not None:
-        shutil.copyfile(args.ui_apps, stage_dir / "ui_apps.bin")
+    for label, image in data_images.items():
+        shutil.copyfile(image, stage_dir / f"{label}.bin")
 
     components = [
         {
@@ -138,15 +156,9 @@ def main() -> int:
             "file": "ota_0.bin",
         },
     ]
-    if args.ui_apps is not None:
-        components.append(
-            {
-                "id": 3,
-                "kind": "data",
-                "target_offset": ui_partition.offset,
-                "file": "ui_apps.bin",
-            }
-        )
+    for label in data_images:
+        components.append({"id": len(components) + 1, "kind": "data",
+                           "target_offset": layout[label].offset, "file": f"{label}.bin"})
 
     manifest = {
         "schema": "esp-iris-system-update/v1",

@@ -74,7 +74,7 @@ Agent-Led 的默认主导关系是：**Agent 持续推进，用户在关键节�
 ### 2.4 模板化应用孵化
 
 - 以 `projects/hello_world` 作为参考应用。
-- 使用 `python mosaico.py init <name>` 创建应用；命令保留 Recovery 接入，
+- 使用 `python mosaico.py project init <name>` 创建应用；命令保留 Recovery 接入，
   不复制构建产物、不覆盖已有目标，也不更改默认工程。支持 `--dry-run` 和 `--json`。
 - Hello World 与 `projects/hello_world/mosaico-template.json` 由主仓库共同维护；
   工具子仓库只解释通用模板描述，不硬编码源文件列表或生成规则。
@@ -126,7 +126,7 @@ Agent-Led 的默认主导关系是：**Agent 持续推进，用户在关键节�
 
 ### 2.9 最小化不可恢复操作
 
-- 普通应用只通过 `python mosaico.py install` 安装。
+- 新应用、分区表或外部资源变化优先通过 `python mosaico.py iris system-update --project ...` 安装；完整分区表一致且只改代码时使用 `iris app-update`。保留 Recovery 固定分区前缀，不应为通过 app-update 而套用设备原来的可变分区布局。
 - 空白/未验证设备和最后恢复只通过 `python mosaico.py recover` 处理，底层实现不作为用户接口。
 - 不以恢复连接为由擦除整片 Flash。
 - 未经明确授权，不覆盖凭据、设备身份、recovery 数据或相关分区。
@@ -223,12 +223,12 @@ ESP-Mosaico 真实设备
 | 命令 | 用户语义 | 默认行为 |
 | --- | --- | --- |
 | `python mosaico.py doctor` | 检查主机开发环境 | 只检查 Python、ESP-IDF、ESP-Iris、状态目录和 USB 枚举，不构建或写设备 |
-| `python mosaico.py init <name>` | 创建普通应用工程 | 从工作区 Hello World 模板生成源文件并调整工程名和依赖路径；无需 ESP-IDF 或设备，已有目标报错 |
-| `python mosaico.py list` | 查看设备清单 | 连接 Gateway 并列出在线及缓存离线设备的 Device ID、在线状态、固件身份、模式、连接方式和 Boot ID；`--details` 展开端点及能力信息 |
+| `python mosaico.py project init <name>` | 创建普通应用工程 | 从工作区 Hello World 模板生成源文件并调整工程名和依赖路径；无需 ESP-IDF 或设备，已有目标报错 |
+| `python mosaico.py iris list` | 查看设备清单 | 连接 Gateway 并列出在线及缓存离线设备的 Device ID、在线状态、固件身份、模式、连接方式和 Boot ID；`--details` 展开端点及能力信息 |
 | `python mosaico.py recover` | 初始化或恢复设备 | 使用评审基础包，完成后停留在 Recovery 就绪状态 |
-| `python mosaico.py install` | 安装普通应用 | 构建工程并通过 ESP-Iris 安装，不自动触发恢复 |
-| `python mosaico.py system-update` | 更新应用及系统内容 | 构建或复用完整 `.irisfw` bundle，通过 Recovery 一并校验并写入应用、bootloader、分区表及可选 `ui_apps` 数据镜像 |
-| `python mosaico.py monitor` | 查看设备日志 | 先显示保留日志，再持续跟随至用户结束 |
+| `python mosaico.py iris app-update` | 安装普通应用 | 构建工程并通过 ESP-Iris 安装，不自动触发恢复 |
+| `python mosaico.py iris system-update` | 更新应用及系统内容 | 构建或复用完整 `.irisfw` bundle，通过 Recovery 一并校验并写入应用、bootloader、分区表及可选 `ui_apps` 数据镜像 |
+| `python mosaico.py iris logs` | 查看设备日志 | 先显示保留日志，再持续跟随至用户结束 |
 
 构建 profile、启动基础产物和设备布局均属于 `mosaico.py` 的内部实现，不作为
 用户参数或正常工作流的一部分。
@@ -285,7 +285,7 @@ ESP-Mosaico 真实设备
 | FR-102 | 环境解析必须验证真实工具链 | 可从显式参数、活动环境或已有 `build/project_description.json` 获取 IDF 候选；构建元数据仅作为可能缺失或过期的生成线索，同时验证实际 IDF 路径、版本、revision、Python 环境及 ESP32-S31 支持 |
 | FR-107 | 主机 CLI 必须支持 Python 3.8 或更新版本 | Gateway 隔离环境与当前解释器 major/minor 一致，单个条件锁自动选择兼容依赖 |
 | FR-108 | ESP-IDF Python 必须独立解析 | CLI 使用 Python 3.8/3.9 时，为 ESP-IDF 6.1 bootstrap 解析并验证 Python 3.10 或更新解释器；缺失时明确区分 CLI 与 ESP-IDF 的版本要求 |
-| FR-103 | `install` 必须解析和构建用户工程 | 当前工程优先；无法唯一选择时列出候选并退出 |
+| FR-103 | `iris app-update` 必须解析和构建用户工程 | 当前工程优先；无法唯一选择时列出候选并退出 |
 | FR-104 | `--skip-build` 必须显式标记复用 | 只复用完整 BIN/ELF/MAP，并在结果中返回 `reused_build=true` |
 | FR-105 | `recover` 必须校验评审基础包 | 文件缺失、哈希不匹配或目标不兼容时停止，不写设备 |
 | FR-106 | 当前源码恢复必须显式选择 | 仅 `recover --source current` 构建候选包，并显示未经评审警告 |
@@ -335,7 +335,7 @@ ESP-Mosaico 真实设备
 | FR-302 | 每次操作必须查询实时设备身份 | 不使用缓存 Device ID/Boot ID 作为当前证据，操作前查询 live device/status |
 | FR-303 | 避免 USB Serial/JTAG，并明确 High-Speed USB 所有权 | 应用烧录和监控不采用 USB Serial/JTAG；Recovery 始终将唯一 High-Speed USB 交给 ESP-Iris，normal 除产品功能明确使用该接口外也交给 ESP-Iris；例外应用记录接口归属并保留其它 ESP-Iris 运维/恢复路径，Gateway 拥有的接口不得被并发打开 |
 | FR-304 | 首次应用安装前必须验证 Recovery | 空白、缺失、版本不匹配或状态未知设备先运行 `recover` |
-| FR-305 | normal 固件必须通过 recovery-mode OTA 安装 | 运行 `python mosaico.py install`；更新完成后确认固件身份、健康状态和新 Boot ID |
+| FR-305 | normal 固件必须通过 recovery-mode OTA 安装 | 运行 `python mosaico.py iris app-update`；更新完成后确认固件身份、健康状态和新 Boot ID |
 | FR-306 | 安装或恢复前必须保存故障证据 | 若存在有效 core dump，先保存结构化证据与原始日志 |
 | FR-307 | 最后恢复必须限制破坏范围 | 仅在 normal/Recovery 均不可达时进入恢复模式；锁定唯一目标设备；不执行整片擦除 |
 | FR-308 | 恢复必须以产品行为为终点 | 恢复完成需要目标固件身份匹配并通过功能验证 |
@@ -381,7 +381,7 @@ ESP-Mosaico 真实设备
 | UI/交互快速迭代 | 在 LVGL 与 GSP 中选择合适框架，适合时优先 GSP 并出具仿真渲染效果，再通过 Gateway 屏幕观察完成真机视觉闭环 |
 | 固件候选版本验证 | 使用 candidate profile 与 recovery-mode OTA，在不覆盖保底镜像的情况下验证新版本 |
 | 远程/重复设备调试 | 通过 Gateway 获取日志、屏幕、Job、状态、重启与 core dump，并用 Device ID/Boot ID 关联 |
-| 更新失败恢复 | 运行 `python mosaico.py recover`，就绪后再运行 `install` |
+| 更新失败恢复 | 运行 `python mosaico.py recover`，就绪后再运行 `iris app-update` |
 | BSP 与应用协同开发 | BSP 能力保留在子模块，应用工程保留在 `projects/`，分别演进和审查 |
 
 ### 6.2 BSP 示例证明的产品方向
@@ -438,7 +438,7 @@ Agent 遇到以下情况必须暂停，并向用户说明风险及所需输入�
 4. 两个扩展槽共享 I2C 等资源；具体模块驱动持有插槽时要求独占，应用不得绕过模块管理器抢占引脚。
 5. 磁力交互校准与机械结构有关；磁铁、传感器朝向、外壳或装配公差变化后必须重新校准和验证。
 6. Recovery manifest 记录完整基础包的来源、布局和哈希；发布或量产基线应从干净、可复现 revision 生成并验证。
-7. Recovery 首次配置由 `python mosaico.py recover` 完成；正常应用由 `python mosaico.py install` 安装。
+7. Recovery 首次配置由 `python mosaico.py recover` 完成；正常应用由 `python mosaico.py iris app-update` 安装。
 8. Skill 体系支持持续扩展。仓库能力以已经接入并通过验证的资源为准。
 9. `mosaico.py` 与 ESP-Iris Gateway 支持 Python 3.8 或更新版本；ESP-IDF 6.1
    的 bootstrap 解释器仍须为 Python 3.10 或更新版本，两套解释器由统一命令
@@ -464,7 +464,7 @@ Agent 遇到以下情况必须暂停，并向用户说明风险及所需输入�
 2. 应用位于独立的 `projects/<project-name>`，并只依赖已检查的板级或组件 API。
 3. 在兼容的 ESP-IDF/ESP32-S31 环境中完成对应 profile 构建，构建日志和产物可追溯。
 4. 设备已有经过验证的 Recovery；若没有，已先运行 `python mosaico.py recover`。
-5. normal 固件已通过 `python mosaico.py install` 完成 Gateway recovery-mode OTA。
+5. normal 固件已通过 `python mosaico.py iris app-update` 完成 Gateway recovery-mode OTA。
 6. 同一 Device ID 完成 `normal → recovery → normal`，Boot ID 按启动变化，recovery writer 与最终 normal 固件均已确认。
 7. 最终产品行为已在真机验证，必要证据已经保存。
 8. Agent 已提交可复核的变更摘要和验收证据。

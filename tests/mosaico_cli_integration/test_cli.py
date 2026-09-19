@@ -22,6 +22,16 @@ from mosaico_cli.workspace import load_workspace
 
 
 class ToolSubmoduleIntegrationTests(unittest.TestCase):
+    def test_nested_help_does_not_dispatch_game_option_values(self) -> None:
+        result = subprocess.run(
+            [sys.executable, str(REPOSITORY / "mosaico.py"),
+             "iris", "rpc", "1", "2", "--payload", "game", "--help"],
+            cwd=REPOSITORY, text=True, capture_output=True, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("mosaico.py iris rpc", result.stdout)
+        self.assertNotIn("Game development:", result.stdout)
+
     def test_workspace_configuration_resolves_main_repository_resources(self) -> None:
         workspace = load_workspace(TOOL_ROOT, explicit=str(REPOSITORY))
 
@@ -82,6 +92,8 @@ class ToolSubmoduleIntegrationTests(unittest.TestCase):
             config_path = root / ".mosaico.json"
             config_path.write_text(json.dumps(config), encoding="utf-8")
             for filename in ("components/esp_mosaico_app_recovery/CMakeLists.txt",
+                             "components/esp_mosaico_app_recovery/sdkconfig.defaults",
+                             "cmake/mosaico_application.cmake",
                              "cmake/system_update.cmake", "tools/prepare_system_update.py"):
                 target = root / filename
                 target.parent.mkdir(parents=True, exist_ok=True)
@@ -94,7 +106,7 @@ class ToolSubmoduleIntegrationTests(unittest.TestCase):
             nested = root / "apps"
             nested.mkdir()
             result = subprocess.run(
-                [sys.executable, str(REPOSITORY / "mosaico.py"), "init", "my_app", "--json"],
+                [sys.executable, str(REPOSITORY / "mosaico.py"), "project", "init", "my_app", "--json"],
                 cwd=nested, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False,
             )
             self.assertEqual(result.returncode, 0, result.stderr)
