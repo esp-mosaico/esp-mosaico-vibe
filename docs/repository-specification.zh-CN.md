@@ -89,7 +89,7 @@ Agent-Led 的默认主导关系是：**Agent 持续推进，用户在关键节�
 
 - 应用 UI 可选择 LVGL 或 GSP；满足产品需求时优先使用 GSP，并分别遵守所选框架的显示、触摸、内存和生命周期约束。
 - Recovery 固件通过 ESP-Iris 注册 RGB565 屏幕镜像后端，使开发者和 Agent 可在 Gateway 工作台观察恢复界面；具体应用按自身 UI 架构注册对应后端。
-- 使用 GSP 的应用在 PC 上通过 `tools/gsp-sim` 预览 480×480 场景并保存渲染效果；仿真运行时与组件仓库中的 **espressif/esp-gsp 1.2.0** 配套。
+- 使用 GSP 的应用在 PC 上通过 `tools/gsp-sim` 预览 480×480 场景并保存渲染效果；仿真运行时与组件仓库中的 **espressif/esp-gsp 1.4.0** 配套。
 - UI 调整与固件调试共享同一设备记录，减少人工往返。
 - 专项 Skill 可扩展视觉比较能力。具体应用负责定义验收基准。
 
@@ -204,12 +204,11 @@ ESP-Mosaico 真实设备
 | 仓库入口 | `README.md`、`README_CN.md` | 说明定位、创建工程和设备运维规则 | 保持中英文语义一致 |
 | Agent 规则 | `AGENTS.md` | 路由开发任务、约束设备操作和恢复流程 | 规则应简洁且可执行 |
 | 应用工程 | `projects/` | 容纳参考应用和用户应用 | 一个应用一个目录 |
-| 参考应用 | `projects/hello_world` | 提供显示、ESP-Iris 和 recovery-first 接入 | 可复制为具体用户应用 |
-| GSP 参考应用 | `projects/gsp_hello` | 提供可在 PC 仿真和真机运行的 GSP Hello World | 作为 GSP 应用起点 |
+| 参考应用 | `projects/hello_world` | 唯一的 GSP Hello World，提供 PC 仿真、显示、ESP-Iris 和 recovery-first 接入 | 可复制为具体用户应用 |
 | 测试固件 | `tests/firmware/` | 容纳集成和验收测试使用的可烧录设备固件 | 不作为用户应用模板 |
 | Recovery 工程 | `submodule/esp-mosaico-utils/esp-mosaico-recovery/firmware/recovery` | 提供固定的保留 Recovery、OTA writer 和系统恢复能力 | 与 `mosaico.py recover` 同版本维护，不承载普通应用代码 |
 | 应用恢复组件 | `components/esp_mosaico_app_recovery` | 提供正常应用进入 Recovery 和健康确认能力 | 仅供正常应用使用，不包含 OTA writer |
-| GSP 运行时 | `espressif/esp-gsp==1.2.0` | 通过 ESP 组件仓库拉取的远程组件 | 固件与仿真共用同一 pin |
+| GSP 运行时 | `espressif/esp-gsp==1.4.0` | 通过 ESP 组件仓库拉取的远程组件 | 固件与仿真共用同一 pin |
 | GSP 主机仿真 | `tools/gsp-sim/` | 用独立 `sim` 预览场景 JSON | 不引入 claw hub/runtime |
 | 板级子模块 | `submodule/esp-mosaico-bsp` | 提供 BSP、扩展模块、交互/网络组件和示例 | 按任务初始化和检查 |
 | 工具子模块 | `submodule/esp-mosaico-utils` | 提供统一 CLI、构建 runner、Recovery 固件和 ESP-Iris | 主仓库只固定一个 utilities gitlink；Recovery 与 Iris 来自同一 revision |
@@ -296,7 +295,7 @@ ESP-Mosaico 真实设备
 | --- | --- | --- |
 | FR-201 | 参考固件必须初始化 NVS 和板载显示 | 启动后显示 normal 或 recovery 对应界面，并报告 480×480 显示启动状态 |
 | FR-202 | 参考固件必须接入 ESP-Iris | `esp_iris_start()` 成功，Gateway 能获取设备状态和启动记录 |
-| FR-203 | 参考固件必须提供屏幕镜像后端 | 将活动 LVGL RGB565 帧经 ESP-Iris screen backend 提供给工作台 |
+| FR-203 | 参考固件必须提供屏幕镜像后端 | 将活动 GSP RGB565 帧经 ESP-Iris screen backend 提供给工作台 |
 | FR-204 | normal 固件必须提供进入 Recovery 的能力 | Gateway 可以将同一设备切换到 Recovery，用户无需了解内部调用 |
 | FR-205 | 固件必须提供安装状态与健康确认 | Gateway 可以判定写入、重启、固件身份和健康结果 |
 | FR-206 | recovery 界面必须反映 Gateway 连接状态 | 至少区分启动中、等待连接、协商中、已就绪和失败 |
@@ -311,7 +310,7 @@ ESP-Mosaico 真实设备
 | FR-222 | UI 必须可通过 Gateway 观察 | ESP-Iris screen backend 可返回当前 UI 框架的活动 RGB565 帧，工作台能够显示与设备一致的画面 |
 | FR-223 | UI 迭代必须进入真机闭环 | 每个关键界面完成真机显示和交互验证 |
 | FR-224 | 调试证据必须支持多模态关联 | 同一次启动的日志、画面和设备状态可以关联 |
-| FR-225 | GSP 场景必须可在 PC 上用 pinned ESP-GSP 仿真 | `python3 tools/gsp-sim/run.py --headless --dump-ppm` 使用 `espressif/esp-gsp` 1.2.0 配套的独立 `sim` |
+| FR-225 | GSP 场景必须可在 PC 上用 pinned ESP-GSP 仿真 | `python3 tools/gsp-sim/run.py --headless --dump-ppm` 使用 `espressif/esp-gsp` 1.4.0 配套的独立 `sim` |
 
 ### 4.6 板级与扩展能力
 

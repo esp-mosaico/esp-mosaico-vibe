@@ -1,6 +1,6 @@
 # Iris internal RAM acceptance fixture
 
-Test-only firmware using the real `projects/gsp_hello/main` UI and normal
+Test-only firmware using the real `projects/hello_world/main` UI and normal
 partition/recovery contract. Normal applications do not compile `budget.c`.
 
 Build with the workspace low-noise IDF build runner and a compatible ESP32-S31

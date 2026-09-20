@@ -37,9 +37,9 @@ python mosaico.py project init another_app --dry-run
 应用界面可选择 LVGL 或 GSP；适合时优先使用 GSP，并先在 PC 上预览
 480×480 场景、保存渲染效果，再烧录真机。入口是
 [`tools/gsp-sim`](tools/gsp-sim/README.md)，固定使用
-**espressif/esp-gsp 1.2.0**（ESP 组件仓库远程依赖）。
+**espressif/esp-gsp 1.4.0**（ESP 组件仓库远程依赖）。
 需要同时支持 PC 仿真和真机运行的 GSP Hello World，可从
-[`projects/gsp_hello`](projects/gsp_hello) 开始。
+[`projects/hello_world`](projects/hello_world) 开始。
 
 ## 统一设备命令
 
@@ -128,7 +128,7 @@ python mosaico.py iris logs --timeout 1 --grep __mosaico_host_smoke__
 [GitHub Actions 工作流](.github/workflows/ci.yml)在 Pull Request、`main` 分支
 push 和手动触发时运行。主机矩阵在原生 Linux、macOS、Windows 上测试 Python
 3.8 和 3.12；固件矩阵在 GitHub 托管的 `ubuntu-22.04` runner 上构建
-`hello_world`、由 `project init` 生成的应用、`gsp_hello`、ESP-Iris 验收固件和保留 Recovery。每个固件任务
+`hello_world`、由 `project init` 生成的应用、ESP-Iris 验收固件和保留 Recovery。每个固件任务
 先递归检出 6.2 开发线上的固定 ESP-IDF revision
 `7b9cc1ac79f865983f59bb8ff3ff43eb74ff1dbe`，并用 ESP-IDF 官方 `install.sh`
 安装工具链，再执行 low-noise 环境检查和构建。GSP 任务还会编译 PC bridge，并
@@ -191,11 +191,10 @@ normal 固件必须记录这一例外，并通过其它可用传输保留 ESP-Ir
 
 ## 仓库结构
 
-- `projects/hello_world`：新开发者工程使用的参考应用。
-- `projects/gsp_hello`：支持 PC 仿真和真机安装的 GSP Hello World。
+- `projects/hello_world`：唯一的 GSP Hello World 参考应用，支持新建工程、PC 仿真和真机安装。
 - `tests/firmware/`：仅供集成和验收测试使用的可烧录设备固件。
 - `components/esp_mosaico_app_recovery`：普通应用进入 Recovery 和健康确认支持。
-- `espressif/esp-gsp==1.2.0`：远程 ESP-GSP 组件（设备预编译库由组件仓库拉取；主机仿真器与 gspc 另行下载）。
+- `espressif/esp-gsp==1.4.0`：远程 ESP-GSP 组件（设备预编译库由组件仓库拉取；主机仿真器与 gspc 另行下载）。
 - `tools/gsp-sim/`：打包场景并运行独立的 ESP-GSP `sim`。
 - `submodule/esp-mosaico-utils/`：固定版本的工具单仓，包含
   `esp-mosaico-recovery` CLI/固件和并列的 `ESP-Iris` 固件/主机运行时，无需全局安装 CLI。

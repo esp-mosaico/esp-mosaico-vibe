@@ -127,14 +127,15 @@ image counts, or approval for decorative details.
   including live identity and evidence checks. Resolve the ESP-IDF environment
   before running its tools.
 - For new apps, prefer GSP when it fits and start from
-  [gsp_hello](../../projects/gsp_hello/README.md). New apps belong in `projects/`;
+  [hello_world](../../projects/hello_world/README.md). New apps belong in `projects/`;
   a new page within an existing app inherits its framework and conventions.
 - Load [gsp-sim](../gsp-sim/SKILL.md) for GSP runtime constraints, simulator
   commands, and the portable UI boundary. Run the target app's backend for
   logic, not scene-only rendering. Keep controls and dynamic text native
   rather than substituting the concept image for the working UI.
-- For LVGL, use [hello_world](../../projects/hello_world/README.md) as the
-  normal-app reference and a matching native preview where available. GSP_SIM
+- For LVGL, preserve the Recovery contract from
+  [hello_world](../../projects/hello_world/README.md), replace its GSP-specific
+  UI integration, and use a matching native preview where available. GSP_SIM
   does not run LVGL. If host execution is unavailable, exercise those behaviors
   on-device and disclose the simulator gap; do not migrate frameworks just to
   obtain a preview or treat a browser recreation as native evidence.

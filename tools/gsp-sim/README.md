@@ -13,7 +13,7 @@ This wrapper does not include Mosaic claw hub, Lua apps, or HTML review tooling.
 
 - Linux x86_64 (or another host published in the sim/gspc manifests)
 - Network once, to fetch standalone `gspc` and `sim`
-- `espressif/esp-gsp==1.2.0` pulled by the component manager
+- `espressif/esp-gsp==1.4.0` pulled by the component manager
   (`idf.py reconfigure` in the application, or set `ESP_GSP_COMPONENT_DIR`)
 
 ## Run the GSP Hello World demo
@@ -21,7 +21,7 @@ This wrapper does not include Mosaic claw hub, Lua apps, or HTML review tooling.
 Headless smoke (writes a PPM):
 
 ```sh
-python3 tools/gsp-sim/run.py --headless --dump-ppm /tmp/gsp-hello.ppm
+python3 tools/gsp-sim/run.py --headless --dump-ppm /tmp/hello-world.ppm
 ```
 
 Interactive preview (opens the official local browser canvas):
@@ -30,7 +30,7 @@ Interactive preview (opens the official local browser canvas):
 python3 tools/gsp-sim/run.py --interactive
 ```
 
-The default scene is [`projects/gsp_hello/ui/main.json`](../../projects/gsp_hello/ui/main.json).
+The default scene is [`projects/hello_world/ui/main.json`](../../projects/hello_world/ui/main.json).
 Preview another scene:
 
 ```sh
@@ -44,9 +44,27 @@ Pass a precompiled `.gspb` to skip `gspc`. Set `GSPC_EXECUTABLE` or
 ## New GSP projects
 
 Keep scene JSON under the application, typically `projects/<name>/ui/`.
-The reference demo is [`projects/gsp_hello`](../../projects/gsp_hello).
+The reference demo is [`projects/hello_world`](../../projects/hello_world).
 Author at **480×480 RGB565** to match the CO5300 panel. Firmware should depend
-on `espressif/esp-gsp` `==1.2.0` from the ESP Component Registry.
+on `espressif/esp-gsp` `==1.4.0` from the ESP Component Registry.
 New apps need `pc/CMakeLists.txt` so `run.py` can default to `sim_bridge`.
-The tools-owned Recovery firmware remains LVGL-based and is not a GSP
-application template.
+The utilities-owned Recovery firmware also uses GSP, but remains an internal
+recovery resource rather than an application template.
+
+## Upgrading an existing build to GSP 1.4
+
+GSP 1.4.0 requires GSPC 0.5.0 and simulator 1.4.0. An existing CMake cache may
+still point at GSPC 0.3.0. In the verified ESP-IDF environment, run from the
+workspace root:
+
+```sh
+idf.py -C projects/hello_world \
+  -D "GSPC_EXECUTABLE=$(python3 tools/gsp-sim/fetch_gspc.py --pinned)" reconfigure
+```
+
+Use the corresponding project path for other applications or Recovery. The
+`--pinned` bootstrap selects the new workspace tool version before the component
+manager replaces the old managed component. Explicit `GSPC_EXECUTABLE` and
+`GSP_SIM_EXECUTABLE` environment overrides still take precedence; update any
+such overrides to the matching versions. Rebuild firmware and UI resources
+together, and use a System Update when installing a newly compiled UI bundle.

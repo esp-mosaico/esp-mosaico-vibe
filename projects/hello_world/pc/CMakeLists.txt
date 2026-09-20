@@ -6,7 +6,7 @@ if(NOT ESP_GSP_COMPONENT_DIR AND DEFINED ENV{ESP_GSP_COMPONENT_DIR})
 endif()
 if(NOT ESP_GSP_COMPONENT_DIR)
     foreach(candidate IN ITEMS
-            "../managed_components/espressif__esp-gsp")
+            "${CMAKE_CURRENT_LIST_DIR}/../managed_components/espressif__esp-gsp")
         get_filename_component(candidate "${candidate}" ABSOLUTE)
         if(EXISTS "${candidate}/tools/sim_bridge/CMakeLists.txt")
             set(ESP_GSP_COMPONENT_DIR "${candidate}")

@@ -50,8 +50,8 @@ install.
 1. Translate the user's request into a project-level goal and identify the
    required board capabilities.
 2. Use `projects/hello_world` as the reference application and create the new
-   application under `projects/<project-name>`. For a GSP Hello World that
-   runs on the PC simulator and on device, start from `projects/gsp_hello`.
+   application under `projects/<project-name>`. This single GSP Hello World
+   reference runs on both the PC simulator and the device.
    Keep flashable test-only firmware under `tests/firmware/<fixture-name>`;
    do not place test fixtures in `projects/`.
    The utilities-owned Recovery project is an internal `mosaico.py recover`
@@ -70,7 +70,7 @@ install.
    and follow the constraints of the selected UI framework. For GSP UI work,
    load `skills/gsp-sim/SKILL.md` and preview with
    `python3 tools/gsp-sim/run.py` (sim_bridge by default) using
-   **espressif/esp-gsp 1.2.0** from the ESP Component Registry.
+   **espressif/esp-gsp 1.4.0** from the ESP Component Registry.
    Do not import Mosaic claw hub/runtime into this repository.
 4. Component repositories and supporting project material are Git submodules.
    Initialize and inspect only the submodules needed for the current task.
