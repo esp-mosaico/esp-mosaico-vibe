@@ -116,23 +116,23 @@ class ToolSubmoduleIntegrationTests(unittest.TestCase):
             self.assertEqual(Path(payload["project"]), project)
             workspace = load_workspace(TOOL_ROOT, explicit=str(root))
             self.assertEqual(resolve_project(workspace, None, project / "main"), project)
-            self.assertEqual(json.loads(config_path.read_text()), config)
+            self.assertEqual(json.loads(config_path.read_text(encoding="utf-8")), config)
             reference = REPOSITORY / "projects/hello_world"
             for filename in ("partitions.csv", "sdkconfig.defaults", "main/hello_ui.c",
                              "pc/CMakeLists.txt", "ui/main.json", "ui/fonts/DejaVuSans-Bold.ttf"):
                 self.assertEqual((project / filename).read_bytes(), (reference / filename).read_bytes())
-            application = (project / "sdkconfig.application.defaults").read_text()
-            original = (reference / "sdkconfig.application.defaults").read_text()
+            application = (project / "sdkconfig.application.defaults").read_text(encoding="utf-8")
+            original = (reference / "sdkconfig.application.defaults").read_text(encoding="utf-8")
             without_product = lambda text: re.sub(r'^CONFIG_ESP_IRIS_USB_PRODUCT=.*$', '', text, flags=re.MULTILINE)
             self.assertEqual(without_product(application), without_product(original))
-            source = (project / "main/main.c").read_text()
+            source = (project / "main/main.c").read_text(encoding="utf-8")
             self.assertIn("iris_ota_support_start();", source)
             self.assertIn("esp_iris_boot_probe()", source)
             self.assertIn("hello_ui_init(ui, &s_hello)", source)
-            self.assertIn("Say hello", (project / "ui/main.json").read_text())
+            self.assertIn("Say hello", (project / "ui/main.json").read_text(encoding="utf-8"))
             for filename, resource in (("CMakeLists.txt", "tools/gsp-sim/fetch_gspc.py"),
                                        ("main/CMakeLists.txt", "tools/pack_gsp_partition.py")):
-                rendered = (project / filename).read_text()
+                rendered = (project / filename).read_text(encoding="utf-8")
                 references = re.findall(r'\$\{CMAKE_CURRENT_LIST_DIR\}/([^"\n]+)', rendered)
                 self.assertIn((root / resource).resolve(),
                               [(project / filename).parent.joinpath(ref).resolve() for ref in references])
@@ -145,7 +145,7 @@ class ToolSubmoduleIntegrationTests(unittest.TestCase):
         with self.reference_workspace() as (root, config):
             original = REPOSITORY / "projects/hello_world"
             template = root / "templates/changed_reference"
-            descriptor = json.loads((original / "mosaico-template.json").read_text())
+            descriptor = json.loads((original / "mosaico-template.json").read_text(encoding="utf-8"))
             for entry in descriptor["files"]:
                 target = template / entry["source"]
                 target.parent.mkdir(parents=True, exist_ok=True)
@@ -156,9 +156,9 @@ class ToolSubmoduleIntegrationTests(unittest.TestCase):
             source = template / "source/entry.c"
             source.parent.mkdir()
             (template / "main/main.c").rename(source)
-            source.write_text(source.read_text().replace("TAG", "APP_TAG"), encoding="utf-8")
+            source.write_text(source.read_text(encoding="utf-8").replace("TAG", "APP_TAG"), encoding="utf-8")
             cmake = template / "main/CMakeLists.txt"
-            cmake.write_text(cmake.read_text().replace('"main.c"', '"../source/entry.c"'), encoding="utf-8")
+            cmake.write_text(cmake.read_text(encoding="utf-8").replace('"main.c"', '"../source/entry.c"'), encoding="utf-8")
             for entry in descriptor["files"]:
                 if entry["source"] == "main/main.c":
                     entry["source"] = "source/entry.c"
@@ -167,7 +167,7 @@ class ToolSubmoduleIntegrationTests(unittest.TestCase):
                 if entry["source"] == "README.md":
                     entry["replacements"][0]["pattern"] = "^# Reference Application$"
             readme = template / "README.md"
-            readme.write_text(readme.read_text().replace("# ESP-Mosaico Hello World", "# Reference Application"), encoding="utf-8")
+            readme.write_text(readme.read_text(encoding="utf-8").replace("# ESP-Mosaico Hello World", "# Reference Application"), encoding="utf-8")
             (template / "assets").mkdir()
             (template / "assets/extra.dat").write_bytes(b"\x00\xffextra")
             descriptor["files"].append({"source": "assets/extra.dat"})
@@ -181,10 +181,10 @@ class ToolSubmoduleIntegrationTests(unittest.TestCase):
             project = Path(result["project"])
             self.assertEqual(len(result["files"]), len(descriptor["files"]))
             self.assertFalse((project / "main/main.c").exists())
-            self.assertIn('APP_TAG = "evolved_app"', (project / "source/entry.c").read_text())
-            self.assertIn("iris_ota_support_start();", (project / "source/entry.c").read_text())
+            self.assertIn('APP_TAG = "evolved_app"', (project / "source/entry.c").read_text(encoding="utf-8"))
+            self.assertIn("iris_ota_support_start();", (project / "source/entry.c").read_text(encoding="utf-8"))
             self.assertEqual((project / "assets/extra.dat").read_bytes(), b"\x00\xffextra")
-            self.assertTrue((project / "README.md").read_text().startswith("# ESP-Mosaico evolved_app"))
+            self.assertTrue((project / "README.md").read_text(encoding="utf-8").startswith("# ESP-Mosaico evolved_app"))
             self.assertEqual((project / "partitions.csv").read_bytes(), (original / "partitions.csv").read_bytes())
 
 
