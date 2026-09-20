@@ -46,6 +46,22 @@ main { width: 480px; max-width: 100%; }
   color: #849497;
 }
 .outside b { font-weight: 500; color: #b6c3c5; letter-spacing: .04em; }
+.tools {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 0 0 12px;
+}
+.tools button, .tools select {
+  border: 1px solid #d3e7ed29;
+  background: #05121a88;
+  border-radius: 18px;
+  padding: 8px 14px;
+  color: #cbdbdf;
+}
+.tools button:hover, .tools select:hover { background: #c8eff21a; }
+.tools select { appearance: none; }
 .screen {
   width: 480px;
   height: 480px;
@@ -58,8 +74,10 @@ main { width: 480px; max-width: 100%; }
   user-select: none;
   -webkit-user-select: none;
   isolation: isolate;
+  border-radius: 60px;
   box-shadow: 0 26px 80px #0009;
   outline: 1px solid #182226;
+  transform: none;
 }
 #world {
   position: absolute;
@@ -103,19 +121,6 @@ main { width: 480px; max-width: 100%; }
   font-size: 13px;
   line-height: 1.55;
 }
-.tools {
-  display: flex;
-  gap: 8px;
-  margin-top: 16px;
-}
-.tools button {
-  border: 1px solid #d3e7ed29;
-  background: #05121a88;
-  border-radius: 18px;
-  padding: 8px 14px;
-  color: #cbdbdf;
-}
-.tools button:hover { background: #c8eff21a; }
 .meta {
   margin-top: 12px;
   color: #6f8388;
@@ -128,7 +133,20 @@ main { width: 480px; max-width: 100%; }
 <main>
   <div class="outside">
     <span>MOSAICO / LIVING WORLDS</span>
-    <b id="eyebrow">480 × 480</b>
+    <b id="eyebrow">60° · 480 × 480</b>
+  </div>
+  <div class="tools">
+    <button id="pause" type="button">Pause</button>
+    <button id="step" type="button">Step</button>
+    <button id="reset" type="button">Reset</button>
+    <button id="shot" type="button">Screenshot</button>
+    <button id="record" type="button">Record</button>
+    <select id="speed" aria-label="Simulation speed">
+      <option>.25</option>
+      <option>.5</option>
+      <option selected>1</option>
+      <option>2</option>
+    </select>
   </div>
   <section class="screen" aria-label="480×480 可交互空间风景">
     <img id="world" width="480" height="480" alt="Living Worlds" draggable="false" tabindex="0">
@@ -143,10 +161,7 @@ main { width: 480px; max-width: 100%; }
     <strong id="sceneName">流动风景</strong>
     <span id="angle">yaw 0.0° · pitch 0.0°</span>
   </div>
-  <div class="instructions">拖动画布环视纵深，点底部按钮切场景。松手保留当前视角。</div>
-  <div class="tools">
-    <button id="reset" type="button">回到正视</button>
-  </div>
+  <div class="instructions">拖动画布环视纵深，点底部按钮切场景。松手保留当前视角。P 暂停，Enter 单步。</div>
   <div class="meta" id="status">等待第一帧</div>
 </main>
 <script>
@@ -162,8 +177,11 @@ const angle = document.querySelector("#angle");
 const eyebrow = document.querySelector("#eyebrow");
 const status = document.querySelector("#status");
 const pointers = new Map();
+const pauseButton = document.querySelector("#pause");
+const recordButton = document.querySelector("#record");
 let busy = false;
 let lastBlob = "";
+let paused = false;
 
 function sceneLabel(id) {
   const scene = SCENES[id] || SCENES[0];
@@ -223,14 +241,47 @@ addEventListener("blur", () => {
   sendInput();
 });
 
+pauseButton.onclick = () => control(paused ? "resume" : "pause");
+document.querySelector("#step").onclick = () => control("step");
 document.querySelector("#reset").onclick = () => control("reset");
+document.querySelector("#speed").onchange = (event) => control("speed:" + event.target.value);
+document.querySelector("#shot").onclick = () => {
+  const link = document.createElement("a");
+  link.href = img.src;
+  link.download = "living-worlds.png";
+  link.click();
+};
+recordButton.onclick = async () => {
+  await control("record");
+  if (recordButton.textContent === "Record") recordButton.textContent = "Stop record";
+  else {
+    const link = document.createElement("a");
+    link.href = "/api/v1/recording";
+    link.download = "scenario.json";
+    link.click();
+    recordButton.textContent = "Record";
+  }
+};
+addEventListener("keydown", (event) => {
+  const key = event.key.toLowerCase();
+  if (event.repeat) return;
+  if (key === "p") {
+    event.preventDefault();
+    control(paused ? "resume" : "pause");
+  } else if (key === "enter") {
+    event.preventDefault();
+    control("step");
+  }
+});
 
 function applyMeta(meta) {
   const scene = Number(meta.scene ?? 0);
   const yaw = Number(meta.yaw ?? 0);
   const pitch = Number(meta.pitch ?? 0);
   sceneName.textContent = sceneLabel(scene);
-  eyebrow.textContent = (SCENES[scene] || SCENES[0]).zh;
+  paused = !!(meta.simulation && meta.simulation.paused);
+  pauseButton.textContent = paused ? "Resume" : "Pause";
+  eyebrow.textContent = (SCENES[scene] || SCENES[0]).zh + " · 60°";
   angle.textContent = "yaw " + yaw.toFixed(1) + "° · pitch " + pitch.toFixed(1) + "°";
   const fps = meta.simulation && meta.simulation.logic_fps;
   const render = Number(meta.host_render_ms || 0);

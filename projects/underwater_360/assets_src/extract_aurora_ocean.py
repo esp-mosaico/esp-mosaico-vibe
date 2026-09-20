@@ -291,12 +291,54 @@ def write_volume_header(prefix: str, volume: dict, light: tuple[float, float, fl
     (ROOT / "main" / f"{prefix.lower()}_volume.h").write_text("\n".join(chunks) + "\n", encoding="utf-8")
 
 
-def save_space(assets: dict[str, bytes], key: str, stem: str) -> tuple[Image.Image, Image.Image]:
+def rgb565_ordered_dither(image: Image.Image) -> Image.Image:
+    """Pre-dither a texture for the runtime's truncating RGB565 conversion.
+
+    The texture is warped at runtime, so keep the pattern spatial and stable;
+    temporal noise would shimmer whenever the camera stops.  RGB565 has twice
+    as much green precision, hence its half-strength threshold amplitude.
+    """
+    bayer8 = (
+        (0, 48, 12, 60, 3, 51, 15, 63),
+        (32, 16, 44, 28, 35, 19, 47, 31),
+        (8, 56, 4, 52, 11, 59, 7, 55),
+        (40, 24, 36, 20, 43, 27, 39, 23),
+        (2, 50, 14, 62, 1, 49, 13, 61),
+        (34, 18, 46, 30, 33, 17, 45, 29),
+        (10, 58, 6, 54, 9, 57, 5, 53),
+        (42, 26, 38, 22, 41, 25, 37, 21),
+    )
+    source = image.convert("RGB")
+    result = Image.new("RGB", source.size)
+    src, dst = source.load(), result.load()
+    for y in range(source.height):
+        for x in range(source.width):
+            r, g, b = src[x, y]
+            # Decorrelate red and blue to avoid a visible monochrome screen.
+            tr = bayer8[y & 7][x & 7] - 31.5
+            tg = bayer8[(y + 3) & 7][(x + 5) & 7] - 31.5
+            tb = bayer8[(y + 5) & 7][(x + 2) & 7] - 31.5
+            dst[x, y] = (
+                max(0, min(255, round(r + tr / 8.0))),
+                max(0, min(255, round(g + tg / 16.0))),
+                max(0, min(255, round(b + tb / 8.0))),
+            )
+    return result
+
+
+def save_space(assets: dict[str, bytes], key: str, stem: str,
+               dither_rgb565: bool = False) -> tuple[Image.Image, Image.Image]:
     texture = Image.open(io.BytesIO(assets[f"{key}_space.webp"])).convert("RGB")
     depth = Image.open(io.BytesIO(assets[f"{key}_space_depth.png"])).convert("RGB")
     mask = Image.open(io.BytesIO(assets[f"{key}_mask.png"])).convert("RGB")
+    if dither_rgb565:
+        texture = rgb565_ordered_dither(texture)
     texture.save(ASSETS / f"{stem}_scene.png", optimize=True)
-    texture.save(ASSETS / f"{stem}.jpg", quality=91, optimize=True)
+    # Chroma subsampling averages away the one-pixel RGB565 thresholds.  Keep
+    # 4:4:4 only for a pre-dithered texture; other scene JPEGs retain 4:2:0.
+    jpeg_options = {"subsampling": 0} if dither_rgb565 else {}
+    texture.save(ASSETS / f"{stem}.jpg", quality=91, optimize=True,
+                 **jpeg_options)
     return depth, mask
 
 
@@ -358,7 +400,9 @@ def save_volume_images(assets: dict[str, bytes], spec: dict) -> None:
 def main() -> None:
     assets = embedded_assets()
     aurora_depth, aurora_mask = save_space(assets, "aurora", "aurora")
-    ocean_depth, ocean_mask = save_space(assets, "ocean", "ocean")
+    ocean_depth, ocean_mask = save_space(
+        assets, "ocean", "ocean", dither_rgb565=True
+    )
     write_depth_header("aurora", aurora_depth, aurora_mask)
     write_depth_header("ocean", ocean_depth, ocean_mask)
 

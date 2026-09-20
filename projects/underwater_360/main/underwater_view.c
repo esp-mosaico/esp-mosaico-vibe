@@ -28,11 +28,6 @@ static float world_to_screen_x(float longitude,float camera_yaw)
     return 240.0f+signed_angle(longitude-camera_yaw)*(480.0f/VIEW_FOV_DEG);
 }
 
-static float world_to_screen_x_layer(float longitude,float camera_yaw,float parallax)
-{
-    return 240.0f+signed_angle(longitude-camera_yaw)*parallax*(480.0f/VIEW_FOV_DEG);
-}
-
 static int effect_count(const underwater_world_t *world,int calm,int living,int vivid)
 {
     return world->effects_level==0?calm:(world->effects_level==2?vivid:living);
@@ -280,10 +275,12 @@ static void draw_sunrise_volume_part(const sunrise_camera_t *camera,
         float min_y=fminf(pa.y,fminf(pb.y,pc.y));
         float max_y=fmaxf(pa.y,fmaxf(pb.y,pc.y));
         if(max_x<0||min_x>=480||max_y<0||min_y>=480)continue;
+        int local_side_patch=part==2&&(i==110||i==111);
         if(cover_only){
             living_cover_add_triangle(pa,pb,pc);
             continue;
         }
+        if(local_side_patch)continue;
         float au,av,bu,bv,cu,cv;
         if(part==2||part==3){
             /* HTML ClosedLandscape sides use world-space UVs, not the strip unwrap. */
@@ -308,6 +305,34 @@ static void draw_sunrise_volume_part(const sunrise_camera_t *camera,
     }
 }
 
+static void draw_sunrise_ridge_patch(const sunrise_camera_t *camera,
+                                     MosaicoAtlas side)
+{
+    if(!side.texture.id)return;
+    /* Faces 110/111 are the single marked fold between side rings 1 and 2.
+       Replace only that quad, sampled from the neighboring grass face. */
+    static const uint16_t rings[2][2]={{55,56},{91,92}};
+    static const float source_v[2]={52.0f,214.0f};
+    Vector2 screen[2][2];
+    for(int ring=0;ring<2;++ring)
+    for(int edge=0;edge<2;++edge){
+        const sunrise_volume_vertex_t *v=&SUNRISE_SIDE_VERTICES[rings[ring][edge]];
+        if(!sunrise_project_xyz(camera,v->x*.001f,v->y*.001f,v->z*.001f,
+                                &screen[ring][edge]))return;
+    }
+    for(int ring=0;ring<1;++ring){
+        mosaico_textured_vertex_t a={screen[ring][0].x,screen[ring][0].y,
+                                      42.0f,source_v[ring]};
+        mosaico_textured_vertex_t b={screen[ring][1].x,screen[ring][1].y,
+                                      220.0f,source_v[ring]};
+        mosaico_textured_vertex_t c={screen[ring+1][0].x,screen[ring+1][0].y,
+                                      42.0f,source_v[ring+1]};
+        mosaico_textured_vertex_t d={screen[ring+1][1].x,screen[ring+1][1].y,
+                                      220.0f,source_v[ring+1]};
+        Mosaico2DDrawTexturedQuad(side.texture,a,b,c,d,248U);
+    }
+}
+
 static void draw_sunrise_cliff(const sunrise_camera_t *camera,
     MosaicoAtlas front,MosaicoAtlas side,MosaicoAtlas rear,int cover_only)
 {
@@ -318,25 +343,13 @@ static void draw_sunrise_cliff(const sunrise_camera_t *camera,
         (float)side.texture.width,(float)side.texture.height,2,cover_only);
     draw_sunrise_volume_part(camera,SUNRISE_FRONT_VERTICES,SUNRISE_FRONT_VERTEX_COUNT,
         SUNRISE_FRONT_FACES,SUNRISE_FRONT_FACE_COUNT,front,768,768,1,cover_only);
+    if(!cover_only)draw_sunrise_ridge_patch(camera,side);
 }
 
 typedef struct {
     float longitude;
     float source_v;
 } rainforest_flow_point_t;
-
-static Vector2 rainforest_flow_sample(const rainforest_flow_point_t *points,
-                                      int count,float progress)
-{
-    float scaled=fminf(.9999f,fmaxf(0.0f,progress))*(float)(count-1);
-    int segment=(int)scaled;
-    float local=scaled-(float)segment;
-    float longitude=points[segment].longitude+
-        signed_angle(points[segment+1].longitude-points[segment].longitude)*local;
-    return (Vector2){longitude,
-        points[segment].source_v+
-        (points[segment+1].source_v-points[segment].source_v)*local};
-}
 
 static Vector2 rainforest_flow_project(const underwater_world_t *world,
                                        MosaicoAtlas rainforest,Vector2 source)
@@ -364,69 +377,108 @@ static int rainforest_on_screen(Vector2 p)
     return p.x>-16.0f&&p.x<496.0f&&p.y>8.0f&&p.y<412.0f;
 }
 
-/* Specular glints travel on the photographed water. The JPEG already holds
-   the river body; stroking a second shoreline reads as a worm. */
-static void draw_rainforest_glints(const underwater_world_t *world,
-    MosaicoAtlas rainforest,const rainforest_flow_point_t *points,int count,
-    int calm,int living,int vivid,float speed,float size)
+static Vector2 rainforest_unproject(const underwater_world_t *world,
+                                    MosaicoAtlas rainforest,float x,float y)
 {
-    int n=effect_count(world,calm,living,vivid);
-    float base=fmodf((float)world->tick*speed,1.0f);
-    for(int i=0;i<n;++i){
-        float t=fmodf(base+(float)i/(float)n,1.0f);
-        Vector2 src=rainforest_flow_sample(points,count,t);
-        Vector2 p=rainforest_flow_project(world,rainforest,src);
-        if(!rainforest_on_screen(p))continue;
-        float t2=t+.028f;
-        if(t2>1.0f)t2-=1.0f;
-        Vector2 q=rainforest_flow_project(world,rainforest,
-            rainforest_flow_sample(points,count,t2));
-        if(fabsf(q.x-p.x)>72.0f)continue;
-        float dx=q.x-p.x,dy=q.y-p.y;
-        float len=sqrtf(dx*dx+dy*dy);
-        if(len<1.0f)continue;
-        dx/=len;dy/=len;
-        float near=src.y;
-        float wobble=sinf(t*18.0f+(float)world->tick*.21f+(float)i)*.9f;
-        p.y+=wobble;
-        float half=(3.2f+near*6.8f)*size;
-        float pulse=.80f+.20f*sinf((float)world->tick*.14f+(float)i*1.7f);
-        unsigned char alpha=(unsigned char)(210.0f*pulse);
-        Color highlight=(Color){255,255,255,alpha};
-        Color cool=(Color){186,228,255,(unsigned char)(alpha*.80f)};
-        DrawLineEx((Vector2){p.x-dx*half,p.y-dy*half},
-                   (Vector2){p.x+dx*half,p.y+dy*half},
-                   2.0f+near*2.4f,cool);
-        DrawEllipse((int)p.x,(int)p.y,3.0f+near*3.2f,1.0f+near*1.15f,cool);
-        DrawCircleV(p,1.3f+near*1.2f,highlight);
+    float height=(float)rainforest.texture.height;
+    float view_height=height*(VIEW_HEIGHT/PANORAMA_HEIGHT);
+    float neutral_y=(height-view_height)*.5f;
+    float pitch_pixels=world->pitch*(height/PANORAMA_HEIGHT)*4.0f;
+    float denominator=view_height+pitch_pixels*.75f;
+    if(denominator<.001f)return (Vector2){0,0};
+    float source_v=(y/480.0f*denominator+neutral_y+pitch_pixels*.65f)/height;
+    float lon=world->yaw+(x/480.0f)*VIEW_FOV_DEG;
+    while(lon<0.0f)lon+=360.0f;
+    while(lon>=360.0f)lon-=360.0f;
+    return (Vector2){lon,source_v};
+}
+
+static int rainforest_in_poly(float lon,float v,const rainforest_flow_point_t *p,
+                              int count)
+{
+    int inside=0;
+    for(int i=0,j=count-1;i<count;j=i++){
+        float yi=p[i].source_v,yj=p[j].source_v;
+        if((yi>v)==(yj>v))continue;
+        float xi=p[i].longitude,xj=p[j].longitude;
+        if(lon<(xj-xi)*(v-yi)/(yj-yi)+xi)inside=!inside;
+    }
+    return inside;
+}
+
+static int rainforest_in_water(float lon,float v)
+{
+    static const rainforest_flow_point_t left_stream[]={
+        {116.0f,.720f},{140.0f,.705f},{158.0f,.698f},
+        {159.0f,.725f},{140.0f,.738f},{118.0f,.748f}
+    };
+    static const rainforest_flow_point_t pool[]={
+        {148.0f,.710f},{158.0f,.668f},{170.0f,.654f},{180.0f,.650f},
+        {194.0f,.660f},{210.0f,.688f},{224.0f,.722f},{226.0f,.755f},
+        {216.0f,.788f},{200.0f,.808f},{180.0f,.812f},{164.0f,.798f},
+        {152.0f,.768f},{147.0f,.738f}
+    };
+    static const rainforest_flow_point_t right_stream[]={
+        {286.0f,.685f},{300.0f,.662f},{314.0f,.668f},{328.0f,.690f},
+        {342.0f,.718f},{348.0f,.742f},{340.0f,.768f},{322.0f,.762f},
+        {304.0f,.740f},{290.0f,.722f}
+    };
+    return rainforest_in_poly(lon,v,left_stream,
+               (int)(sizeof(left_stream)/sizeof(left_stream[0])))||
+           rainforest_in_poly(lon,v,pool,
+               (int)(sizeof(pool)/sizeof(pool[0])))||
+           rainforest_in_poly(lon,v,right_stream,
+               (int)(sizeof(right_stream)/sizeof(right_stream[0])));
+}
+
+/* DrawEllipseLines only stamps the left/right x of each scanline, so a
+   ripple collapses into a C. Stroke a closed oval instead. */
+static void draw_rainforest_ripple(int cx,int cy,float rh,float rv,Color color)
+{
+    const int steps=18;
+    float prev_x=(float)cx+rh,prev_y=(float)cy;
+    for(int i=1;i<=steps;++i){
+        float a=(float)i*(6.2831853f/(float)steps);
+        float x=(float)cx+cosf(a)*rh;
+        float y=(float)cy+sinf(a)*rv;
+        DrawLine((int)prev_x,(int)prev_y,(int)x,(int)y,color);
+        prev_x=x;prev_y=y;
     }
 }
 
-static void draw_rainforest_fall(const underwater_world_t *world,
-                                 MosaicoAtlas rainforest,
-                                 const rainforest_flow_point_t *points,int count)
+/* One entry, then ripples. A polyline across the still pool reads as a worm. */
+static void draw_rainforest_entry(const underwater_world_t *world,
+                                  MosaicoAtlas rainforest,
+                                  rainforest_flow_point_t site,float scale,
+                                  unsigned phase_offset)
 {
-    int n=effect_count(world,2,3,4);
-    float base=fmodf((float)world->tick*.019f,1.0f);
-    for(int i=0;i<n;++i){
-        float t=fmodf(base+(float)i/(float)n,1.0f);
-        Vector2 p=rainforest_flow_project(world,rainforest,
-            rainforest_flow_sample(points,count,t));
-        if(!rainforest_on_screen(p))continue;
-        float drop=8.0f+t*10.0f;
-        unsigned char alpha=(unsigned char)(130.0f+(1.0f-t)*70.0f);
-        Color streak=(Color){255,255,252,alpha};
-        DrawLineEx((Vector2){p.x,p.y-drop*.28f},
-                   (Vector2){p.x+.3f,p.y+drop*.72f},1.7f,streak);
+    Vector2 p=rainforest_flow_project(world,rainforest,
+        (Vector2){site.longitude,site.source_v});
+    if(!rainforest_on_screen(p))return;
+    float cycle=fmodf((float)(world->tick+phase_offset),42.0f)/42.0f;
+    if(cycle<.28f){
+        float birth=cycle/.28f;
+        int spray=effect_count(world,2,3,4);
+        for(int i=0;i<spray;++i){
+            float lift=sinf(birth*3.14159265f);
+            float px=p.x+(-2.4f+(float)i*1.8f)*birth*scale;
+            float py=p.y-(3.8f+(float)i)*lift*scale;
+            unsigned char alpha=(unsigned char)(185.0f*(1.0f-birth));
+            DrawCircle((int)px,(int)py,1.0f+(1.0f-birth)*scale,
+                       (Color){246,250,248,alpha});
+        }
+        DrawEllipse((int)p.x,(int)p.y,2.4f+birth*5.2f*scale,1.0f+birth*1.7f*scale,
+                    (Color){236,244,240,(unsigned char)(150.0f*(1.0f-birth))});
     }
-    Vector2 mist=rainforest_flow_project(world,rainforest,
-        (Vector2){points[count-1].longitude,points[count-1].source_v});
-    if(rainforest_on_screen(mist)){
-        float phase=(float)(world->tick%42U)/42.0f;
-        unsigned char alpha=(unsigned char)(78.0f*(1.0f-phase));
-        DrawEllipse((int)mist.x,(int)mist.y,
-                    3.2f+phase*4.5f,1.3f+phase*1.8f,
-                    (Color){230,238,232,alpha});
+    int rings=effect_count(world,2,3,4);
+    for(int ring=0;ring<rings;++ring){
+        float t=fmodf(cycle+(float)ring/(float)rings,1.0f);
+        float fade=(1.0f-t)*(1.0f-t);
+        unsigned char alpha=(unsigned char)(140.0f*fade);
+        if(alpha<16)continue;
+        float rh=(4.0f+t*22.0f)*scale;
+        draw_rainforest_ripple((int)p.x,(int)(p.y+t*1.2f*scale),rh,rh/2.15f,
+                               (Color){214,230,232,alpha});
     }
 }
 
@@ -434,41 +486,103 @@ static void draw_rainforest_water(const underwater_world_t *world,
                                   MosaicoAtlas rainforest)
 {
     if(!rainforest.texture.id||rainforest.texture.height<=0)return;
-    /* Traced on rainforest_scene.png so glints stay in the photographed
-       channel while yaw wraps and the horizon-anchored pitch changes. */
-    /* Two photographed channels only. The mid-stream island at 220-296 is
-       leaves and rock; a single polyline through it parks glints on land. */
-    static const rainforest_flow_point_t left_creek[]={
-        {140.0f,.690f},{150.0f,.700f},{160.0f,.708f},{170.0f,.718f},
-        {180.0f,.730f},{190.0f,.745f},{200.0f,.758f},{210.0f,.768f},
-        {218.0f,.772f}
+    static const rainforest_flow_point_t entries[]={
+        {174.0f,.676f},
+        {322.2f,.703f},
+        {265.5f,.456f}
     };
-    static const rainforest_flow_point_t right_creek[]={
-        {298.0f,.700f},{308.0f,.675f},{318.0f,.690f},
-        {328.0f,.710f},{338.0f,.720f},{348.0f,.730f}
-    };
-    static const rainforest_flow_point_t fall[]={
-        {265.2f,.400f},{265.4f,.428f},{265.6f,.456f}
-    };
-    draw_rainforest_glints(world,rainforest,left_creek,
-        (int)(sizeof(left_creek)/sizeof(left_creek[0])),4,6,8,.0052f,1.0f);
-    draw_rainforest_glints(world,rainforest,right_creek,
-        (int)(sizeof(right_creek)/sizeof(right_creek[0])),3,4,6,.0060f,1.0f);
-    draw_rainforest_fall(world,rainforest,fall,
-        (int)(sizeof(fall)/sizeof(fall[0])));
+    static const float scales[]={1.0f,.82f,.40f};
+    static const unsigned offsets[]={0U,19U,31U};
+    for(int i=0;i<3;++i)
+        draw_rainforest_entry(world,rainforest,entries[i],scales[i],offsets[i]);
+}
 
-    static const rainforest_flow_point_t foam_sites[]={
-        {152.0f,.700f},{322.0f,.700f}
-    };
-    int foam=effect_count(world,1,2,2);
-    for(int i=0;i<foam;++i){
-        float phase=(float)((world->tick+(uint32_t)i*19U)%40U)/40.0f;
-        Vector2 p=rainforest_flow_project(world,rainforest,
-            (Vector2){foam_sites[i].longitude,foam_sites[i].source_v});
+static uint32_t rainforest_rain_hash(uint32_t value)
+{
+    value^=value>>16;value*=0x7feb352dU;value^=value>>15;
+    value*=0x846ca68bU;value^=value>>16;return value;
+}
+
+static void draw_rainforest_rain(const underwater_world_t *world,
+                                 MosaicoAtlas rainforest)
+{
+    /* Viewer-space weather, with continuous per-drop depth rather than five
+       visible speed tiers.  Near drops are longer, brighter and occasionally
+       thicker; distant rain dissolves into the photographed haze. */
+    int n=effect_count(world,16,30,44);
+    float wind=-1.3f+.4f*sinf((float)world->tick*.011f);
+    int can_hit=rainforest.texture.id&&rainforest.texture.height>0;
+    for(int i=0;i<n;++i){
+        uint32_t seed=rainforest_rain_hash(0x9e3779b9u*(uint32_t)(i+1));
+        float near=.06f+(float)(seed&1023U)*(1.0f/1100.0f);
+        float x=(float)((seed>>10)%520)-20.0f+
+                sinf((float)world->tick*.017f+(float)i)*near*2.2f;
+        float speed=5.5f+near*15.5f;
+        float length=8.0f+near*31.0f;
+        float y=fmodf((float)((seed>>19)%460)+(float)world->tick*speed,470.0f)-24.0f;
+        if(y>420.0f)continue;
+        unsigned char alpha=(unsigned char)(34.0f+near*148.0f);
+        float gust=((float)((seed>>5)&31U)-15.5f)*.018f;
+        float tip_x=x+(wind+gust)*(.55f+near*.75f),tip_y=y+length;
+        Color rain=(Color){231,242,245,alpha};
+        if(y<400.0f){
+            if(near>.78f)
+                DrawLineEx((Vector2){x,y},(Vector2){tip_x,tip_y},1.45f,rain);
+            else
+                DrawLine((int)x,(int)y,(int)tip_x,(int)tip_y,rain);
+        }
+        if(!can_hit||tip_x<-8.0f||tip_x>488.0f)continue;
+        /* Sparse leaf/rock impacts: a two-frame crown, only outside traced
+           water polygons.  This makes rain contact the jungle without
+           painting persistent decorations onto the panorama. */
+        if((seed&3U)==0U){
+            float impact_y=105.0f+(float)((seed>>12)%230U);
+            float distance=tip_y-impact_y;
+            Vector2 impact_src=rainforest_unproject(world,rainforest,tip_x,impact_y);
+            if(distance>=0.0f&&distance<speed*1.35f&&
+               !rainforest_in_water(impact_src.x,impact_src.y)){
+                float burst=1.0f-distance/(speed*1.35f);
+                Color splash=(Color){235,247,245,(unsigned char)(145.0f*burst)};
+                float spread=2.0f+near*2.5f;
+                DrawLine((int)tip_x,(int)impact_y,(int)(tip_x-spread),
+                         (int)(impact_y-spread*.55f),splash);
+                DrawLine((int)tip_x,(int)impact_y,(int)(tip_x+spread),
+                         (int)(impact_y-spread*.45f),splash);
+            }
+        }
+        /* A streak can lie on the pool after the tip has already reached
+           rock. Find the water surface under this drop and keep a ripple
+           there while the segment still crosses water. */
+        Vector2 hit={0};
+        float hit_y=0;
+        int found=0;
+        float from_y=y,to_y=tip_y+6.0f;
+        for(int sample=0;sample<=10;++sample){
+            float sy=from_y+(to_y-from_y)*((float)sample/10.0f);
+            if(sy<8.0f||sy>412.0f)continue;
+            Vector2 src=rainforest_unproject(world,rainforest,tip_x,sy);
+            if(!rainforest_in_water(src.x,src.y))continue;
+            hit=src;hit_y=sy;found=1;break;
+        }
+        if(!found)continue;
+        for(int step=0;step<14;++step){
+            float prev_y=hit_y-4.0f;
+            Vector2 prev=rainforest_unproject(world,rainforest,tip_x,prev_y);
+            if(prev_y<40.0f||!rainforest_in_water(prev.x,prev.y))break;
+            hit=prev;hit_y=prev_y;
+        }
+        float age=fmodf((tip_y-hit_y)/fmaxf(1.0f,speed),18.0f);
+        float t=age/18.0f;
+        Vector2 p=rainforest_flow_project(world,rainforest,hit);
         if(!rainforest_on_screen(p))continue;
-        unsigned char alpha=(unsigned char)(150.0f*(1.0f-phase));
-        DrawEllipse((int)p.x,(int)p.y,3.0f+phase*5.0f,1.1f+phase*1.8f,
-                    (Color){248,252,248,alpha});
+        unsigned char ring=(unsigned char)(175.0f*(1.0f-t*.65f));
+        float rh=(3.4f+t*12.0f)*(1.12f-near*.34f);
+        draw_rainforest_ripple((int)p.x,(int)p.y,rh,rh/2.15f,
+                               (Color){226,240,242,ring});
+        if(t<.28f){
+            DrawCircle((int)p.x,(int)p.y,1.3f+(1.0f-t/.28f),
+                       (Color){246,250,248,(unsigned char)(180.0f*(1.0f-t/.28f))});
+        }
     }
 }
 
@@ -502,15 +616,8 @@ static void draw_rainforest_fx(const underwater_world_t *world,
         DrawLine(bx-3,by,bx-13,by-5,(Color){18,25,20,220});
         DrawLine(bx+4,by-1,bx+12,by-2,(Color){207,128,37,230});
     }
-    /* Rain and motes occupy world longitudes, never screen slots. */
-    int drops=effect_count(world,3,7,13);
-    for(int i=0;i<drops;++i){
-        float lon=fmodf(11.0f+i*47.0f+world->tick*.012f*(1+i%3),360.0f);
-        int x=(int)world_to_screen_x(lon,world->yaw);
-        int y=(i*71+(int)world->tick*(2+i%2))%420-(int)(world->pitch*4.4f);
-        if(x<0||x>=480)continue;
-        DrawLine(x,y,x-1,y+5,(Color){202,225,218,105});
-    }
+    /* Pollen can live in the photographed volume. Rain cannot: a 5px mint
+       dash locked to longitude sits on a leaf and crawls when yaw changes. */
     int motes=effect_count(world,3,7,12);
     for(int i=0;i<motes;++i){
         float phase=world->tick*.014f+i*1.71f;
@@ -519,21 +626,7 @@ static void draw_rainforest_fx(const underwater_world_t *world,
         int y=88+(i*53)%270+(int)(sinf(phase*.7f)*10.0f)-(int)(world->pitch*3.9f);
         if(x>2&&x<478)DrawCircle(x,y,1,(Color){221,231,172,(unsigned char)(70+i%3*30)});
     }
-    /* Close vines and leaves travel faster than the photographic background. */
-    static const float vine_lon[]={18.0f,104.0f,221.0f,319.0f};
-    for(int i=0;i<4;++i){
-        int x=(int)world_to_screen_x_layer(vine_lon[i],world->yaw,1.12f);
-        if(x<-28||x>508)continue;
-        int sway=(int)(sinf(world->tick*.018f+i*1.4f)*7.0f);
-        int py=(int)(-world->pitch*6.0f);
-        DrawLine(x,py,x+sway,py+104+i*17,(Color){20,55,27,210});
-        for(int j=1;j<4;++j){
-            int y=py+20+j*23+i*5,side=((i+j)&1)?1:-1;
-            int stem=x+sway*j/4;
-            DrawLine(stem,y,stem+side*13,y-7,(Color){23,68,31,185});
-            DrawLine(stem+side*4,y-2,stem+side*17,y+2,(Color){42,91,45,150});
-        }
-    }
+    draw_rainforest_rain(world,rainforest);
 }
 
 #if 0

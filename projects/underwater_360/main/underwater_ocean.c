@@ -238,6 +238,9 @@ static bool ocean_project(const living_camera_t *camera,float x,float y,float z,
     return living_project_xyz(camera,x,y,z,out);
 }
 
+static void draw_ocean_jelly(const living_camera_t *camera,
+                             const ocean_jelly_t *jelly,float t);
+
 static float ocean_mirror(float value)
 {
     value=fmodf(value,2.0f);
@@ -293,7 +296,7 @@ static bool ocean_project_depth(const living_camera_t *camera,float u,float v,
 }
 
 static void draw_ocean_water(const underwater_ocean_t *ocean,const living_camera_t *camera,
-                             MosaicoAtlas water)
+                             MosaicoAtlas water,int jelly_count,float t)
 {
     if(!water.texture.id||!camera)return;
     const int n=OCEAN_RENDER_GRID;
@@ -331,6 +334,7 @@ static void draw_ocean_water(const underwater_ocean_t *ocean,const living_camera
     static uint16_t band_ix[8][QUAD_CAP];
     static uint16_t band_iy[8][QUAD_CAP];
     static uint16_t band_light[8][QUAD_CAP];
+    static uint8_t band_occludes[8][QUAD_CAP];
     int band_n[8];
     memset(band_n,0,sizeof band_n);
     for(int iy=0;iy<GH-1;++iy)
@@ -353,9 +357,15 @@ static void draw_ocean_water(const underwater_ocean_t *ocean,const living_camera
         band_ix[band][slot]=(uint16_t)ix;
         band_iy[band][slot]=(uint16_t)iy;
         band_light[band][slot]=(uint16_t)(reef<40U?232U:256U);
+        /* The 8x8 authored mask is antialiased at the reef silhouette.  A
+           wider threshold is used only for creature occlusion; lighting keeps
+           its original threshold so the background image does not change. */
+        band_occludes[band][slot]=(uint8_t)(reef<128U);
     }
     for(int band=0;band<8;++band){
         for(int i=0;i<band_n[band];++i){
+            /* Foreground-mask cells are delayed, not duplicated. */
+            if(band_occludes[band][i])continue;
             int ix=band_ix[band][i],iy=band_iy[band][i];
             int a=iy*GW+ix,b=a+1,c=a+GW,d=c+1;
             unsigned background_light=band_light[band][i];
@@ -365,8 +375,31 @@ static void draw_ocean_water(const underwater_ocean_t *ocean,const living_camera
             mosaico_textured_vertex_t vd={mesh[d].x,mesh[d].y,tu[ix+1],tv[iy+1]};
             Mosaico2DDrawTexturedQuad(water.texture,va,vb,vc,vd,background_light);
         }
+        /* Depth values map to z as 1 / (raw * .3 / 65535).  Insert each
+           jelly after the farther water bands; subsequent, nearer terrain
+           bands then cover only the pixels where rock crosses in front. */
+        for(int i=0;i<jelly_count;++i){
+            float z=fmaxf(ocean->jellies[i].z,.01f);
+            int jelly_band=(int)(26.6666667f/z);
+            if(jelly_band<0)jelly_band=0;
+            if(jelly_band>7)jelly_band=7;
+            if(jelly_band==band)draw_ocean_jelly(camera,&ocean->jellies[i],t);
+        }
     }
-    (void)ocean;
+    /* Draw authored foreground-mask cells once, after all jellies.  Moving
+       them to the end preserves the original texture while fixing silhouette
+       depth without the former full second textured pass. */
+    for(int band=0;band<8;++band)
+    for(int i=0;i<band_n[band];++i){
+        if(!band_occludes[band][i])continue;
+        int ix=band_ix[band][i],iy=band_iy[band][i];
+        int a=iy*GW+ix,b=a+1,c=a+GW,d=c+1;
+        mosaico_textured_vertex_t va={mesh[a].x,mesh[a].y,tu[ix],tv[iy]};
+        mosaico_textured_vertex_t vb={mesh[b].x,mesh[b].y,tu[ix+1],tv[iy]};
+        mosaico_textured_vertex_t vc={mesh[c].x,mesh[c].y,tu[ix],tv[iy+1]};
+        mosaico_textured_vertex_t vd={mesh[d].x,mesh[d].y,tu[ix+1],tv[iy+1]};
+        Mosaico2DDrawTexturedQuad(water.texture,va,vb,vc,vd,band_light[band][i]);
+    }
 }
 
 static void draw_ocean_reefs(const living_camera_t *camera,float yaw,MosaicoAtlas left_front,
@@ -528,19 +561,19 @@ void underwater_ocean_draw(const underwater_ocean_t *ocean,float yaw,float pitch
     living_cover_volume(&camera,OCEAN_RIGHT_FRONT_VERTICES,OCEAN_RIGHT_FRONT_VERTEX_COUNT,
         OCEAN_RIGHT_FRONT_FACES,OCEAN_RIGHT_FRONT_FACE_COUNT,1);
     living_cover_seal();
-    draw_ocean_water(ocean,&camera,water);
-    draw_ocean_reefs(&camera,yaw,left_front,left_side,left_rear,right_front,right_side,right_rear);
     float t=ocean->tick*OCEAN_DT;
+    int jellies=effects_level==0?3:ocean->jelly_count;
+    draw_ocean_water(ocean,&camera,water,jellies,t);
+    /* The reefs frame the canyon as the closest foreground layer. */
+    draw_ocean_reefs(&camera,yaw,left_front,left_side,left_rear,right_front,right_side,right_rear);
     int shoals=effects_level==0?3:ocean->shoal_count;
     int wanderers=effects_level==0?3:ocean->wanderer_count;
-    int jellies=effects_level==0?3:ocean->jelly_count;
-    uint8_t order[OCEAN_SHOAL_CAP+OCEAN_WANDERER_CAP+OCEAN_JELLY_CAP];
-    uint8_t kind[OCEAN_SHOAL_CAP+OCEAN_WANDERER_CAP+OCEAN_JELLY_CAP];
-    float depth[OCEAN_SHOAL_CAP+OCEAN_WANDERER_CAP+OCEAN_JELLY_CAP];
+    uint8_t order[OCEAN_SHOAL_CAP+OCEAN_WANDERER_CAP];
+    uint8_t kind[OCEAN_SHOAL_CAP+OCEAN_WANDERER_CAP];
+    float depth[OCEAN_SHOAL_CAP+OCEAN_WANDERER_CAP];
     int items=0;
     for(int i=0;i<shoals;++i){order[items]=(uint8_t)i;kind[items]=0;depth[items]=ocean->shoals[i].z;++items;}
     for(int i=0;i<wanderers;++i){order[items]=(uint8_t)i;kind[items]=1;depth[items]=ocean->wanderers[i].z;++items;}
-    for(int i=0;i<jellies;++i){order[items]=(uint8_t)i;kind[items]=2;depth[items]=ocean->jellies[i].z;++items;}
     for(int i=1;i<items;++i){
         int j=i;
         while(j>0&&depth[j-1]<depth[j]){
@@ -563,10 +596,8 @@ void underwater_ocean_draw(const underwater_ocean_t *ocean,float yaw,float pitch
                                 (Color){shoal->r,shoal->g,shoal->b,255},
                                 .72f+.22f*(1.0f-fabsf(u)*1.6f));
             }
-        }else if(kind[i]==1){
-            draw_ocean_wanderer(&camera,&ocean->wanderers[order[i]],t);
         }else{
-            draw_ocean_jelly(&camera,&ocean->jellies[order[i]],t);
+            draw_ocean_wanderer(&camera,&ocean->wanderers[order[i]],t);
         }
     }
     int motes=effects_level==0?14:(effects_level==2?ocean->mote_count:24);
