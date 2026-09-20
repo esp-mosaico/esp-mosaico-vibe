@@ -23,20 +23,23 @@ the next level, while completing level 4 finishes the run.
 ## 构建与安装
 
 ```bash
-python mosaico.py game run --project projects/sky_hop
-python mosaico.py game run --project projects/sky_hop --headless --frames 300
+python mosaico.py game sim projects/sky_hop
+python mosaico.py game sim projects/sky_hop --headless --frames 300
 python mosaico.py game build --project projects/sky_hop
 python mosaico.py recover  # 空白或未验证设备首次安装前
 python mosaico.py iris system-update --project projects/sky_hop
-python mosaico.py iris logs
+python mosaico.py iris logs --project projects/sky_hop
 ```
 
 浏览器模拟器地址为 `http://127.0.0.1:8460/`。键盘使用 `A/D` 或方向键移动、
 空格跳跃、`P` 暂停、回车开始/进入下一关；触屏设备可同时按住底部移动键和跳跃键。
 模拟器直接编译并调用设备相同的 `platform_game.c`，所以关卡、碰撞、分数和状态切换
-不需要在网页端重复实现。网页使用轻量 Host 绘制来快速验玩法，最终 Atlas、音频和 GSP
-效果仍以真机为准。
+不需要在网页端重复实现。Host 与设备共享 RGB565 view，浏览器直接显示 C 渲染结果；音频、LCD 时序和
+物理输入仍需真机验证。
 
 应用保留 factory Recovery，并通过 `iris_ota_support_start()` 暴露进入 Recovery 的 RPC。
 
 首次安装或布局、资源变化使用 `iris system-update`；分区表完全一致且仅修改代码时可用 `iris app-update`。
+
+开发与回放流程见[游戏开发指南](../../docs/game-development.zh-CN.md)，
+固定 60 秒场景、配置矩阵与判据见[Sky Hop 性能测试](../../docs/sky-hop-performance.zh-CN.md)。

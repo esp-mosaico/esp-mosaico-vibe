@@ -14,3 +14,6 @@
 /projects/raylib_shooter/assets_src/shooter_atlas.png
 /.mosaico-state/
 /tools/gsp-sim/.cache/
+
+# Local agent experiments; shared skills and tools remain versioned.
+/.agents/analysis/

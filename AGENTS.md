@@ -10,7 +10,7 @@ The `submodule/esp-mosaico-bsp/` Git submodule is the ESP-Mosaico board support
 package repository.
 It contains the board-level support implementation and the example projects
 under `submodule/esp-mosaico-bsp/examples/`. Examples referenced by the guides
-in `skills/` live in this BSP repository, so initialize and inspect the
+in `.agents/skills/` live in this BSP repository, so initialize and inspect the
 `submodule/esp-mosaico-bsp/` submodule before using those examples.
 
 ## Route development work
@@ -33,7 +33,7 @@ Before running ESP-IDF tools, resolve the PC environment as follows:
    6.1 still requires Python 3.10 or newer; allow `mosaico.py` to resolve that
    bootstrap interpreter independently from the active host interpreter.
 3. If no compatible ESP-IDF environment exists, use
-   `skills/espressif-env-setup/SKILL.md` for the fresh ESP-IDF installation and
+   `.agents/skills/espressif-env-setup/SKILL.md` for the fresh ESP-IDF installation and
    its first verification build.
 4. Query live device identity and availability at operation time; do not treat
    cached Device ID or Boot ID values as current evidence.
@@ -56,9 +56,9 @@ install.
    do not place test fixtures in `projects/`.
    The utilities-owned Recovery project is an internal `mosaico.py recover`
    resource and is never a user application template.
-3. Read `skills/README.md`, then load only the `SKILL.md` files relevant to the
+3. Read `.agents/skills/README.md`, then load only the `SKILL.md` files relevant to the
    requested capabilities. For new or existing device UI work, load
-   [`mosaico-ui`](skills/mosaico-ui/SKILL.md). Its three feedback loops are
+   [`mosaico-ui`](.agents/skills/mosaico-ui/SKILL.md). Its three feedback loops are
    design confirmation, simulator validation, and device validation; enter
    where the current uncertainty lies and continue within the requested scope.
    For unsettled designs, prefer rendered mockups and confirm the overall
@@ -68,7 +68,7 @@ install.
    UI applications may use LVGL or GSP; prefer GSP
    when it fits the product, use its simulator to produce rendering evidence,
    and follow the constraints of the selected UI framework. For GSP UI work,
-   load `skills/gsp-sim/SKILL.md` and preview with
+   load `.agents/skills/gsp-sim/SKILL.md` and preview with
    `python3 tools/gsp-sim/run.py` (sim_bridge by default) using
    **espressif/esp-gsp 1.4.0** from the ESP Component Registry.
    Do not import Mosaic claw hub/runtime into this repository.
@@ -79,7 +79,13 @@ install.
 6. Keep user-facing documentation in `docs/`, public product tooling in
    `submodule/esp-mosaico-utils/mosaico-tools`, Recovery firmware and product ABI in
    `submodule/esp-mosaico-utils/esp-mosaico-recovery`, workspace-specific tool settings in
-   `.mosaico.json`, and private agent-facing documentation or tools in `.agents/`.
+   `.mosaico.json`, and agent-facing skills, guidance, and tools in `.agents/`.
+   Keep shared skills in `.agents/skills/` under version control; `.agents/` is
+   not a confidentiality boundary. Put local analysis artifacts in `.agents/analysis/`.
+   Use `docs/README.md` as the user documentation index. Maintain component API
+   and protocol details with the owning submodule, and link to them from workspace
+   guides instead of duplicating them. Keep the English and Chinese root READMEs
+   aligned as short entry points.
 
 ### Preserve the retained recovery path
 

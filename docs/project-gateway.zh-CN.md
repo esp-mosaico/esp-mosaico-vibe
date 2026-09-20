@@ -1,5 +1,7 @@
 # 项目 Gateway、使用者与设备归属
 
+[返回文档索引](README.md)
+
 同一系统用户、同一工作区、同一应用路径共享一个 Gateway。不同项目有独立的
 地址、日志和操作记录，通过用户级公共注册表与操作系统锁协调设备归属。
 这些信息描述主机项目会话，设备的 Device ID、Boot ID 仍以实时握手和查询为准。
@@ -50,6 +52,46 @@ JSON 的 `running` 描述会话进程锁是否仍被持有，`reachable` 描述 
 `device_ids` 按身份去重，未完成身份验证的端点单列。占用可以跨设备重启、断线保留，
 因此占用状态不等于在线状态。注册表中的旧会话不能作为当前设备身份的证明。
 
+## 设备发现与选择
+
+`iris list` 被动枚举候选端点和已知设备，不认领设备。发现记录可能包含缓存中的
+离线设备；实际 Device ID、Boot ID 和在线状态须在操作时通过握手确认。
+
+```sh
+python mosaico.py iris list --project projects/hello_world
+python mosaico.py iris claim --project projects/hello_world --endpoint '<发现的端点>'
+python mosaico.py iris logs --project projects/hello_world --device-id '<Device-ID>'
+```
+
+单设备操作可省略设备选择器。选择顺序如下：
+
+1. 显式 `--device-id` / `--endpoint` 优先，失败不改选其他设备。
+2. 使用当前项目已连接的唯一设备。
+3. 没有已连接设备时，跟随当前项目唯一的已有归属，包括等待离线设备重连。
+4. 没有已有归属时，实时枚举本机 USB 并认领唯一可用候选。缓存、未连接的
+   TCP/mDNS 端点、ROM 和 USB Serial/JTAG 接口不参与这个自动选择。
+5. 多个候选时直接列出候选并要求指定目标。其他会话占用、维护、转让以及孤立
+   归属不会被自动抢占或清理。握手确认 Device ID 后，本次操作始终跟随该身份。
+
+`iris run` 只在首次创建会话时尝试一次自动连接。无设备或有歧义时仍保持 Gateway
+运行，后续设备操作或 `iris claim` 再发起连接；主动释放后不会被后台重新认领。
+共享会话中的 `iris claim` 可以省略设备参数；`iris release` 自动释放唯一拥有的
+设备，即使其暂时离线。同一设备的 USB/TCP 归属合并计数。`iris transfer start`
+也可省略 `--device-id`，但仍必须指定 `--to-session`；重试沿用同一 `--transfer-id`。
+`reconcile` 和转让记录相关命令仍要求明确目标或记录 ID。
+
+`recover` 先尝试连接唯一的 ESP-Iris 设备，只有未发现可用目标时才继续原有 ROM
+接口检测；存在占用、歧义或已有目标连接失败时，实际恢复不会改选另一块板。
+显式 `--hardware-mac` 保留原来的硬件身份选择流程。
+
+`iris list` / `iris status` 仍不认领设备；`--gateway-profile` 仍只操作指定外部
+Gateway 上已连接的设备，不从当前电脑自动认领 USB。
+
+`--device-id` 可独立选定设备：Gateway 优先复用已验证连接，否则先尝试在线 USB，再验证其他候选端点。HELLO 身份必须匹配；失败的新连接释放本次占用。`--endpoint` 是严格限定，其他工作区占用不会被抢走。候选连接重试只发生在写入提交之前。
+
+从旧版随机 Device ID 升级为 eFuse Base MAC 派生身份时，用 `iris list` 刷新
+保存的选择器。旧 ID 的操作历史仍保留，normal 与 Recovery 应使用兼容的身份规则。
+
 ## 跨项目协调
 
 公共注册表位于同用户状态目录下的 `esp-mosaico/ownership/ownership.sqlite3`。
@@ -74,6 +116,16 @@ python mosaico.py iris transfer start --device-id '<Device-ID>' --to-session '<�
 正常空闲退出释放普通设备归属。崩溃留下的普通归属需要显式 `iris reconcile`；
 维护和转让预约必须使用各自的恢复流程。Gateway 重启不会自动重放设备写操作。
 
+## 常见问题
+
+| 现象 | 处理方式 |
+| --- | --- |
+| 工作台旧地址打不开 | 用 `iris run --project ...` 重新持有会话，打开新输出的 URL |
+| 设备被其他项目占用 | 用 `iris status --all` 找到当前归属，按转让流程交接，不终止其他客户端 |
+| 明确指定的设备离线 | 等待该身份重连，核对连接；失败后不改选另一块设备 |
+| 崩溃后留下普通归属 | 核实原会话已失效后执行 `iris reconcile`；维护或转让记录使用各自恢复流程 |
+| 更新后的应用无响应 | 保存日志与有效 core dump，按 [CLI 恢复入口](mosaico-cli.zh-CN.md#调试与恢复入口)处理 |
+
 ## 旧实例与外部 Gateway
 
 旧的临时／常驻实例仍可查询，无法提供客户端明细时会明确显示。新的设备命令要求
@@ -82,7 +134,6 @@ python mosaico.py iris transfer start --device-id '<Device-ID>' --to-session '<�
 
 公共注册表保留旧表布局，以附加表记录新元数据，允许其他工作区旧工具继续访问。
 `--gateway-profile` 的生命周期仍由外部负责；连接失败不会回退到本地实例。
-
 
 ## 组件边界与版本策略
 

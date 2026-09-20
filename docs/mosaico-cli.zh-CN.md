@@ -1,4 +1,6 @@
-# mosaico.py 命令结构
+# mosaico.py 命令参考
+
+[返回文档索引](README.md)
 
 在工作区根目录执行 `python mosaico.py --help` 查看顶层入口。使用
 `python mosaico.py iris --help`、`python mosaico.py iris transfer --help`
@@ -38,6 +40,7 @@ mosaico.py
 | `iris app-update` | 仅更新正常应用代码，要求完整分区表与设备一致 |
 | `iris system-update` | 新应用、分区布局或资源变化的推荐入口，按更新包清单写入 |
 | `recover` | 初始化或恢复设备基础固件，包括 ESP-Iris 不可达时的恢复 |
+| `game` | 游戏创建、Host 仿真和构建，见[游戏开发指南](game-development.zh-CN.md) |
 
 `iris test` 下的命令用于分别测试 Recovery 流程：
 
@@ -47,91 +50,73 @@ mosaico.py
 | `recovery-wifi` | 已进入 Recovery 且 ESP-Iris USB 可用；下发 Wi-Fi 名称和密码并等待联网成功 |
 | `bridge-code` | 已进入 Recovery、USB 可用、已配置 Bridge 服务且能够联网；打开设备下载页面，返回配对码、有效期和 Bridge 网站地址 |
 
-## 项目与 Gateway 生命周期
+## 选择工程与设备
 
 `--workspace` 选择工作区，默认向上查找 `.mosaico.json`。`--project` 选择应用及
-它所属的 Gateway 会话；`iris app-update` 和从项目构建的 `iris system-update`
-也使用该应用作为构建目标。省略时按当前应用目录、工作区默认应用、唯一应用
-候选的顺序选择。不同工作区或应用路径有独立会话。
+它所属的 Gateway 会话；更新命令也使用该应用作为构建目标。省略时按当前应用
+目录、工作区默认应用、唯一应用候选的顺序选择。
 
-- 所有设备操作使用同项目的共享 Gateway，没有时自动启动。创建者没有特殊关闭权。
-- `iris run` 每次调用都登记独立的持续客户端；即使 Gateway 已存在也保持前台运行。
-  Ctrl+C 只释放这次客户端，不影响其他终端、工作台或正在执行的后台任务。
-- 普通设备命令执行期间持有客户端，包括构建、更新和等待重连；结束时释放。
-- Web 工作台通过事件连接保活。页面关闭或连接失效后释放，不自动唤醒已退出的 Gateway。
-- 无有效客户端、无活动请求、更新、Job、维护或流任务后，空闲 **10 秒**自动退出；
-  新客户端或新工作加入会取消倒计时。正常关闭会释放普通设备归属，历史证据仍保留。
-- CLI 客户端每 5 秒续期，20 秒未续期则失效，之后才开始 10 秒空闲倒计时。
-  转让、维护的待核对记录不会被自动清除；中断的写操作不会自动重放。
-- `iris status` 不创建 Gateway，不增加客户端、不重置倒计时。无实例时 JSON 返回
-  `{"running": false, "session": null}`；遗留归属会额外列出。
-- `iris status --all` 直接读取同用户公共注册表，并被动查询各实例。当前项目没有 Gateway
-  也能看到其他工作区的项目路径、网关地址、设备归属、客户端和保活原因。
-  `--all` 与 `--project` 互斥。此协调范围要求同一主机、同一用户且共用状态目录。
-- `iris claim/release/reconcile`、转让操作可以自动启动或加入共享实例；
-  `iris transfer status` 保持被动。设备认领本身不永久保活，持续调试使用 `iris run`。
-- 不提供显式停止命令。释放全部客户端并等待工作完成即可自动退出。
-- 支持 `--gateway-profile` 的命令仍由外部管理 Gateway 生命周期，连接失败不回退到本地实例。
-
-例如，在一个终端保持：
+新建工程不会改变默认工程，因此下面的操作显式指定 `--project`：
 
 ```sh
-python mosaico.py iris run --project projects/hello_world
+python mosaico.py iris list --project projects/my_app
+python mosaico.py iris logs --project projects/my_app --timeout 20
+python mosaico.py iris memory --project projects/my_app
+python mosaico.py iris crash --project projects/my_app --archive
 ```
 
-在其他终端明确选择同一项目：
+只有一块可用 USB 设备时可省略设备选择器；多设备时使用 `--device-id` 或
+`--endpoint`。使用实时确认的 Device ID。自动选择顺序、等待重连和归属限制见
+[Gateway 设备选择](project-gateway.zh-CN.md#设备发现与选择)。
 
-```sh
-python mosaico.py iris list --project projects/hello_world
-python mosaico.py iris claim --project projects/hello_world --endpoint '<发现的端点>'
-python mosaico.py iris logs --project projects/hello_world --device-id '<Device-ID>'
-python mosaico.py iris app-update --project projects/hello_world --device-id '<Device-ID>'
-```
+## 选择更新方式
 
-使用实时握手得到的 Device ID。单次设备操作也可以通过 `--endpoint` 指定首次
-连接目标。更多细节见[项目会话与设备归属](project-gateway.zh-CN.md)。
+| 场景 | 命令 |
+| --- | --- |
+| 空白或未经验证的设备，或 normal/Recovery 均不可达 | `python mosaico.py recover` |
+| 新应用，或分区布局、外部资源变化 | `python mosaico.py iris system-update --project projects/my_app` |
+| 仅修改应用代码，且完整分区表与设备一致 | `python mosaico.py iris app-update --project projects/my_app` |
 
-## 单设备免选择
+`recover` 准备经过评审的基础固件并验证 Recovery 就绪；之后还需安装并验收目标
+应用。它仅支持本机 Gateway，底层恢复过程也由该命令管理。
 
-只有一块可用的 ESP-Mosaico 通过 USB 连接时，可以直接执行：
+从工程构建的 `system-update` 包包含应用、分区表及工程声明的资源镜像，保留
+Recovery 固定前缀和 bootloader。仅预留但未使用的 `game_assets` 不需要镜像；
+使用外部资源的应用通过 CMake 声明将镜像纳入包。已有包可使用 `--bundle PATH`。
+Recovery 自身更新、HTTP(S)/NAND 更新及基础包约束见
+[Recovery 说明](../submodule/esp-mosaico-utils/esp-mosaico-recovery/firmware/recovery/README.md)。
 
-```sh
-python mosaico.py iris logs
-python mosaico.py iris memory
-python mosaico.py iris crash
-python mosaico.py iris app-update --project projects/hello_world
-python mosaico.py iris system-update --project projects/hello_world
-python mosaico.py iris test enter-recovery
-python mosaico.py iris test recovery-wifi --ssid '<Wi-Fi 名称>'
-python mosaico.py iris test bridge-code
-```
+`app-update` 遇到分区表不同会返回 `partition_layout_mismatch`、设备/构建
+SHA-256 及 `system-update` 建议，不会自动扩大写入范围或修改工程分区表。
+实际构建配置（包括 `--skip-build`）与更新后的应用都须通过角色、产品、板型、
+布局契约和 Recovery ABI 检查。
 
-`iris rpc` 同样可以省略设备参数，但仍需指定服务、方法和请求内容。
-Recovery 测试的模式、USB、网络、凭据等前置条件不变。
+更新前通过产品工具保存有效 core dump、结构化证据和原始日志。更新成功须确认
+同一 Device ID 经 normal → Recovery → normal 返回，产生新的 Boot ID，运行
+目标固件并报告 healthy，且产品行为符合预期。空白设备则先完成 Recovery 就绪
+验证，再安装应用。上传完成或重连本身不代表验收通过。
 
-选择顺序如下：
+## 调试与恢复入口
 
-1. 显式 `--device-id` / `--endpoint` 优先，失败不改选其他设备。
-2. 使用当前项目已连接的唯一设备。
-3. 没有已连接设备时，跟随当前项目唯一的已有归属，包括等待离线设备重连。
-4. 没有已有归属时，实时枚举本机 USB 并认领唯一可用候选。缓存、未连接的
-   TCP/mDNS 端点、ROM 和 USB Serial/JTAG 接口不参与这个自动选择。
-5. 多个候选时直接列出候选并要求指定目标。其他会话占用、维护、转让以及孤立
-   归属不会被自动抢占或清理。握手确认 Device ID 后，本次操作始终跟随该身份。
+运行 `python mosaico.py iris run --project projects/my_app` 并打开输出中的 URL，
+可持续观察 Gateway Web 工作台。生命周期、设备占用与转让的完整规则见
+[Gateway 指南](project-gateway.zh-CN.md)。CLI 和工作台应显示同一设备的 Device ID、
+Boot ID 和操作记录。
 
-`iris run` 只在首次创建会话时尝试一次自动连接。无设备或有歧义时仍保持 Gateway
-运行，后续设备操作或 `iris claim` 再发起连接；主动释放后不会被后台重新认领。
-共享会话中的 `iris claim` 可以省略设备参数；`iris release` 自动释放唯一拥有的
-设备，即使其暂时离线。同一设备的 USB/TCP 归属合并计数。`iris transfer start`
-也可省略 `--device-id`，但仍必须指定 `--to-session`；重试沿用同一 `--transfer-id`。
-`reconcile` 和转让记录相关命令仍要求明确目标或记录 ID。
+normal 与 Recovery 都不可达时继续使用 `recover`。仅当命令要求手动进入 ROM
+时，由开发者执行：
 
-`recover` 先尝试连接唯一的 ESP-Iris 设备，只有未发现可用目标时才继续原有 ROM
-接口检测；存在占用、歧义或已有目标连接失败时，实际恢复不会改选另一块板。
-显式 `--hardware-mac` 保留原来的硬件身份选择流程。
+1. 关闭设备电源。
+2. 按住 USB-C 接口左侧的 Boot 键。
+3. 保持按住 Boot 键并开机。
+4. 进入 ROM 下载模式后松开 Boot 键，告知 Agent 物理操作完成。
 
-`iris list` / `iris status` 仍不认领设备；`--gateway-profile` 仍只操作指定外部
-Gateway 上已连接的设备，不从当前电脑自动认领 USB。
+之后由 Agent 检测恢复连接，继续 `recover` 并验证设备和目标应用。
+不得仅为恢复连接擦除整片 Flash，或未经授权覆盖凭据、身份及 Recovery 数据。
+
+应用烧录和监控避免 USB Serial/JTAG；Gateway 拥有接口时不得并发打开它。
+High-Speed USB 默认交给 ESP-Iris；产品功能需要占用它的 normal 应用应记录例外，
+并通过其他可用传输保留 ESP-Iris 运维和恢复路径。
 
 ## 旧命令兼容
 
@@ -151,9 +136,3 @@ Gateway 上已连接的设备，不从当前电脑自动认领 USB。
 
 `recover`、`doctor` 和工作区的 `game` 入口保留。操作记录中的内部操作标识、
 JSON 业务结果及取证目录格式继续沿用；`iris status` 新增 `running` 字段。
-
-新建项目优先使用 `iris system-update --project ...`。由项目构建的包包含应用、分区表及声明的资源镜像，保留 Recovery 固定前缀和 bootloader。`game_assets` 仅预留但未使用时不需要镜像；有外部资源的游戏通过 CMake 声明将镜像纳入包。
-
-`--device-id` 可独立选定设备：Gateway 优先复用已验证连接，否则先尝试在线 USB，再验证其他候选端点。HELLO 身份必须匹配；失败的新连接释放本次占用。`--endpoint` 是严格限定，其他工作区占用不会被抢走。候选连接重试只发生在写入提交之前。
-
-`app-update` 遇到分区表不同会返回 `partition_layout_mismatch`、设备/构建 SHA-256 及可执行的 `system-update` 建议。它不会自动扩大写入范围或修改工程分区表。实际构建配置（包括 `--skip-build`）与更新完成后的应用都必须通过角色、产品、板型、布局契约、Recovery ABI 检查。
