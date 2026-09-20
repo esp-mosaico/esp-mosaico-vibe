@@ -17,16 +17,21 @@
 
 static neon_maze_game_t s_game;
 static MosaicoAtlas s_enemies, s_weapon, s_environment, s_materials, s_controls, s_props;
-static int32_t s_joystick_track = -1, s_look_track = -1, s_fire_track = -1;
+static int32_t s_joystick_track = -1, s_look_track = -1, s_fire_track = -1,
+               s_radar_track = -1;
 static float s_move_forward, s_move_strafe, s_target_forward, s_target_strafe;
 static int32_t s_look_x, s_look_y;
-static Sound s_rifle_sound, s_impact_sound, s_confirm_sound, s_hurt_sound;
+static int32_t s_radar_dx, s_radar_dy;
+static Sound s_rifle_sound, s_bolt_sound, s_impact_sound, s_confirm_sound, s_hurt_sound;
 static Sound s_empty_sound, s_pickup_sound, s_alert_sound, s_step_l, s_step_r;
+static Sound s_explode_sound, s_extract_sound;
+static Music s_music;
 static uint8_t s_step_wait, s_enemy_step_wait;
 static bool s_step_right;
 static TimerHandle_t s_haptic_timer, s_haptic_second_timer;
 static bool s_motor_ready;
 static uint8_t s_previous_hp, s_previous_armor;
+static uint8_t s_previous_fire_cooldown;
 static neon_maze_phase_t s_previous_phase;
 static uint8_t s_second_strength;
 static uint16_t s_second_duration_ms;
@@ -43,6 +48,7 @@ extern const uint8_t _binary_materials_atlas_end[];
 extern const uint8_t _binary_props_atlas_start[];
 extern const uint8_t _binary_props_atlas_end[];
 extern const uint8_t _binary_neon_rifle_start[], _binary_neon_rifle_end[];
+extern const uint8_t _binary_neon_bolt_start[], _binary_neon_bolt_end[];
 extern const uint8_t _binary_neon_impact_start[], _binary_neon_impact_end[];
 extern const uint8_t _binary_neon_confirm_start[], _binary_neon_confirm_end[];
 extern const uint8_t _binary_neon_hurt_start[], _binary_neon_hurt_end[];
@@ -51,6 +57,9 @@ extern const uint8_t _binary_neon_pickup_start[], _binary_neon_pickup_end[];
 extern const uint8_t _binary_neon_alert_start[], _binary_neon_alert_end[];
 extern const uint8_t _binary_neon_step_l_start[], _binary_neon_step_l_end[];
 extern const uint8_t _binary_neon_step_r_start[], _binary_neon_step_r_end[];
+extern const uint8_t _binary_neon_explode_start[], _binary_neon_explode_end[];
+extern const uint8_t _binary_neon_extract_start[], _binary_neon_extract_end[];
+extern const uint8_t _binary_neon_music_start[], _binary_neon_music_end[];
 
 static esp_err_t before_display(void)
 {
@@ -60,6 +69,9 @@ static esp_err_t before_display(void)
     if (err != ESP_OK) return err;
     err = mosaico_game_asset_register_memory("rifle.sound", _binary_neon_rifle_start,
         (size_t)(_binary_neon_rifle_end - _binary_neon_rifle_start));
+    if (err != ESP_OK) return err;
+    err = mosaico_game_asset_register_memory("bolt.sound", _binary_neon_bolt_start,
+        (size_t)(_binary_neon_bolt_end - _binary_neon_bolt_start));
     if (err != ESP_OK) return err;
     err = mosaico_game_asset_register_memory("impact.sound", _binary_neon_impact_start,
         (size_t)(_binary_neon_impact_end - _binary_neon_impact_start));
@@ -84,6 +96,15 @@ static esp_err_t before_display(void)
     if (err != ESP_OK) return err;
     err = mosaico_game_asset_register_memory("step_r.sound", _binary_neon_step_r_start,
         (size_t)(_binary_neon_step_r_end - _binary_neon_step_r_start));
+    if (err != ESP_OK) return err;
+    err = mosaico_game_asset_register_memory("explode.sound", _binary_neon_explode_start,
+        (size_t)(_binary_neon_explode_end - _binary_neon_explode_start));
+    if (err != ESP_OK) return err;
+    err = mosaico_game_asset_register_memory("extract.sound", _binary_neon_extract_start,
+        (size_t)(_binary_neon_extract_end - _binary_neon_extract_start));
+    if (err != ESP_OK) return err;
+    err = mosaico_game_asset_register_memory("music.sound", _binary_neon_music_start,
+        (size_t)(_binary_neon_music_end - _binary_neon_music_start));
     if (err != ESP_OK) return err;
     err = mosaico_game_asset_register_memory("controls.atlas", _binary_controls_atlas_start,
         (size_t)(_binary_controls_atlas_end - _binary_controls_atlas_start));
@@ -135,6 +156,7 @@ static esp_err_t after_healthy(void)
 {
     InitAudioDevice();
     s_rifle_sound = LoadSound("rifle.sound");
+    s_bolt_sound = LoadSound("bolt.sound");
     s_impact_sound = LoadSound("impact.sound");
     s_confirm_sound = LoadSound("confirm.sound");
     s_hurt_sound = LoadSound("hurt.sound");
@@ -143,7 +165,11 @@ static esp_err_t after_healthy(void)
     s_alert_sound = LoadSound("alert.sound");
     s_step_l = LoadSound("step_l.sound");
     s_step_r = LoadSound("step_r.sound");
+    s_explode_sound = LoadSound("explode.sound");
+    s_extract_sound = LoadSound("extract.sound");
+    s_music = LoadMusicStream("music.sound");
     SetSoundVolume(s_rifle_sound, .46f);
+    SetSoundVolume(s_bolt_sound, .36f);
     SetSoundVolume(s_impact_sound, .38f);
     SetSoundVolume(s_confirm_sound, .32f);
     SetSoundVolume(s_hurt_sound, .62f);
@@ -152,6 +178,10 @@ static esp_err_t after_healthy(void)
     SetSoundVolume(s_alert_sound, .48f);
     SetSoundVolume(s_step_l, .34f);
     SetSoundVolume(s_step_r, .34f);
+    SetSoundVolume(s_explode_sound, .52f);
+    SetSoundVolume(s_extract_sound, .40f);
+    SetMusicVolume(s_music, .16f);
+    PlayMusicStream(s_music);
     s_motor_ready = bsp_motor_init() == ESP_OK;
     if (s_motor_ready) {
         (void)bsp_motor_set(false);
@@ -214,6 +244,10 @@ static void apply_combat_feedback(void)
         break;
     default:
         break;
+    }
+    if (s_game.last_blast) {
+        PlaySound(s_explode_sound);
+        play_haptic_pattern(80, 30, 48, 16, 24);
     }
     if (s_game.last_pickup) {
         PlaySound(s_pickup_sound);
@@ -279,13 +313,17 @@ static void apply_footsteps(void)
 static esp_err_t on_start(void)
 {
     neon_maze_reset(&s_game);
-    uint32_t best = 0;
-    if (neon_maze_save_load(&best) == ESP_OK) neon_maze_set_best(&s_game, best);
-    s_joystick_track = s_look_track = s_fire_track = -1;
+    neon_maze_campaign_t campaign = {0};
+    if (neon_maze_save_load(&campaign) == ESP_OK) {
+        neon_maze_campaign_apply(&s_game, &campaign);
+        neon_maze_reset(&s_game);
+    }
+    s_joystick_track = s_look_track = s_fire_track = s_radar_track = -1;
     s_move_forward = s_move_strafe = 0.0f;
     s_target_forward = s_target_strafe = 0.0f;
     s_previous_hp = s_game.hp;
     s_previous_armor = s_game.armor;
+    s_previous_fire_cooldown = 0;
     s_previous_phase = s_game.phase;
     return ESP_OK;
 }
@@ -308,7 +346,7 @@ static void on_event(const mosaico_device_event_t *event)
     if (s_game.phase != NEON_MAZE_PHASE_PLAYING) {
         if (event->pressed) neon_maze_confirm(&s_game);
         if (s_game.phase != NEON_MAZE_PHASE_PLAYING || !event->pressed) {
-            s_joystick_track = s_look_track = s_fire_track = -1;
+            s_joystick_track = s_look_track = s_fire_track = s_radar_track = -1;
             s_target_forward = s_target_strafe = 0.0f;
             return;
         }
@@ -321,10 +359,13 @@ static void on_event(const mosaico_device_event_t *event)
         }
         if (track == s_look_track) s_look_track = -1;
         if (track == s_fire_track) s_fire_track = -1;
+        if (track == s_radar_track) s_radar_track = -1;
         return;
     }
     if (track == s_joystick_track) {
         update_joystick(event->x, event->y);
+    } else if (track == s_radar_track) {
+        neon_maze_move_radar(&s_game,event->x-s_radar_dx,event->y-s_radar_dy);
     } else if (track == s_look_track) {
         neon_maze_turn(&s_game, (float)(event->x - s_look_x) * .008f);
         neon_maze_look(&s_game, (float)(event->y - s_look_y) * -.09f);
@@ -332,6 +373,10 @@ static void on_event(const mosaico_device_event_t *event)
         s_look_y = event->y;
     } else if (track == s_fire_track) {
         return;
+    } else if (neon_maze_in_radar(&s_game,event->x,event->y) && s_radar_track < 0) {
+        s_radar_track = track;
+        s_radar_dx = event->x - s_game.radar_x;
+        s_radar_dy = event->y - s_game.radar_y;
     } else if (neon_maze_in_fire_zone(event->x, event->y) && s_fire_track < 0) {
         s_fire_track = track;
     } else if (neon_maze_in_move_zone(event->x, event->y) && s_joystick_track < 0) {
@@ -354,11 +399,24 @@ static void on_update(void)
     neon_maze_set_fire_held(&s_game, s_fire_track >= 0);
     if (s_look_track < 0) neon_maze_settle_look(&s_game);
     neon_maze_update(&s_game);
+    if (s_game.fire_cooldown == 11 && s_previous_fire_cooldown > 11)
+        PlaySound(s_bolt_sound);
     if (s_previous_phase != NEON_MAZE_PHASE_WON &&
-        s_game.phase == NEON_MAZE_PHASE_WON && s_game.best_updated) {
-        (void)neon_maze_save_best(s_game.best_ticks);
+        s_game.phase == NEON_MAZE_PHASE_WON) {
+        neon_maze_campaign_t campaign;
+        neon_maze_campaign_from_game(&s_game, &campaign);
+        campaign.layout = (uint8_t)((s_game.layout + 1U) % NEON_MAZE_LAYOUTS);
+        if (campaign.unlocked <= s_game.layout)
+            campaign.unlocked = (uint8_t)(s_game.layout + 1U);
+        (void)neon_maze_save_campaign(&campaign);
         (void)neon_maze_save_flush();
+        PlaySound(s_extract_sound);
+        play_haptic_pattern(60, 28, 40, 18, 22);
     }
+    if (s_game.last_alert)
+        play_haptic(30, 16);
+    UpdateMusicStream(s_music);
+    SetMusicVolume(s_music, s_game.phase == NEON_MAZE_PHASE_PLAYING ? .14f : .10f);
     s_previous_phase = s_game.phase;
     apply_combat_feedback();
     if (s_game.hp < s_previous_hp) {
@@ -372,6 +430,7 @@ static void on_update(void)
     }
     s_previous_hp = s_game.hp;
     s_previous_armor = s_game.armor;
+    s_previous_fire_cooldown = s_game.fire_cooldown;
     apply_footsteps();
     if (s_game.phase == NEON_MAZE_PHASE_PLAYING && s_game.hp == 1 &&
         (s_game.tick % 24U) == 0U && !IsSoundPlaying(s_hurt_sound) &&
@@ -410,7 +469,7 @@ static void on_stats(void)
 
 static const mosaico_game_app_config_t s_config = {
     .tag = "neon_maze",
-    .window_title = "Neon Maze 2.5D",
+    .window_title = "Last Zone: Extraction",
     .canvas_bind = GSP_NEON_MAZE_25D_BIND_GAME_CANVAS,
     .touch_points = 2,
     .enable_imu = false,

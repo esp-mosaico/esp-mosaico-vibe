@@ -70,7 +70,7 @@ class GameAssetCompilerTests(unittest.TestCase):
             self.assertGreater(lum(8, 0), 40)
 
     def test_neon_wall_tiles_darken_seams_and_keep_floor_in_bounds(self) -> None:
-        path = ROOT / "projects/neon_maze_25d/assets_src/tactical_materials.png"
+        path = ROOT / "projects/last_zone_extraction/assets_src/tactical_materials.png"
         image = Image.open(path).convert("RGB")
         self.assertEqual(image.size, (512, 128))
         pixels = image.load()

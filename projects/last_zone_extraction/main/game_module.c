@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 #include "mosaico_game_module.h"
 #include "host_asset_runtime.h"
@@ -13,7 +14,8 @@ typedef struct {
     neon_maze_game_t game;
     MosaicoAtlas enemies,weapon,environment,materials,controls,props;
     bool paused,left,right,forward,backward,fire,sprint,strafe_left,strafe_right;
-    int32_t joystick_track,look_track,fire_track,look_x,look_y;
+    int32_t joystick_track,look_track,fire_track,radar_track,look_x,look_y;
+    int32_t radar_dx,radar_dy;
     float move_forward,move_strafe,target_forward,target_strafe;
 } neon_maze_module_t;
 
@@ -31,7 +33,7 @@ static void update_joystick(neon_maze_module_t *state,int x,int y)
 
 static void clear_tracks(neon_maze_module_t *state)
 {
-    state->joystick_track=state->look_track=state->fire_track=-1;
+    state->joystick_track=state->look_track=state->fire_track=state->radar_track=-1;
     state->target_forward=state->target_strafe=0;
     neon_maze_set_fire_held(&state->game,false);
 }
@@ -50,8 +52,16 @@ static int initialize(void *value,const char *asset_root)
        !state->environment.texture.id||
        !state->materials.texture.id||!state->props.texture.id)return -1;
     neon_maze_reset(&state->game);
+    const char *layout=getenv("NEON_MAZE_SIM_LAYOUT");
+    if(layout){
+        int selected=atoi(layout);
+        if(selected>=0&&selected<NEON_MAZE_LAYOUTS){
+            state->game.layout=(uint8_t)selected;
+            neon_maze_reset(&state->game);
+        }
+    }
     clear_tracks(state);
-    InitWindow(480,480,"Neon Maze 2.5D");SetTargetFPS(30);return 0;
+    InitWindow(480,480,"Last Zone: Extraction");SetTargetFPS(30);return 0;
 }
 static void shutdown(void *value){neon_maze_module_t *state=value;if(state){
     UnloadMosaicoAtlas(state->enemies);UnloadMosaicoAtlas(state->weapon);
@@ -95,13 +105,21 @@ static void input(void *value,const mosaico_host_input_v1_t *event)
                 state->target_forward=state->target_strafe=0;}
             if(track==state->look_track)state->look_track=-1;
             if(track==state->fire_track)state->fire_track=-1;
+            if(track==state->radar_track)state->radar_track=-1;
         }else if(track==state->joystick_track)update_joystick(state,event->x,event->y);
+        else if(track==state->radar_track)
+            neon_maze_move_radar(&state->game,event->x-state->radar_dx,
+                                 event->y-state->radar_dy);
         else if(track==state->look_track){
             neon_maze_turn(&state->game,(float)(event->x-state->look_x)*.008f);
             neon_maze_look(&state->game,(float)(event->y-state->look_y)*-.09f);
             state->look_x=event->x;state->look_y=event->y;
         }else if(track==state->fire_track){
             /* Locked fire contact stays on the trigger until lift. */
+        }else if(neon_maze_in_radar(&state->game,event->x,event->y)&&state->radar_track<0){
+            state->radar_track=track;
+            state->radar_dx=event->x-state->game.radar_x;
+            state->radar_dy=event->y-state->game.radar_y;
         }else if(neon_maze_in_fire_zone(event->x,event->y)&&state->fire_track<0)
             state->fire_track=track;
         else if(neon_maze_in_move_zone(event->x,event->y)&&state->joystick_track<0){
@@ -172,7 +190,7 @@ static int state_json(const void *value,char *output,size_t capacity)
         (unsigned)raster.wall_us,(unsigned)raster.enemy_us,(unsigned)raster.hud_us);
 }
 static const mosaico_game_module_v1_t s_module={
-    .descriptor={MOSAICO_HOST_GAME_ABI_V1,"neon_maze_25d","Neon Maze 2.5D",480,480,30,2},
+    .descriptor={MOSAICO_HOST_GAME_ABI_V1,"last_zone_extraction","Last Zone: Extraction",480,480,30,2},
     .state_size=sizeof(neon_maze_module_t),.initialize=initialize,.shutdown=shutdown,
     .input=input,.update=update,.render=render,.state_hash=state_hash,.state_json=state_json};
 const mosaico_game_module_v1_t *mosaico_game_module_v1(void){return &s_module;}

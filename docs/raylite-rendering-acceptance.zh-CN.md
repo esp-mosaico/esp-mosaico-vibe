@@ -15,7 +15,7 @@
 
 ## 验证结果
 
-- Game SDK 27 项回归通过，包括当前 Neon Maze 模型测试。
+- Game SDK 27 项回归通过，包括当前 Last Zone: Extraction 模型测试。
 - 100 组墙柱、400 组地板/span、100 组不透明缩放参考像素对照通过。
   缩放覆盖整数目标坐标、双轴翻转、越界源区域、裁剪、跨 64 项分块和 stride padding。
 - 同一套参考测试分别运行于引擎 HEAD 基线与修改版，均通过。
@@ -61,7 +61,7 @@ Host 基准使用相同编译参数，把 8×8 不透明纹理缩放到 480×205
 python3 -m unittest discover -s tests/game_sdk -v
 python3 submodule/raylib-lite-engine/tests/test_columns.py
 CFLAGS='-fsanitize=address,undefined -fno-omit-frame-pointer' python3 submodule/raylib-lite-engine/tests/test_columns.py
-python3 mosaico.py game sim projects/neon_maze_25d --headless --frames 120
+python3 mosaico.py game sim projects/last_zone_extraction --headless --frames 120
 ```
 
 本地构建记录：`.codex-runs/mosaico/20260916T133737Z-game-build/raw.log`。

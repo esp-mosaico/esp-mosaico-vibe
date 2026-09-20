@@ -5,21 +5,25 @@
 
 #define NEON_MAZE_WIDTH 24
 #define NEON_MAZE_HEIGHT 24
-#define NEON_MAZE_ENEMIES 10
+#define NEON_MAZE_ENEMIES 12
 #define NEON_MAZE_PICKUPS 6
-#define NEON_MAZE_LAYOUTS 3
+#define NEON_MAZE_LAYOUTS 5
 #define NEON_MAZE_MAX_HP 5
 #define NEON_MAZE_AMMO_MAX 22
 #define NEON_MAZE_AMMO_START 14
 #define NEON_MAZE_FIRE_COOLDOWN 18
 #define NEON_MAZE_DOOR_COOLDOWN 8
 #define NEON_MAZE_DRY_COOLDOWN 12
-#define NEON_MAZE_AIM_TICKS 20
-#define NEON_MAZE_ALERT_TICKS 14
-#define NEON_MAZE_ATTACK_COOLDOWN 64
+#define NEON_MAZE_AIM_TICKS 24
+#define NEON_MAZE_ALERT_TICKS 18
+#define NEON_MAZE_ATTACK_COOLDOWN 72
+#define NEON_MAZE_BREATH_TICKS 8
+#define NEON_MAZE_HEAR_SPRINT 4.6f
+#define NEON_MAZE_HEAR_WALK 2.2f
+#define NEON_MAZE_SHOT_NOISE 7.0f
 #define NEON_MAZE_EXTRACT_X 21.5f
 #define NEON_MAZE_EXTRACT_Y 21.5f
-#define NEON_MAZE_PROPS 8
+#define NEON_MAZE_PROPS 12
 #define NEON_MAZE_MAX_ARMOR 3
 #define NEON_MAZE_SPRINT 0.78f
 #define NEON_MAZE_MOVE_X 82
@@ -29,6 +33,9 @@
 #define NEON_MAZE_FIRE_Y 392
 #define NEON_MAZE_FIRE_R 56
 #define NEON_MAZE_LOOK_MIN_X 188
+#define NEON_MAZE_RADAR_DEFAULT_X 88
+#define NEON_MAZE_RADAR_DEFAULT_Y 86
+#define NEON_MAZE_RADAR_SIZE 74
 
 typedef enum {
     NEON_MAZE_PHASE_START = 0,
@@ -65,7 +72,7 @@ typedef struct {
     uint8_t ai_state,alert_timer,search_timer,aim_timer,attack_cooldown,attack_flash;
     int8_t nav_dx,nav_dy,hold_x,hold_y;
     float last_seen_x,last_seen_y;
-    bool active;
+    bool active,elite;
 } neon_maze_enemy_t;
 
 typedef struct {
@@ -83,14 +90,17 @@ typedef struct {
 typedef struct {
     float x, y, angle;
     float look_pitch,look_kick,weapon_recoil,move_phase,display_hp,vel_x,vel_y;
-    uint32_t tick,best_ticks;
+    uint32_t tick,best_ticks,layout_best[NEON_MAZE_LAYOUTS];
     uint16_t cells_reached,score,shots_fired,shots_hit,kills;
     uint8_t fire_cooldown,hit_flash,hit_marker,kill_flash,hp,armor,hurt_cooldown,ammo;
     uint8_t pickup_flash,door_flash,dry_flash,layout,damage_taken,enemy_shot_lock;
+    uint8_t unlocked,breath_hold,alert_flash;
+    int16_t radar_x,radar_y;
     float damage_angle;
     neon_maze_phase_t phase;
-    bool left, right, forward, backward, fire_held, fire_pressed, best_updated;
-    bool last_pickup,last_alert,sprinting,sprint_held;
+    bool left, right, forward, backward, fire_held, fire_pressed, fire_released, best_updated;
+    bool last_pickup,last_alert,sprinting,sprint_held,holding_breath;
+    bool spotted,barrel_used,armor_hit,last_blast;
     uint8_t sfx,sfx_hold,step_beat;
     neon_maze_fire_result_t last_fire;
     float move_forward, move_strafe, turn_input;
@@ -132,3 +142,6 @@ char neon_maze_grade(const neon_maze_game_t *game);
 uint32_t neon_maze_state_hash(const neon_maze_game_t *game);
 bool neon_maze_in_move_zone(int x,int y);
 bool neon_maze_in_fire_zone(int x,int y);
+bool neon_maze_in_radar(const neon_maze_game_t *game,int x,int y);
+void neon_maze_move_radar(neon_maze_game_t *game,int x,int y);
+bool neon_maze_on_extract(const neon_maze_game_t *game);

@@ -1,0 +1,19 @@
+{
+  "image": "tactical_panoramas.png",
+  "columns": 2,
+  "rows": 5,
+  "output_cell": 128,
+  "alpha_mode": "opaque",
+  "frames": [
+    {"name": "panorama_dock_left"},
+    {"name": "panorama_dock_right"},
+    {"name": "panorama_depot_left"},
+    {"name": "panorama_depot_right"},
+    {"name": "panorama_command_left"},
+    {"name": "panorama_command_right"},
+    {"name": "panorama_ghost_left"},
+    {"name": "panorama_ghost_right"},
+    {"name": "panorama_run_left"},
+    {"name": "panorama_run_right"}
+  ]
+}

@@ -5,7 +5,7 @@
   "output_cell": 144,
   "alpha_mode": "binary",
   "frames": [
-    {"name": "k98_rifle"},
-    {"name": "k98_bolt"}
+    {"name": "tactical_rifle"},
+    {"name": "tactical_bolt"}
   ]
 }

@@ -19,9 +19,9 @@ class NeonMazeModelTests(unittest.TestCase):
             )
             subprocess.run([
                 compiler, "-std=c11", "-Wall", "-Wextra", "-Werror",
-                f"-I{ROOT / 'projects/neon_maze_25d/main'}",
+                f"-I{ROOT / 'projects/last_zone_extraction/main'}",
                 str(ROOT / "tests/game_sdk/test_neon_maze_model.c"),
-                str(ROOT / "projects/neon_maze_25d/main/neon_maze_game.c"),
+                str(ROOT / "projects/last_zone_extraction/main/neon_maze_game.c"),
                 "-lm", "-o", str(executable),
             ], check=True)
             result = subprocess.run([str(executable)], check=True,

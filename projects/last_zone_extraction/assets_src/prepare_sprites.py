@@ -3,7 +3,7 @@
 from pathlib import Path
 import os
 import random
-from PIL import Image, ImageDraw, ImageFilter, ImageOps
+from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageOps
 
 root = Path(__file__).resolve().parent
 
@@ -55,7 +55,7 @@ paste_variant(5, processed[2], (1.20, 1.05, 0.65))
 down = processed[1].rotate(90, expand=True, resample=resampling.BICUBIC)
 down.thumbnail((enemy_cell - 8, enemy_cell // 2), resampling.LANCZOS)
 paste_variant(6, down, (0.88, 0.78, 0.70))
-rifle = Image.open(root / "k98_rifle_source.png").convert("RGBA")
+rifle = Image.open(root / "tactical_bolt_rifle_source.png").convert("RGBA")
 alpha_bounds = rifle.getchannel("A").getbbox()
 if not alpha_bounds:
     raise RuntimeError("98K sprite has no alpha content")
@@ -83,13 +83,38 @@ draw.line((116, 48, 130, 48), fill=(255, 239, 214, 255), width=3)
 draw.line((158, 48, 172, 48), fill=(255, 239, 214, 255), width=3)
 save_atomic(controls, root / "controls.png")
 
-# Keep the panorama in a square atlas cell while preserving a wide horizon.
-# The lower area is never sampled by the renderer.
-panorama_source = Image.open(root / "tactical_panorama_source.png").convert("RGB")
-panorama = ImageOps.fit(panorama_source, (508, 205), method=resampling.LANCZOS)
-environment = Image.new("RGB", (512, 256), panorama.getpixel((254, 204)))
-environment.paste(panorama, (2, 2))
-save_atomic(environment, root / "tactical_panorama.png")
+# Five compact 360-degree horizon bands. Moving the original image boundary to
+# the middle lets us soften it while the atlas boundary comes from adjacent
+# source pixels, so a full rotation has no visible left/right jump.
+panorama_names = ("dock", "depot", "command", "ghost", "run")
+panorama_cell = 128
+panorama_inner = panorama_cell - 4
+environment = Image.new("RGB", (panorama_cell * 2,
+                                panorama_cell * len(panorama_names)), (18, 24, 28))
+for row, name in enumerate(panorama_names):
+    source = Image.open(root / f"panorama_{name}_source.png").convert("RGB")
+    source = ImageOps.fit(source, (1536, 512), method=resampling.LANCZOS,
+                          centering=(0.5, 0.5))
+    rolled = ImageChops.offset(source, source.width // 2, 0)
+    seam_width = 160
+    seam_left = source.width // 2 - seam_width // 2
+    seam = rolled.crop((seam_left, 0, seam_left + seam_width, source.height))
+    seam = seam.filter(ImageFilter.GaussianBlur(radius=18))
+    mask = Image.new("L", (seam_width, source.height), 0)
+    mask_px = mask.load()
+    for x in range(seam_width):
+        edge = min(x, seam_width - 1 - x)
+        alpha = min(255, edge * 255 // (seam_width // 3))
+        for y in range(source.height):
+            mask_px[x, y] = alpha
+    rolled.paste(seam, (seam_left, 0), mask)
+    band = ImageOps.fit(rolled, (panorama_inner * 2, panorama_cell - 4),
+                        method=resampling.LANCZOS, centering=(0.5, 0.43))
+    top = row * panorama_cell + 2
+    environment.paste(band.crop((0, 0, panorama_inner, band.height)), (2, top))
+    environment.paste(band.crop((panorama_inner, 0, panorama_inner * 2,
+                                 band.height)), (panorama_cell + 2, top))
+save_atomic(environment, root / "tactical_panoramas.png")
 
 def fill_tile(size, painter):
     tile = Image.new("RGB", (size, size))

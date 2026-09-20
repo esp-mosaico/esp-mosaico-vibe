@@ -14,18 +14,34 @@ def save(name, samples):
         out.writeframes(pcm)
 
 def rifle():
-    rng = random.Random(98); count = int(RATE * .32); result = []; low = 0.0
+    rng = random.Random(724); count = int(RATE * .56); result = []; low = 0.0
     for i in range(count):
-        t = i / RATE; noise = rng.uniform(-1, 1); low = low * .82 + noise * .18
-        crack = noise * math.exp(-t * 52.0)
-        body = math.sin(2 * math.pi * (105 - 55 * t) * t) * math.exp(-t * 13.0)
-        tail = math.sin(2 * math.pi * 180 * t) * math.exp(-t * 4.6) * (0.0 if t < .04 else 1.0)
-        bolt = 0.0
-        if .11 < t < .18:
-            local = t - .11
-            bolt = rng.uniform(-1, 1) * math.exp(-local * 48.0) * .22
-            bolt += math.sin(2 * math.pi * 2400 * t) * math.exp(-local * 36.0) * .16
-        result.append(.50 * crack + .36 * body + .14 * tail + bolt + .12 * low * math.exp(-t * 8.0))
+        t = i / RATE; noise = rng.uniform(-1, 1); low = low * .90 + noise * .10
+        crack = noise * math.exp(-t * 74.0)
+        body = math.sin(2 * math.pi * (92 - 38 * t) * t) * math.exp(-t * 10.5)
+        pressure = low * math.exp(-t * 12.0)
+        echo = 0.0
+        for delay, gain in ((.085, .18), (.165, .11), (.285, .065)):
+            if t > delay:
+                local = t - delay
+                echo += math.sin(2 * math.pi * (132 - 28 * local) * local) * \
+                        math.exp(-local * 9.0) * gain
+        result.append(.56 * crack + .46 * body + .20 * pressure + echo)
+    return result
+
+def bolt():
+    rng = random.Random(308); count = int(RATE * .28); result = []
+    events = ((.000, 2350, .28), (.055, 980, .24), (.142, 720, .22), (.218, 1880, .30))
+    for i in range(count):
+        t = i / RATE; value = 0.0
+        for start, freq, gain in events:
+            if t < start: continue
+            local = t - start
+            if local > .055: continue
+            click = rng.uniform(-1, 1) * math.exp(-local * 72.0)
+            ring = math.sin(2 * math.pi * freq * local) * math.exp(-local * 46.0)
+            value += gain * (.58 * click + .42 * ring)
+        result.append(value)
     return result
 
 def impact():
@@ -95,7 +111,36 @@ def alert():
         result.append(.24 * math.sin(2 * math.pi * freq * t) * math.exp(-local * 14.0))
     return result
 
+def explode():
+    rng = random.Random(501); count = int(RATE * .38); result = []; low = 0.0
+    for i in range(count):
+        t = i / RATE
+        low = low * .90 + rng.uniform(-1, 1) * .10
+        boom = math.sin(2 * math.pi * (52 - 18 * t) * t) * math.exp(-t * 6.5)
+        grit = low * math.exp(-t * 9.0)
+        result.append(.42 * boom + .28 * grit)
+    return result
+
+def extract():
+    count = int(RATE * .36); result = []
+    for i in range(count):
+        t = i / RATE
+        freq = 420 + 260 * t
+        result.append(.18 * math.sin(2 * math.pi * freq * t) * math.exp(-t * 5.2))
+    return result
+
+def music():
+    count = int(RATE * 2.4); result = []
+    for i in range(count):
+        t = i / RATE
+        a = math.sin(2 * math.pi * 110 * t)
+        b = math.sin(2 * math.pi * 164.8 * t)
+        fade = min(1.0, t * 3.0, (2.4 - t) * 3.0)
+        result.append((.07 * a + .05 * b) * fade)
+    return result
+
 save("rifle.wav", rifle())
+save("bolt.wav", bolt())
 save("impact.wav", impact())
 save("confirm.wav", confirm())
 save("hurt.wav", hurt())
@@ -104,3 +149,6 @@ save("pickup.wav", pickup())
 save("alert.wav", alert())
 save("step_l.wav", step(19, 88))
 save("step_r.wav", step(41, 104))
+save("explode.wav", explode())
+save("extract.wav", extract())
+save("music.wav", music())

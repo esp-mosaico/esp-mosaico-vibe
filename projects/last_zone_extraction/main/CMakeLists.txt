@@ -20,6 +20,7 @@ add_custom_target(neon_maze_assets ALL
                "${GAME_ASSET_OUTPUT}/materials.atlas"
                "${GAME_ASSET_OUTPUT}/props.atlas"
                "${GAME_ASSET_OUTPUT}/rifle.sound"
+               "${GAME_ASSET_OUTPUT}/bolt.sound"
                "${GAME_ASSET_OUTPUT}/impact.sound"
                "${GAME_ASSET_OUTPUT}/confirm.sound"
                "${GAME_ASSET_OUTPUT}/hurt.sound"
@@ -28,6 +29,9 @@ add_custom_target(neon_maze_assets ALL
                "${GAME_ASSET_OUTPUT}/alert.sound"
                "${GAME_ASSET_OUTPUT}/step_l.sound"
                "${GAME_ASSET_OUTPUT}/step_r.sound"
+               "${GAME_ASSET_OUTPUT}/explode.sound"
+               "${GAME_ASSET_OUTPUT}/extract.sound"
+               "${GAME_ASSET_OUTPUT}/music.sound"
     DEPENDS "${GAME_ASSET_SOURCE}/game_assets.json"
             "${GAME_ASSET_SOURCE}/enemy.json"
             "${GAME_ASSET_SOURCE}/weapon.json"
@@ -36,8 +40,12 @@ add_custom_target(neon_maze_assets ALL
             "${GAME_ASSET_SOURCE}/materials.json"
             "${GAME_ASSET_SOURCE}/props.json"
             "${GAME_ASSET_SOURCE}/enemy_run_strip_source.png"
-            "${GAME_ASSET_SOURCE}/k98_rifle_source.png"
-            "${GAME_ASSET_SOURCE}/tactical_panorama_source.png"
+            "${GAME_ASSET_SOURCE}/tactical_bolt_rifle_source.png"
+            "${GAME_ASSET_SOURCE}/panorama_dock_source.png"
+            "${GAME_ASSET_SOURCE}/panorama_depot_source.png"
+            "${GAME_ASSET_SOURCE}/panorama_command_source.png"
+            "${GAME_ASSET_SOURCE}/panorama_ghost_source.png"
+            "${GAME_ASSET_SOURCE}/panorama_run_source.png"
             "${GAME_ASSET_SOURCE}/tactical_materials_source.png"
             "${GAME_ASSET_SOURCE}/prepare_sprites.py"
             "${GAME_ASSET_SOURCE}/generate_audio.py")
@@ -54,7 +62,7 @@ target_add_binary_data(${COMPONENT_LIB} "${GAME_ASSET_OUTPUT}/materials.atlas" B
     RENAME_TO materials_atlas DEPENDS neon_maze_assets)
 target_add_binary_data(${COMPONENT_LIB} "${GAME_ASSET_OUTPUT}/props.atlas" BINARY
     RENAME_TO props_atlas DEPENDS neon_maze_assets)
-foreach(sound rifle impact confirm hurt empty pickup alert step_l step_r)
+foreach(sound rifle bolt impact confirm hurt empty pickup alert step_l step_r explode extract music)
     target_add_binary_data(${COMPONENT_LIB} "${GAME_ASSET_OUTPUT}/${sound}.sound" BINARY
         RENAME_TO "neon_${sound}" DEPENDS neon_maze_assets)
 endforeach()
@@ -64,7 +72,7 @@ set(canvas_png "${CMAKE_CURRENT_BINARY_DIR}/canvas_480.png")
 execute_process(COMMAND "${PYTHON}" "${CMAKE_CURRENT_LIST_DIR}/make_canvas_png.py"
     "${canvas_png}" RESULT_VARIABLE canvas_result)
 if(NOT canvas_result EQUAL 0)
-    message(FATAL_ERROR "Could not generate Neon Maze Canvas placeholder")
+    message(FATAL_ERROR "Could not generate Last Zone: Extraction Canvas placeholder")
 endif()
 set(CANVAS_IMAGE "${canvas_png}")
 configure_file("${CMAKE_CURRENT_LIST_DIR}/scene.json.in"

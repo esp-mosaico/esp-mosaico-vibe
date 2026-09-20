@@ -26,7 +26,7 @@ static const char s_maps[NEON_MAZE_LAYOUTS][NEON_MAZE_HEIGHT][NEON_MAZE_WIDTH + 
     "111111111111111110000001",
     "111111111111111110000001",
     "111111111111111110030001",
-    "111111111111111110000051",
+    "111111111111111110000551",
     "111111111111111110000001",
     "111111111111111111111111",
 },{
@@ -51,7 +51,7 @@ static const char s_maps[NEON_MAZE_LAYOUTS][NEON_MAZE_HEIGHT][NEON_MAZE_WIDTH + 
     "111111111111111110003001",
     "111111111111111110000001",
     "111111111111111110030001",
-    "111111111111111110000051",
+    "111111111111111110000551",
     "111111111111111110000001",
     "111111111111111111111111",
 },{
@@ -76,7 +76,57 @@ static const char s_maps[NEON_MAZE_LAYOUTS][NEON_MAZE_HEIGHT][NEON_MAZE_WIDTH + 
     "111111111111111110030001",
     "111111111111111110000001",
     "111111111111111110030001",
-    "111111111111111110000051",
+    "111111111111111110000551",
+    "111111111111111110000001",
+    "111111111111111111111111",
+},{
+    "111111111111111111111111",
+    "100000211111111111111111",
+    "100000211111111111111111",
+    "100300000002111111111111",
+    "101111110002111111111111",
+    "101111110000000021111111",
+    "101111110000300021111111",
+    "100000011111110030000001",
+    "100300011111000003000001",
+    "103000011111000300200001",
+    "111111111111441111111111",
+    "111111111111000300030001",
+    "111111111111030000000001",
+    "111111111111001111110001",
+    "111111111111000300000001",
+    "111111111111030000300001",
+    "111111111111111110011111",
+    "111111111111111110000001",
+    "111111111111111110030001",
+    "111111111111111110000001",
+    "111111111111111110030001",
+    "111111111111111110000551",
+    "111111111111111110000001",
+    "111111111111111111111111",
+},{
+    "111111111111111111111111",
+    "100000211111111111111111",
+    "100030211111111111111111",
+    "100000000002111111111111",
+    "101111110002111111111111",
+    "101111110000003021111111",
+    "101111110000300021111111",
+    "100000011111110000000001",
+    "100300011111000000030001",
+    "100000011111000002000001",
+    "111111111111441111111111",
+    "111111111111000000000001",
+    "111111111111003000030001",
+    "111111111111001111110001",
+    "111111111111000030000001",
+    "111111111111030030000001",
+    "111111111111111110011111",
+    "111111111111111110000001",
+    "111111111111111110003001",
+    "111111111111111110000001",
+    "111111111111111110030001",
+    "111111111111111110000551",
     "111111111111111110000001",
     "111111111111111111111111",
 }};
@@ -183,7 +233,7 @@ static void route_next(const neon_maze_game_t *game,int sx,int sy,int gx,int gy,
 static void hurt_player(neon_maze_game_t *game,const neon_maze_enemy_t *enemy)
 {
     if(game->hurt_cooldown)return;
-    if(game->armor)--game->armor;
+    if(game->armor){--game->armor;game->armor_hit=true;}
     else if(game->hp)--game->hp;
     if(game->damage_taken<255)++game->damage_taken;
     game->hurt_cooldown=40;game->hit_flash=8;
@@ -289,7 +339,17 @@ int neon_maze_enemies_alive(const neon_maze_game_t *game)
 
 int neon_maze_enemy_total(const neon_maze_game_t *game)
 {
-    return game&&game->layout==0?8:NEON_MAZE_ENEMIES;
+    static const uint8_t totals[NEON_MAZE_LAYOUTS]={5,7,9,6,8};
+    if(!game)return 0;
+    return game->layout<NEON_MAZE_LAYOUTS?totals[game->layout]:8;
+}
+
+bool neon_maze_on_extract(const neon_maze_game_t *game)
+{
+    if(!game)return false;
+    if(neon_maze_cell(game,(int)game->x,(int)game->y)==5)return true;
+    float dx=game->x-NEON_MAZE_EXTRACT_X,dy=game->y-NEON_MAZE_EXTRACT_Y;
+    return dx*dx+dy*dy<.36f;
 }
 
 int neon_maze_last_enemy_index(const neon_maze_game_t *game)
@@ -309,7 +369,8 @@ char neon_maze_grade(const neon_maze_game_t *game)
 {
     if(!game||game->phase==NEON_MAZE_PHASE_DEAD)return 'D';
     unsigned seconds=game->tick/30U;
-    if(game->hp>=4&&seconds<=90U)return 'S';
+    if(!game->spotted&&game->hp>=4&&seconds<=90U)return 'S';
+    if(game->hp>=4&&seconds<=90U)return 'A';
     if(game->hp>=3&&seconds<=140U)return 'A';
     if(seconds<=200U)return 'B';
     return 'C';
@@ -325,6 +386,25 @@ bool neon_maze_in_fire_zone(int x,int y)
 {
     int dx=x-NEON_MAZE_FIRE_X,dy=y-NEON_MAZE_FIRE_Y;
     return dx*dx+dy*dy<=NEON_MAZE_FIRE_R*NEON_MAZE_FIRE_R;
+}
+
+bool neon_maze_in_radar(const neon_maze_game_t *game,int x,int y)
+{
+    if(!game)return false;
+    return x>=game->radar_x-4&&x<game->radar_x+NEON_MAZE_RADAR_SIZE&&
+           y>=game->radar_y-4&&y<game->radar_y+NEON_MAZE_RADAR_SIZE;
+}
+
+void neon_maze_move_radar(neon_maze_game_t *game,int x,int y)
+{
+    if(!game)return;
+    int max_x=480-NEON_MAZE_RADAR_SIZE-4;
+    int max_y=NEON_MAZE_MOVE_Y-NEON_MAZE_MOVE_R-NEON_MAZE_RADAR_SIZE-8;
+    if(x<4)x=4;
+    if(x>max_x)x=max_x;
+    if(y<52)y=52;
+    if(y>max_y)y=max_y;
+    game->radar_x=(int16_t)x;game->radar_y=(int16_t)y;
 }
 
 static void flood_layout(const neon_maze_game_t *game,
@@ -390,38 +470,53 @@ static void repair_layout(neon_maze_game_t *game)
 static void place_layout(neon_maze_game_t *game,uint8_t layout)
 {
     static const float enemy_xy[NEON_MAZE_LAYOUTS][NEON_MAZE_ENEMIES][2]={
-        {{10.5f,6.5f},{16.5f,8.5f},{21.5f,9.5f},{4.5f,8.5f},{13.5f,12.5f},
-         {21.5f,12.5f},{14.5f,15.5f},{21.5f,15.5f},{18.5f,18.5f},{20.5f,20.5f}},
-        {{10.5f,5.5f},{16.5f,8.5f},{21.5f,8.5f},{4.5f,8.5f},{20.5f,11.5f},
-         {13.5f,12.5f},{16.5f,15.5f},{13.5f,14.5f},{18.5f,18.5f},{19.5f,21.5f}},
-        {{10.5f,6.5f},{13.5f,9.5f},{18.5f,8.5f},{1.5f,8.5f},{14.5f,12.5f},
-         {21.5f,12.5f},{16.5f,14.5f},{21.5f,15.5f},{17.5f,18.5f},{20.5f,21.5f}}};
+        {{14.5f,8.5f},{16.5f,8.5f},{21.5f,9.5f},{18.5f,8.5f},{13.5f,12.5f},
+         {21.5f,12.5f},{14.5f,15.5f},{21.5f,15.5f},{18.5f,18.5f},{20.5f,20.5f},
+         {18.5f,21.5f},{22.5f,17.5f}},
+        {{13.5f,5.5f},{16.5f,8.5f},{21.5f,8.5f},{18.5f,8.5f},{20.5f,11.5f},
+         {13.5f,12.5f},{16.5f,15.5f},{13.5f,14.5f},{18.5f,18.5f},{19.5f,21.5f},
+         {21.5f,18.5f},{17.5f,20.5f}},
+        {{16.5f,8.5f},{13.5f,9.5f},{18.5f,8.5f},{21.5f,8.5f},{14.5f,12.5f},
+         {21.5f,12.5f},{16.5f,14.5f},{21.5f,15.5f},{17.5f,18.5f},{20.5f,21.5f},
+         {18.5f,21.5f},{19.5f,17.5f}},
+        {{14.5f,8.5f},{16.5f,8.5f},{21.5f,9.5f},{13.5f,12.5f},{21.5f,12.5f},
+         {14.5f,15.5f},{18.5f,18.5f},{19.5f,17.5f},{17.5f,20.5f},{20.5f,18.5f},
+         {21.5f,9.5f},{22.5f,17.5f}},
+        {{13.5f,5.5f},{16.5f,8.5f},{18.5f,8.5f},{20.5f,11.5f},{13.5f,12.5f},
+         {16.5f,15.5f},{18.5f,18.5f},{19.5f,17.5f},{17.5f,20.5f},{21.5f,18.5f},
+         {13.5f,14.5f},{22.5f,17.5f}}};
     static const float pickup_xy[NEON_MAZE_LAYOUTS][NEON_MAZE_PICKUPS][2]={
         {{9.5f,5.5f},{5.5f,8.5f},{19.5f,8.5f},{14.5f,12.5f},{16.5f,15.5f},{18.5f,20.5f}},
         {{10.5f,6.5f},{3.5f,8.5f},{20.5f,8.5f},{14.5f,12.5f},{20.5f,15.5f},{18.5f,21.5f}},
-        {{9.5f,5.5f},{1.5f,8.5f},{17.5f,9.5f},{20.5f,12.5f},{14.5f,15.5f},{22.5f,20.5f}}};
+        {{9.5f,5.5f},{1.5f,8.5f},{17.5f,9.5f},{20.5f,12.5f},{14.5f,15.5f},{22.5f,20.5f}},
+        {{9.5f,5.5f},{5.5f,8.5f},{19.5f,8.5f},{14.5f,12.5f},{16.5f,15.5f},{18.5f,20.5f}},
+        {{10.5f,6.5f},{3.5f,8.5f},{20.5f,8.5f},{14.5f,12.5f},{20.5f,15.5f},{22.5f,20.5f}}};
     static const neon_maze_pickup_kind_t pickup_kind[NEON_MAZE_LAYOUTS][NEON_MAZE_PICKUPS]={
         {NEON_PICKUP_AMMO,NEON_PICKUP_HEALTH,NEON_PICKUP_AMMO,
          NEON_PICKUP_AMMO,NEON_PICKUP_AMMO,NEON_PICKUP_HEALTH},
         {NEON_PICKUP_AMMO,NEON_PICKUP_HEALTH,NEON_PICKUP_AMMO,
          NEON_PICKUP_AMMO,NEON_PICKUP_ARMOR,NEON_PICKUP_HEALTH},
         {NEON_PICKUP_AMMO,NEON_PICKUP_ARMOR,NEON_PICKUP_AMMO,
+         NEON_PICKUP_AMMO,NEON_PICKUP_ARMOR,NEON_PICKUP_HEALTH},
+        {NEON_PICKUP_AMMO,NEON_PICKUP_HEALTH,NEON_PICKUP_AMMO,
+         NEON_PICKUP_AMMO,NEON_PICKUP_AMMO,NEON_PICKUP_HEALTH},
+        {NEON_PICKUP_AMMO,NEON_PICKUP_HEALTH,NEON_PICKUP_AMMO,
          NEON_PICKUP_AMMO,NEON_PICKUP_ARMOR,NEON_PICKUP_HEALTH}};
     if(layout>=NEON_MAZE_LAYOUTS)layout=0;
     game->layout=layout;
     for(int i=0;i<NEON_MAZE_ENEMIES;++i){
         game->enemies[i].x=enemy_xy[layout][i][0];
         game->enemies[i].y=enemy_xy[layout][i][1];
-        game->enemies[i].hp=(uint8_t)(layout==2&&i>=7?3:2);
+        game->enemies[i].elite=(layout==2&&i>=7)||(layout==4&&i>=6);
+        game->enemies[i].hp=(uint8_t)(game->enemies[i].elite?3:2);
         game->enemies[i].move_phase=(uint8_t)(i*37U+layout*19U);
         game->enemies[i].last_seen_x=game->enemies[i].x;
         game->enemies[i].last_seen_y=game->enemies[i].y;
         game->enemies[i].hold_x=(int8_t)game->enemies[i].x;
         game->enemies[i].hold_y=(int8_t)game->enemies[i].y;
         game->enemies[i].active=i<neon_maze_enemy_total(game);
+        game->enemies[i].ai_state=NEON_ENEMY_PATROL;
     }
-    game->enemies[0].ai_state=NEON_ENEMY_ENGAGE;
-    game->enemies[0].aim_timer=16;
     for(int i=0;i<NEON_MAZE_PICKUPS;++i){
         game->pickups[i].x=pickup_xy[layout][i][0];
         game->pickups[i].y=pickup_xy[layout][i][1];
@@ -430,7 +525,8 @@ static void place_layout(neon_maze_game_t *game,uint8_t layout)
     }
     static const float prop_xy[NEON_MAZE_PROPS][2]={
         {1.5f,1.5f},{5.5f,3.5f},{15.5f,8.5f},{20.5f,8.5f},
-        {13.5f,11.5f},{21.5f,14.5f},{17.5f,19.5f},{19.5f,22.5f}};
+        {13.5f,11.5f},{21.5f,14.5f},{17.5f,19.5f},{19.5f,22.5f},
+        {14.5f,14.5f},{20.5f,18.5f},{18.5f,20.5f},{20.5f,17.5f}};
     for(int i=0;i<NEON_MAZE_PROPS;++i){
         game->props[i].x=prop_xy[i][0];
         game->props[i].y=prop_xy[i][1];
@@ -443,14 +539,23 @@ static void place_layout(neon_maze_game_t *game,uint8_t layout)
 
 void neon_maze_reset(neon_maze_game_t *game)
 {
+    static const uint8_t start_ammo[NEON_MAZE_LAYOUTS]={20,16,14,16,14};
+    static const uint8_t start_armor[NEON_MAZE_LAYOUTS]={2,1,0,1,0};
     if(!game)return;
     uint32_t best=game->best_ticks;
-    uint8_t layout=game->layout;
+    uint32_t layout_best[NEON_MAZE_LAYOUTS];
+    uint8_t layout=game->layout,unlocked=game->unlocked;
+    memcpy(layout_best,game->layout_best,sizeof(layout_best));
     memset(game,0,sizeof(*game));
     game->best_ticks=best;
-    game->x=2.5f;game->y=3.5f;game->angle=.28f;
+    memcpy(game->layout_best,layout_best,sizeof(layout_best));
+    game->unlocked=unlocked;
+    game->x=2.5f;game->y=3.5f;game->angle=-1.32f;
+    game->radar_x=NEON_MAZE_RADAR_DEFAULT_X;
+    game->radar_y=NEON_MAZE_RADAR_DEFAULT_Y;
     game->hp=NEON_MAZE_MAX_HP;
-    game->ammo=layout==0?16:(layout==2?12:NEON_MAZE_AMMO_START);
+    game->armor=layout<NEON_MAZE_LAYOUTS?start_armor[layout]:0;
+    game->ammo=layout<NEON_MAZE_LAYOUTS?start_ammo[layout]:NEON_MAZE_AMMO_START;
     game->display_hp=(float)NEON_MAZE_MAX_HP;
     game->phase=NEON_MAZE_PHASE_START;
     place_layout(game,layout);
@@ -466,8 +571,13 @@ void neon_maze_confirm(neon_maze_game_t *game)
     if(!game)return;
     if(game->phase==NEON_MAZE_PHASE_PLAYING)return;
     if(game->phase!=NEON_MAZE_PHASE_START){
-        if(game->phase==NEON_MAZE_PHASE_WON)
-            game->layout=(uint8_t)((game->layout+1U)%NEON_MAZE_LAYOUTS);
+        if(game->phase==NEON_MAZE_PHASE_WON){
+            uint8_t next=(uint8_t)((game->layout+1U)%NEON_MAZE_LAYOUTS);
+            if(game->unlocked<next)game->unlocked=next;
+            if(game->unlocked<NEON_MAZE_LAYOUTS&&next==0)
+                game->unlocked=NEON_MAZE_LAYOUTS;
+            game->layout=next;
+        }
         neon_maze_reset(game);
     }
     game->phase=NEON_MAZE_PHASE_PLAYING;
@@ -494,7 +604,7 @@ static void emit_sfx(neon_maze_game_t *game,uint8_t id)
 const char *neon_maze_sfx_name(const neon_maze_game_t *game)
 {
     static const char *names[]={"","rifle","impact","empty","confirm","alert",
-                                "pickup","step_l","step_r","hurt"};
+                                "pickup","step_l","step_r","hurt","explode","extract"};
     uint8_t id=game?game->sfx:0;
     if(id>=sizeof(names)/sizeof(names[0]))id=0;
     return names[id];
@@ -504,6 +614,7 @@ void neon_maze_set_fire_held(neon_maze_game_t *game,bool held)
 {
     if(!game)return;
     if(held&&!game->fire_held)game->fire_pressed=true;
+    if(!held&&game->fire_held)game->fire_released=true;
     game->fire_held=held;
 }
 
@@ -565,16 +676,48 @@ void neon_maze_update(neon_maze_game_t *game)
     game->last_fire=NEON_FIRE_NONE;
     game->last_pickup=false;
     game->last_alert=false;
+    game->last_blast=false;
     game->sprinting=false;
     if(game->sfx_hold){if(!--game->sfx_hold)game->sfx=0;}
     if(game->fire_cooldown)--game->fire_cooldown;
     if(game->enemy_shot_lock)--game->enemy_shot_lock;
-    if(game->fire_pressed)game->last_fire=neon_maze_fire(game);
+    if(game->alert_flash)game->alert_flash--;
+    if(game->fire_held){
+        if(game->breath_hold<255)game->breath_hold++;
+        game->holding_breath=game->breath_hold>=NEON_MAZE_BREATH_TICKS;
+    }else if(game->fire_released&&(game->breath_hold||game->fire_pressed)){
+        game->last_fire=neon_maze_fire(game);
+        game->breath_hold=0;
+        game->holding_breath=false;
+    }else{
+        game->breath_hold=0;
+        game->holding_breath=false;
+    }
     game->fire_pressed=false;
-    if(game->last_fire==NEON_FIRE_DRY)emit_sfx(game,3);
+    game->fire_released=false;
+    if(game->last_blast)emit_sfx(game,10);
+    else if(game->last_fire==NEON_FIRE_DRY)emit_sfx(game,3);
     else if(game->last_fire==NEON_FIRE_DOOR)emit_sfx(game,4);
     else if(game->last_fire==NEON_FIRE_SHOT||game->last_fire==NEON_FIRE_HIT||
             game->last_fire==NEON_FIRE_KILL)emit_sfx(game,1);
+    if(game->last_fire==NEON_FIRE_SHOT||game->last_fire==NEON_FIRE_HIT||
+       game->last_fire==NEON_FIRE_KILL){
+        game->spotted=true;
+        game->alert_flash=18;
+        for(int i=0;i<NEON_MAZE_ENEMIES;++i){
+            neon_maze_enemy_t *enemy=&game->enemies[i];
+            if(!enemy->active)continue;
+            float dx=enemy->x-game->x,dy=enemy->y-game->y;
+            if(dx*dx+dy*dy>NEON_MAZE_SHOT_NOISE*NEON_MAZE_SHOT_NOISE)continue;
+            enemy->last_seen_x=game->x;enemy->last_seen_y=game->y;
+            enemy->search_timer=150;
+            if(enemy->ai_state==NEON_ENEMY_PATROL){
+                enemy->ai_state=NEON_ENEMY_ALERT;
+                enemy->alert_timer=NEON_MAZE_ALERT_TICKS;
+                game->last_alert=true;
+            }
+        }
+    }
     game->angle+=turn*game->turn_input;
     if(game->angle<0)game->angle+=6.2831853f;
     if(game->angle>=6.2831853f)game->angle-=6.2831853f;
@@ -589,6 +732,7 @@ void neon_maze_update(neon_maze_game_t *game)
         forward/=length;strafe/=length;length=1.0f;
     }
     float speed=game->sprinting?0.135f:(length>0.01f?0.055f+0.040f*length:0.0f);
+    if(game->holding_breath)speed*=0.55f;
     float wish_x=0,wish_y=0;
     if(length>.01f){
         wish_x=(cosf(game->angle)*forward-sinf(game->angle)*strafe)*speed;
@@ -640,19 +784,28 @@ void neon_maze_update(neon_maze_game_t *game)
         if(i==last_enemy&&enemy->ai_state!=NEON_ENEMY_ENGAGE&&
            enemy->ai_state!=NEON_ENEMY_ALERT){
             enemy->ai_state=NEON_ENEMY_SEARCH;
-            enemy->last_seen_x=game->x;
-            enemy->last_seen_y=game->y;
-            enemy->search_timer=151;
+            enemy->last_seen_x=NEON_MAZE_EXTRACT_X;
+            enemy->last_seen_y=NEON_MAZE_EXTRACT_Y;
+            enemy->search_timer=180;
         }
         float to_x=game->x-enemy->x,to_y=game->y-enemy->y;
         float distance=sqrtf(to_x*to_x+to_y*to_y),heading=0;
         bool sees_player=distance<6.8f&&line_clear(game,enemy->x,enemy->y,game->x,game->y);
-        if(sees_player){
+        bool hears_player=false;
+        if(!sees_player){
+            if(game->sprinting&&distance<NEON_MAZE_HEAR_SPRINT)hears_player=true;
+            else if(length>0.18f&&distance<NEON_MAZE_HEAR_WALK&&
+                    line_clear(game,enemy->x,enemy->y,game->x,game->y))
+                hears_player=true;
+        }
+        if(sees_player||hears_player){
             enemy->last_seen_x=game->x;enemy->last_seen_y=game->y;enemy->search_timer=150;
             if(enemy->ai_state==NEON_ENEMY_PATROL||
-               (enemy->ai_state==NEON_ENEMY_SEARCH&&distance<3.8f)){
+               (enemy->ai_state==NEON_ENEMY_SEARCH&&(sees_player?distance<3.8f:true))){
                 enemy->ai_state=NEON_ENEMY_ALERT;enemy->alert_timer=NEON_MAZE_ALERT_TICKS;
                 game->last_alert=true;
+                game->alert_flash=18;
+                if(sees_player||hears_player)game->spotted=true;
             }
         }else if((enemy->ai_state==NEON_ENEMY_ENGAGE||enemy->ai_state==NEON_ENEMY_ALERT)
                  &&enemy->search_timer){
@@ -666,9 +819,13 @@ void neon_maze_update(neon_maze_game_t *game)
         }
         if(enemy->ai_state==NEON_ENEMY_ENGAGE&&sees_player&&distance>.9f&&distance<6.2f){
             if(!enemy->attack_cooldown&&!game->enemy_shot_lock){
-                if(!enemy->aim_timer)enemy->aim_timer=NEON_MAZE_AIM_TICKS;
-                else if(!--enemy->aim_timer){
-                    enemy->attack_flash=4;enemy->attack_cooldown=NEON_MAZE_ATTACK_COOLDOWN;
+                if(!enemy->aim_timer){
+                    static const uint8_t aim_ticks[NEON_MAZE_LAYOUTS]={28,24,20,24,20};
+                    enemy->aim_timer=game->layout<NEON_MAZE_LAYOUTS?aim_ticks[game->layout]:20;
+                }else if(!--enemy->aim_timer){
+                    static const uint8_t cool_ticks[NEON_MAZE_LAYOUTS]={90,78,64,78,64};
+                    enemy->attack_flash=4;
+                    enemy->attack_cooldown=game->layout<NEON_MAZE_LAYOUTS?cool_ticks[game->layout]:64;
                     game->enemy_shot_lock=12;
                     hurt_player(game,enemy);
                     if(game->phase==NEON_MAZE_PHASE_DEAD)return;
@@ -725,10 +882,12 @@ void neon_maze_update(neon_maze_game_t *game)
     }
     if(!game->sfx&&game->last_pickup)emit_sfx(game,6);
     if(!game->sfx&&game->last_alert)emit_sfx(game,5);
-    if(neon_maze_enemies_alive(game)==0 &&
-       neon_maze_cell(game,(int)game->x,(int)game->y)==5){
+    if(neon_maze_enemies_alive(game)==0&&neon_maze_on_extract(game)){
         game->cells_reached=1;
         game->phase=NEON_MAZE_PHASE_WON;
+        emit_sfx(game,11);
+        if(!game->layout_best[game->layout]||game->tick<game->layout_best[game->layout])
+            game->layout_best[game->layout]=game->tick;
         if(!game->best_ticks||game->tick<game->best_ticks){
             game->best_ticks=game->tick;
             game->best_updated=true;
@@ -778,8 +937,10 @@ neon_maze_fire_result_t neon_maze_fire(neon_maze_game_t *game)
         float dx=enemy->x-game->x,dy=enemy->y-game->y;
         float distance=sqrtf(dx*dx+dy*dy);
         float delta=fabsf(angle_delta(atan2f(dy,dx)-game->angle));
-        float slop=game->sprinting?0.10f:0.0f;
-        if(delta>.08f+slop+(.16f/distance)||distance>=best)continue;
+        float slop=game->sprinting&&!game->holding_breath?0.10f:0.0f;
+        float cone=game->holding_breath?0.045f:0.08f;
+        float fall=game->holding_breath?0.10f:0.16f;
+        if(delta>cone+slop+(fall/distance)||distance>=best)continue;
         if(!line_clear(game,game->x,game->y,enemy->x,enemy->y))continue;
         best=distance;target=i;
     }
@@ -806,6 +967,7 @@ neon_maze_fire_result_t neon_maze_fire(neon_maze_game_t *game)
             ++game->kills;++killed;game->score+=100;
         }
         game->hit_marker=10;game->kill_flash=killed?18:0;game->score+=40;
+        game->last_blast=true;game->barrel_used=true;
         return killed?NEON_FIRE_KILL:NEON_FIRE_HIT;
     }
     if(target<0)return NEON_FIRE_SHOT;
@@ -836,7 +998,8 @@ uint32_t neon_maze_state_hash(const neon_maze_game_t *game)
         (uint32_t)(game->angle*4096),(uint32_t)((game->look_pitch+64.0f)*256.0f),
         game->tick,game->cells_reached,game->score,
         (uint32_t)game->phase,(uint32_t)game->hp,(uint32_t)game->armor,(uint32_t)game->ammo,
-        (uint32_t)game->layout};
+        (uint32_t)game->layout,(uint32_t)game->spotted,(uint32_t)game->holding_breath,
+        (uint32_t)game->unlocked};
     for(unsigned i=0;i<sizeof(values)/sizeof(values[0]);++i){hash^=values[i];hash*=16777619U;}
     for(int i=0;i<NEON_MAZE_ENEMIES;++i){hash^=(uint32_t)game->enemies[i].hp;
         hash*=16777619U;}
