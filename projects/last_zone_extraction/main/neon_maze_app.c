@@ -457,12 +457,19 @@ static void on_render(void)
 static void on_stats(void)
 {
     mosaico_game_2d_raster_stats_t raster = {0};
+    neon_maze_view_stats_t view = {0};
     mosaico_game_2d_get_raster_stats(&raster);
-    ESP_LOGI("neon_maze", "pos=%.2f,%.2f score=%u sky=%uus floor=%uus wall=%uus "
-             "enemy=%uus hud=%uus col=%u span=%u state_hash=%08lx",
-             s_game.x, s_game.y, s_game.score, (unsigned)raster.sky_us,
-             (unsigned)raster.floor_us, (unsigned)raster.wall_us,
-             (unsigned)raster.enemy_us, (unsigned)raster.hud_us,
+    neon_maze_view_get_stats(&view);
+    ESP_LOGI("neon_maze", "pos=%.2f,%.2f score=%u frame=%uus acquire=%u ray=%u "
+             "sky=%u floor=%u wall=%u grade=%u sprite=%u hud=%u submit=%u "
+             "rays=%u refined=%u col=%u span=%u state_hash=%08lx",
+             s_game.x, s_game.y, s_game.score, (unsigned)view.total_us,
+             (unsigned)view.acquire_us, (unsigned)view.raycast_us,
+             (unsigned)view.sky_us, (unsigned)view.floor_us,
+             (unsigned)view.wall_us, (unsigned)view.grade_us,
+             (unsigned)view.sprites_us, (unsigned)view.hud_us,
+             (unsigned)view.submit_us, (unsigned)view.rays_cast,
+             (unsigned)view.refined_columns,
              (unsigned)raster.column_pixels, (unsigned)raster.span_pixels,
              (unsigned long)neon_maze_state_hash(&s_game));
 }

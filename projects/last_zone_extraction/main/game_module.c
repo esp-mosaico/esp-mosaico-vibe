@@ -176,18 +176,24 @@ static int state_json(const void *value,char *output,size_t capacity)
     static const char *phases[]={"start","playing","won","dead"};
     const char *phase=g->phase<=NEON_MAZE_PHASE_DEAD?phases[g->phase]:"playing";
     mosaico_game_2d_raster_stats_t raster={0};
+    neon_maze_view_stats_t view={0};
     mosaico_game_2d_get_raster_stats(&raster);
+    neon_maze_view_get_stats(&view);
     return snprintf(output,capacity,"{\"phase\":\"%s\",\"x\":%.2f,\"y\":%.2f,"
         "\"heading\":%d,\"pitch\":%.1f,\"score\":%u,\"hp\":%u,\"armor\":%u,\"ammo\":%u,\"alive\":%d,"
         "\"target_visible\":%s,\"target_x\":%.2f,\"target_y\":%.2f,\"best\":%lu,\"tick\":%lu,\"layout\":%u,"
         "\"sfx\":\"%s\",\"state_hash\":\"%08lx\",\"sky_us\":%u,\"floor_us\":%u,\"wall_us\":%u,"
-        "\"enemy_us\":%u,\"hud_us\":%u}",phase,g->x,g->y,
+        "\"enemy_us\":%u,\"hud_us\":%u,\"acquire_us\":%u,\"raycast_us\":%u,"
+        "\"grade_us\":%u,\"submit_us\":%u,\"frame_us\":%u,\"rays\":%u,\"refined\":%u}",phase,g->x,g->y,
         (int)(g->angle*57.29578f),g->look_pitch,g->score,g->hp,g->armor,g->ammo,
         neon_maze_enemies_alive(g),target_visible?"true":"false",target>=0?g->enemies[target].x:g->x,
         target>=0?g->enemies[target].y:g->y,(unsigned long)g->best_ticks,
         (unsigned long)g->tick,(unsigned)g->layout,neon_maze_sfx_name(g),
         (unsigned long)neon_maze_state_hash(g),(unsigned)raster.sky_us,(unsigned)raster.floor_us,
-        (unsigned)raster.wall_us,(unsigned)raster.enemy_us,(unsigned)raster.hud_us);
+        (unsigned)raster.wall_us,(unsigned)raster.enemy_us,(unsigned)raster.hud_us,
+        (unsigned)view.acquire_us,(unsigned)view.raycast_us,(unsigned)view.grade_us,
+        (unsigned)view.submit_us,(unsigned)view.total_us,(unsigned)view.rays_cast,
+        (unsigned)view.refined_columns);
 }
 static const mosaico_game_module_v1_t s_module={
     .descriptor={MOSAICO_HOST_GAME_ABI_V1,"last_zone_extraction","Last Zone: Extraction",480,480,30,2},
