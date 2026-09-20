@@ -32,6 +32,8 @@ idf.py -C YOUR_PROJECT_PATH build
 ---
 
 <a id="q7-idfpy-set-target-失败unknown-target--需-preview"></a>
+<a id="q7-idfpy-set-target-失败unknown-target--需-preview"></a>
+
 ## Q7: idf.py set-target 失败（unknown target / 需 --preview）
 
 按报错分流，**不要**一上来换芯片名或乱加参数。

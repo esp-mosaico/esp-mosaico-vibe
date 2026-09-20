@@ -17,8 +17,8 @@ Recovery 分区为 1.75 MiB。此前验收报告记录的是旧布局，不能�
 `IRIS_READY ... mode=normal writer=0`、`IRIS_OTA_HEALTHY` 和
 `ACCEPTANCE_ALIVE service=0x6a02`。安装后须记录同一 Device ID 的
 normal → Recovery → normal、新 Boot ID、目标 ELF SHA 和 healthy 证据。
-这些是可重复执行的验收步骤；2026-09-06 的目标板实跑结果见
-[修复与验收报告](../../../docs/esp-iris-fix-acceptance.zh-CN.md)。
+这些是可重复执行的验收步骤；每次运行都须保存上述身份和健康证据，
+不能把旧布局的历史结果作为当前构建的验收结论。
 
 ## 专用 RPC
 

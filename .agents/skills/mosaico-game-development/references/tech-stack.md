@@ -2,13 +2,17 @@
 
 ## Core platform
 
-- ESP-IDF `>=6.1`, target `esp32s31`, FreeRTOS at 1000 Hz.
+- ESP-IDF matching the selected application manifest, target `esp32s31`;
+  check its `sdkconfig.defaults` for the FreeRTOS tick rate.
 - ESP-Mosaico BSP for display, touch, power and ES8311/I2S audio.
-- ESP-GSP 1.0 Canvas for presenting the 480×480 RGB565 framebuffer.
+- ESP-GSP 1.2.0 Canvas for presenting the 480×480 RGB565 framebuffer.
 - ESP-Iris for lifecycle, system inventory, screen/input RPC, logs, health and recovery-first update.
 - Raylib 6.0-compatible public types and selected 2D calls; the embedded fast layer is intentionally not full Raylib.
 
-Check `projects/factory/main/idf_component.yml` for the authoritative IDF constraint. Resolve the host environment according to repository `AGENTS.md`; never source the `Environment` inventory.
+Check the selected application's `main/idf_component.yml`; the normal-app
+reference is `projects/hello_world/main/idf_component.yml`. Resolve the host
+environment according to repository `AGENTS.md`, and check Recovery's separate
+manifest when working on Recovery.
 
 The CST92xx touch hardware can report two contacts, but support is end-to-end:
 the BSP driver, `CONFIG_ESP_LCD_TOUCH_MAX_POINTS`, the requested point-array
@@ -35,10 +39,13 @@ Keep gameplay coordinates in world space and convert to screen space at render t
 
 ## Model and runtime split
 
-The Host-testable model may use standard C headers and math but should not include ESP-IDF, Raylib, BSP or FreeRTOS headers. Express input as game-level commands or simple coordinates. Device `main.c` translates event-queue input, calls the fixed-step model, selects visual/audio effects from state changes, and renders.
+The Host-testable model may use standard C headers and math but should not include ESP-IDF, Raylib, BSP or FreeRTOS headers. Express input as game-level commands or simple coordinates. Device `main.c` calls `mosaico_game_app_run()`; the shared runner owns input
+and frame scheduling, while project callbacks update the model and render the
+shared view.
 
 Use fixed arrays/object pools for enemies, projectiles and effects. A stable state hash is useful for deterministic replay and regression tests.
 
 ## Device startup order
 
-Follow the exact management-before-render sequence documented in `docs/game-platform.md`. Screen mirror callbacks may return invalid state before the first framebuffer; that is acceptable. Marking healthy before a successful first frame is not acceptable.
+Follow the management-before-render sequence in the engine
+[component lifecycle](../../../../submodule/raylib-lite-engine/components/README.md#configuration-and-lifecycle). Screen mirror callbacks may return invalid state before the first framebuffer; that is acceptable. Marking healthy before a successful first frame is not acceptable.

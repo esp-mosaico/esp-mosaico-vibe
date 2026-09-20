@@ -1,5 +1,7 @@
 # 使用 mosaico.py project init 创建工程
 
+[返回文档索引](README.md)
+
 在已有 ESP-Mosaico 工作区中运行：
 
 ```sh
@@ -13,6 +15,14 @@ python mosaico.py project init my_app
 工程名为 1–31 个 ASCII 字符，以字母开头，其余字符只允许字母、数字和下划线。
 不接受路径和 Windows 保留名称。目标已经存在时，无论是文件、空目录还是符号
 链接，命令都会报错，不会覆盖或合并已有内容。
+
+## 选择参考工程
+
+`project init` 默认使用工作区配置的 Hello World 模板，适合一般设备应用。
+GSP UI 可从 [GSP Hello World](../projects/gsp_hello/README.md)开始，先运行
+[PC 仿真](../tools/gsp-sim/README.md)再验证设备。游戏项目按
+[游戏开发指南](game-development.zh-CN.md)选择玩法和资源参考。
+这两类参考工程不会因本文的默认 `project init` 命令自动成为生成模板。
 
 ## 预览与自动化
 
@@ -93,8 +103,15 @@ Windows 上生成目录与引用的本地依赖须位于同一盘符。共享组
 
 创建工程只需要 Python 3.8 或更新版本，以及已经初始化的工具子模块；不要求
 配置 ESP-IDF、下载 BSP 依赖、启动 Gateway 或连接设备，也不会自动执行这些步骤。
-构建前应初始化所需子模块，并配置满足生成工程 `main/idf_component.yml` 约束的
-ESP-IDF 环境。
+构建前应初始化所需子模块，并配置满足生成工程 `main/idf_component.yml` 约束、
+支持 `esp32s31` 的 ESP-IDF 环境。主机工具支持 Linux、macOS 原生终端，以及
+Windows PowerShell/CMD。运行 `python mosaico.py doctor` 检查 Python、ESP-IDF、
+目标支持及工具依赖；此检查不构建或写入固件。
+
+主机 CLI 的 Python 要求与 ESP-IDF 的解释器要求分别解析。ESP-IDF 6.1 及当前
+工作区使用的开发版本需要 Python 3.10 或更新版本；CLI 可独立寻找兼容解释器，
+必要时用 `MOSAICO_IDF_PYTHON` 指定。以当前应用和 Recovery 各自的组件约束为准，
+不要仅凭旧构建目录中记录的 ESP-IDF 路径判断兼容性。
 
 创建成功后，从工作区根目录显式选择新工程安装：
 
@@ -103,7 +120,9 @@ python mosaico.py iris system-update --project projects/my_app
 ```
 
 空白或未经验证的设备须先执行 `python mosaico.py recover` 并验证 Recovery 就绪。
-安装后可用 `python mosaico.py iris logs --timeout 20` 观察日志。默认工程不会因
+安装后可用 `python mosaico.py iris logs --project projects/my_app --timeout 20` 观察日志。默认工程不会因
 `project init` 改变，因此在工作区根目录使用 `iris system-update` 时应保留 `--project` 参数。
 
 后续仅修改代码且完整分区表与设备一致时可用 `iris app-update`。角色及产品契约来自共享应用配置，已有 `sdkconfig` 的实际值仍需通过构建检查。
+
+设备选择、更新方式与验收要求见 [CLI 命令参考](mosaico-cli.zh-CN.md)。

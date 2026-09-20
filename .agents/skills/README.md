@@ -1,4 +1,9 @@
-# ESP Mosaico example skills
+# ESP-Mosaico repository skills
+
+These shared skills are versioned with the workspace in `.agents/skills/`.
+Read [AGENTS.md](../../AGENTS.md) for repository-wide rules, then load only the
+skills relevant to the task. Developer-facing guides start at the
+[documentation index](../../docs/README.md).
 
 ## Skill list
 

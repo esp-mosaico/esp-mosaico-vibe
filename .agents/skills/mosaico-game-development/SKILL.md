@@ -1,6 +1,6 @@
 ---
 name: mosaico-game-development
-description: Create, extend, debug, test, package, or install 2D games on ESP-Mosaico with the in-tree Raylib-compatible Game SDK. Use for gameplay, RGB565 rendering, Atlas/Tiled assets, game audio, Host replay, touch input, performance work, and recovery-safe device deployment; do not use for non-game BSP examples.
+description: Create, extend, debug, test, package, or install 2D games on ESP-Mosaico with the pinned Raylib Lite Engine. Use for gameplay, RGB565 rendering, Atlas/Tiled assets, game audio, Host replay, touch input, performance work, and recovery-safe device deployment; do not use for non-game BSP examples.
 ---
 
 # Mosaico Game Development
@@ -9,7 +9,7 @@ Build applications under `projects/<name>` and treat `projects/hello_world` as t
 
 ## Start with the correct layer
 
-Read [`docs/game-platform.md`](../../docs/game-platform.md), then inspect the closest reference project:
+Read [the game development guide](../../../docs/game-development.zh-CN.md), then inspect the closest reference project:
 
 - `raylib_shooter` for a small code-drawn game;
 - `tower_defense` for Atlas, Tiled, audio, and Host replay;
@@ -44,8 +44,8 @@ mosaico_game_sdk_add_components(RAYLIB AUDIO TILEMAP)
 
 Request only used capabilities. Preserve a fixed update rate, bounded object pools, framebuffer clipping, and deterministic state where practical. Do not allocate, parse files, or block in the frame hot path.
 
-Use `mosaico_raylib_fast.h` only for its implemented compatibility surface in
-[`docs/raylib-api.md`](../../docs/raylib-api.md). Unsupported Raylib APIs must
+Use only the compatibility surface declared in the engine
+[public header](../../../submodule/raylib-lite-engine/components/mosaico_raylib_fast/include/mosaico_raylib_fast.h). Unsupported Raylib APIs must
 not silently use the generic software-OpenGL path. Prefer Atlas drawing for
 production art and code primitives for diagnostics or simple UI.
 
@@ -64,7 +64,7 @@ Every normal game build must:
 
 Never flash with raw ESP-IDF or ESP-Iris write commands. Query the live Device ID with `python mosaico.py iris list`, run `python mosaico.py recover` before the first install on a blank or unverified device, and prefer `python mosaico.py iris system-update --project ...` for a new game or changed layout/resources. Use `iris app-update` only for code changes with an identical full partition table. Do not copy the device's old layout just to bypass this check.
 
-For boot loops, missing crash logs, failed OTA/system updates, or Recovery fallback, follow [`esp-iris-device-debugging`](../esp-iris-device-debugging/SKILL.md) before another write. If a system update containing `game_assets` is interrupted, treat that partition as absent or partial until verified. Do not install an asset-dependent application by app-only OTA unless the exact assets are verified or the application has a tested embedded fallback.
+For boot loops, missing crash logs, failed OTA/system updates, or Recovery fallback, follow [the repository recovery rules](../../../AGENTS.md#provisioning-and-last-resort-recovery): preserve logs and any valid core dump through `mosaico.py iris crash --archive` before another write, and inspect [Gateway ownership](../../../docs/project-gateway.zh-CN.md) if the device is unavailable. If a system update containing `game_assets` is interrupted, treat that partition as absent or partial until verified. Do not install an asset-dependent application by app-only OTA unless the exact assets are verified or the application has a tested embedded fallback.
 
 Do not make required resource mounting an unexplained `ESP_ERROR_CHECK`. Log the partition label, expected content/version, mount error, and selected fallback before aborting or marking the application healthy.
 
