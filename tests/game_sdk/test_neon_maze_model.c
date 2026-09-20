@@ -10,7 +10,9 @@ static void assert_mission_reachable(neon_maze_game_t *game)
     int qx[NEON_MAZE_WIDTH * NEON_MAZE_HEIGHT];
     int qy[NEON_MAZE_WIDTH * NEON_MAZE_HEIGHT];
     int head = 0, tail = 0;
-    qx[tail] = 2; qy[tail++] = 3; seen[3][2] = 1;
+    int spawn_x = (int)neon_maze_spawn_x(game);
+    int spawn_y = (int)neon_maze_spawn_y(game);
+    qx[tail] = spawn_x; qy[tail++] = spawn_y; seen[spawn_y][spawn_x] = 1;
     while (head < tail) {
         int x = qx[head], y = qy[head++];
         static const int d[4][2] = {{1,0},{-1,0},{0,1},{0,-1}};
@@ -23,20 +25,19 @@ static void assert_mission_reachable(neon_maze_game_t *game)
             seen[ny][nx] = 1; qx[tail] = nx; qy[tail++] = ny;
         }
     }
-    assert(seen[(int)NEON_MAZE_EXTRACT_Y][(int)NEON_MAZE_EXTRACT_X]);
+    if (!seen[(int)neon_maze_extract_y(game)][(int)neon_maze_extract_x(game)])
+        fprintf(stderr, "mission %u extract is unreachable\n", (unsigned)game->layout);
+    assert(seen[(int)neon_maze_extract_y(game)][(int)neon_maze_extract_x(game)]);
     for (int i = 0; i < NEON_MAZE_ENEMIES; ++i) {
         if (!game->enemies[i].active) continue;
         int cx = (int)game->enemies[i].x, cy = (int)game->enemies[i].y;
         assert(seen[cy][cx]);
-        assert(!(cx == 21 && cy == 21));
-        assert(!(cx == 22 && cy == 21));
-        assert(!(cx == 22 && cy == 22));
+        assert(neon_maze_cell(game, cx, cy) != 5);
     }
     for (int i = 0; i < NEON_MAZE_PROPS; ++i) {
         if (!game->props[i].active) continue;
         int cx = (int)game->props[i].x, cy = (int)game->props[i].y;
-        assert(!(cx == 21 && cy == 21));
-        assert(!(cx == 22 && cy == 21));
+        assert(neon_maze_cell(game, cx, cy) != 5);
     }
 }
 
@@ -45,7 +46,9 @@ int main(void)
     static const uint8_t expected_enemies[NEON_MAZE_LAYOUTS] = {5, 7, 8, 8, 9};
     static const uint8_t expected_elites[NEON_MAZE_LAYOUTS] = {0, 0, 2, 0, 3};
     static const uint8_t expected_ammo[NEON_MAZE_LAYOUTS] = {20, 18, 17, 17, 16};
-    static const uint8_t expected_armor[NEON_MAZE_LAYOUTS] = {2, 1, 1, 1, 0};
+    static const uint8_t expected_armor[NEON_MAZE_LAYOUTS] = {2, 2, 1, 1, 0};
+    static const uint8_t expected_props[NEON_MAZE_LAYOUTS] = {4, 6, 6, 3, 7};
+    static const uint8_t expected_barrels[NEON_MAZE_LAYOUTS] = {1, 3, 2, 1, 2};
     neon_maze_game_t game = {0};
     for (int mission = 0; mission < NEON_MAZE_LAYOUTS; ++mission) {
         game.layout = (uint8_t)mission;
@@ -55,6 +58,9 @@ int main(void)
         assert(neon_maze_enemy_total(&game) == expected_enemies[mission]);
         assert(game.ammo == expected_ammo[mission]);
         assert(game.armor == expected_armor[mission]);
+        assert(game.x == neon_maze_spawn_x(&game));
+        assert(game.y == neon_maze_spawn_y(&game));
+        assert(neon_maze_briefing(&game)[0] != '\0');
         int elites = 0;
         for (int i = 0; i < NEON_MAZE_ENEMIES; ++i) {
             if (!game.enemies[i].active) continue;
@@ -68,9 +74,26 @@ int main(void)
             assert(cx * cx + cy * cy > 2.56f);
         }
         assert(elites == expected_elites[mission]);
+        int props = 0, barrels = 0, doors = 0;
+        for (int i = 0; i < NEON_MAZE_PICKUPS; ++i)
+            assert(neon_maze_cell(&game, (int)game.pickups[i].x,
+                                  (int)game.pickups[i].y) == 0);
+        for (int i = 0; i < NEON_MAZE_PROPS; ++i) {
+            if (!game.props[i].active) continue;
+            ++props;
+            if (game.props[i].kind == 0) ++barrels;
+            assert(neon_maze_cell(&game, (int)game.props[i].x,
+                                  (int)game.props[i].y) == 0);
+        }
+        for (int y = 0; y < NEON_MAZE_HEIGHT; ++y)
+            for (int x = 0; x < NEON_MAZE_WIDTH; ++x)
+                if (neon_maze_cell(&game, x, y) == 4) ++doors;
+        assert(props == expected_props[mission]);
+        assert(barrels == expected_barrels[mission]);
+        assert(doors >= 2);
         assert_mission_reachable(&game);
-        assert(neon_maze_cell(&game, 21, 21) == 5);
-        assert(neon_maze_cell(&game, 22, 21) == 5);
+        assert(neon_maze_cell(&game, (int)neon_maze_extract_x(&game),
+                              (int)neon_maze_extract_y(&game)) == 5);
     }
     game.layout = 1;
     game.phase = NEON_MAZE_PHASE_DEAD;
@@ -144,8 +167,8 @@ int main(void)
         game.enemies[i].active = false;
         game.enemies[i].hp = 0;
     }
-    game.x = 21.5f;
-    game.y = 21.5f;
+    game.x = neon_maze_extract_x(&game);
+    game.y = neon_maze_extract_y(&game);
     neon_maze_update(&game);
     assert(game.phase == NEON_MAZE_PHASE_WON);
     assert(neon_maze_on_extract(&game));
@@ -154,11 +177,11 @@ int main(void)
     neon_maze_confirm(&game);
     game.enemies[0].ai_state = NEON_ENEMY_PATROL;
     game.enemies[0].aim_timer = 0;
-    game.enemies[0].x = 1.5f;
-    game.enemies[0].y = 7.5f;
+    game.enemies[0].x = 8.5f;
+    game.enemies[0].y = 2.5f;
     game.enemies[0].active = true;
-    game.x = 2.5f;
-    game.y = 3.5f;
+    game.x = 6.5f;
+    game.y = 2.5f;
     neon_maze_set_motion(&game, 0, 0, 0);
     neon_maze_set_sprint(&game, false);
     for (int i = 0; i < 4; ++i) neon_maze_update(&game);

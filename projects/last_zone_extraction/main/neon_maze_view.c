@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "neon_maze_view.h"
 #include <math.h>
+#include <stdlib.h>
 #include <time.h>
 #ifdef ESP_PLATFORM
 #include "esp_timer.h"
@@ -455,7 +456,8 @@ static void draw_extract(const neon_maze_game_t *game)
     if (neon_maze_enemies_alive(game) != 0) return;
     int center, size, ground;
     float distance;
-    project_sprite(game, NEON_MAZE_EXTRACT_X, NEON_MAZE_EXTRACT_Y, &center, &size, &ground, &distance);
+    project_sprite(game, neon_maze_extract_x(game), neon_maze_extract_y(game),
+                   &center, &size, &ground, &distance);
     if (size <= 0) return;
     Color neon = (Color){72, 255, 214, 255};
     int pad_h = size / 5 + 6;
@@ -626,8 +628,16 @@ static int floor_kind_at(const neon_maze_game_t *game, float wx, float wy)
 {
     int mx = (int)wx, my = (int)wy;
     if (neon_maze_cell(game, mx, my) == 5) return 2;
-    if (mx >= 19 && my >= 19 && mx <= 22 && my <= 22) return 2;
-    if ((mx <= 6 && my <= 4) || (mx <= 6 && my >= 7 && my <= 9) || my >= 17) return 1;
+    int ex=(int)neon_maze_extract_x(game),ey=(int)neon_maze_extract_y(game);
+    if (abs(mx-ex)<=1&&abs(my-ey)<=1) return 2;
+    switch(game->layout){
+        case 0: if(mx<8||my>=18)return 1;break;                 /* dock planks */
+        case 1: if((mx<8&&my>8)||(mx>15&&my<9))return 1;break; /* twin stores */
+        case 2: if(mx<7||mx>16)return 1;break;                 /* office wings */
+        case 3: if(((my/5)&1)!=0)return 1;break;               /* silent bands */
+        case 4: if(mx<6||my>14)return 1;break;                 /* service route */
+        default: break;
+    }
     return 0;
 }
 
@@ -897,7 +907,8 @@ static void draw_radar(const neon_maze_game_t *game)
                 DrawRectangle(left + ex * scale, top + ey * scale, 4, 4, (Color){255, 52, 147, 255});
         }
     if (extract_open) {
-        int ex = (int)NEON_MAZE_EXTRACT_X - origin_x, ey = (int)NEON_MAZE_EXTRACT_Y - origin_y;
+        int ex = (int)neon_maze_extract_x(game) - origin_x;
+        int ey = (int)neon_maze_extract_y(game) - origin_y;
         if (ex >= 0 && ey >= 0 && ex < span && ey < span)
             DrawRectangle(left + ex * scale, top + ey * scale, 4, 4, (Color){72, 255, 214, 255});
     }
@@ -995,7 +1006,8 @@ static void draw_guidance(const neon_maze_game_t *game)
     int alive = neon_maze_enemies_alive(game);
     int last = neon_maze_last_enemy_index(game);
     if (alive == 0) {
-        float dx = NEON_MAZE_EXTRACT_X - game->x, dy = NEON_MAZE_EXTRACT_Y - game->y;
+        float dx = neon_maze_extract_x(game) - game->x;
+        float dy = neon_maze_extract_y(game) - game->y;
         unsigned meters = (unsigned)sqrtf(dx * dx + dy * dy);
         draw_bearing_marker(neon_maze_extract_bearing(game), (Color){72, 255, 214, 255},
                             TextFormat("EX %um", meters));
@@ -1142,7 +1154,9 @@ static void draw_phase_overlay(const neon_maze_game_t *game)
     DrawRectangleRoundedLines(panel, 0.16f, 6, look->accent);
     if (game->phase == NEON_MAZE_PHASE_START) {
         DrawText("LAST ZONE", 166, 112, 28, (Color){239, 242, 224, 255});
-        DrawText("SPAWN BAY, THEN THE EAST HALL", 108, 156, 16, (Color){192, 235, 214, 255});
+        const char *briefing=neon_maze_briefing(game);
+        int briefing_x=240-MeasureText(briefing,14)/2;
+        DrawText(briefing, briefing_x, 156, 14, (Color){192, 235, 214, 255});
         DrawText("TAP FIRE TO SHOOT / OPEN GATE", 82, 178, 16, (Color){192, 235, 214, 255});
         DrawText("HOLD FIRE TO STEADY, STAND SILENT", 78, 200, 14, (Color){192, 235, 214, 255});
         DrawText("CLEAR ALL, THEN THE EXTRACT PAD", 86, 222, 14, (Color){255, 220, 72, 255});

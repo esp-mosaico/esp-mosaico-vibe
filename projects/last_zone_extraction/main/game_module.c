@@ -164,6 +164,10 @@ static int state_json(const void *value,char *output,size_t capacity)
 {
     const neon_maze_game_t *g=&((const neon_maze_module_t*)value)->game;
     int target=-1;float target_distance=1e9f;bool target_visible=false;
+    bool gate_open=false;
+    for(int y=0;y<NEON_MAZE_HEIGHT&&!gate_open;++y)
+        for(int x=0;x<NEON_MAZE_WIDTH;++x)
+            if(g->door_open[y][x]){gate_open=true;break;}
     for(int pass=0;pass<2&&target<0;++pass)for(int i=0;i<NEON_MAZE_ENEMIES;++i){
         if(!g->enemies[i].active)continue;
         bool visible=g->enemies[i].ai_state==NEON_ENEMY_ALERT||
@@ -180,13 +184,14 @@ static int state_json(const void *value,char *output,size_t capacity)
     mosaico_game_2d_get_raster_stats(&raster);
     neon_maze_view_get_stats(&view);
     return snprintf(output,capacity,"{\"phase\":\"%s\",\"x\":%.2f,\"y\":%.2f,"
-        "\"heading\":%d,\"pitch\":%.1f,\"score\":%u,\"hp\":%u,\"armor\":%u,\"ammo\":%u,\"alive\":%d,"
+        "\"heading\":%d,\"pitch\":%.1f,\"score\":%u,\"hp\":%u,\"armor\":%u,\"ammo\":%u,\"alive\":%d,\"gate_open\":%s,"
         "\"target_visible\":%s,\"target_x\":%.2f,\"target_y\":%.2f,\"best\":%lu,\"tick\":%lu,\"layout\":%u,"
         "\"sfx\":\"%s\",\"state_hash\":\"%08lx\",\"sky_us\":%u,\"floor_us\":%u,\"wall_us\":%u,"
         "\"enemy_us\":%u,\"hud_us\":%u,\"acquire_us\":%u,\"raycast_us\":%u,"
         "\"grade_us\":%u,\"submit_us\":%u,\"frame_us\":%u,\"rays\":%u,\"refined\":%u}",phase,g->x,g->y,
         (int)(g->angle*57.29578f),g->look_pitch,g->score,g->hp,g->armor,g->ammo,
-        neon_maze_enemies_alive(g),target_visible?"true":"false",target>=0?g->enemies[target].x:g->x,
+        neon_maze_enemies_alive(g),gate_open?"true":"false",target_visible?"true":"false",
+        target>=0?g->enemies[target].x:g->x,
         target>=0?g->enemies[target].y:g->y,(unsigned long)g->best_ticks,
         (unsigned long)g->tick,(unsigned)g->layout,neon_maze_sfx_name(g),
         (unsigned long)neon_maze_state_hash(g),(unsigned)raster.sky_us,(unsigned)raster.floor_us,

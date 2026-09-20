@@ -21,8 +21,6 @@
 #define NEON_MAZE_HEAR_SPRINT 4.6f
 #define NEON_MAZE_HEAR_WALK 2.2f
 #define NEON_MAZE_SHOT_NOISE 7.0f
-#define NEON_MAZE_EXTRACT_X 21.5f
-#define NEON_MAZE_EXTRACT_Y 21.5f
 #define NEON_MAZE_PROPS 12
 #define NEON_MAZE_MAX_ARMOR 3
 #define NEON_MAZE_SPRINT 0.78f
@@ -138,6 +136,11 @@ int neon_maze_enemies_alive(const neon_maze_game_t *game);
 int neon_maze_enemy_total(const neon_maze_game_t *game);
 int neon_maze_last_enemy_index(const neon_maze_game_t *game);
 float neon_maze_extract_bearing(const neon_maze_game_t *game);
+float neon_maze_extract_x(const neon_maze_game_t *game);
+float neon_maze_extract_y(const neon_maze_game_t *game);
+float neon_maze_spawn_x(const neon_maze_game_t *game);
+float neon_maze_spawn_y(const neon_maze_game_t *game);
+const char *neon_maze_briefing(const neon_maze_game_t *game);
 char neon_maze_grade(const neon_maze_game_t *game);
 uint32_t neon_maze_state_hash(const neon_maze_game_t *game);
 bool neon_maze_in_move_zone(int x,int y);

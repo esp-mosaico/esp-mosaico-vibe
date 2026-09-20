@@ -4,135 +4,163 @@
 #include <stdlib.h>
 #include <string.h>
 
-static const char s_maps[NEON_MAZE_LAYOUTS][NEON_MAZE_HEIGHT][NEON_MAZE_WIDTH + 1] = {{
+static const char s_maps[NEON_MAZE_LAYOUTS][NEON_MAZE_HEIGHT][NEON_MAZE_WIDTH + 1] = {
+{
     "111111111111111111111111",
-    "100000211111111111111111",
-    "100000211111111111111111",
-    "100300000002111111111111",
-    "101111110002111111111111",
-    "101111110000000021111111",
-    "101111110000300021111111",
-    "100000011111110000000001",
-    "100000011111000003000001",
-    "103000011111000000200001",
-    "111111111111441111111111",
-    "111111111111000000030001",
-    "111111111111000300000001",
-    "111111111111001111110001",
-    "111111111111000000000001",
-    "111111111111030000300001",
-    "111111111111111110011111",
-    "111111111111111110000001",
-    "111111111111111110000001",
-    "111111111111111110000001",
-    "111111111111111110030001",
-    "111111111111111110000551",
-    "111111111111111110000001",
+    "100000010000000000000001",
+    "100000020000000000000001",
+    "100000020000000000000001",
+    "100000010000100000000001",
+    "100030010000100000000001",
+    "100000010000100000000001",
+    "111111001111100000000001",
+    "100000000030000000000001",
+    "100000000000200000000001",
+    "111111111111144111111111",
+    "100000000000000001000001",
+    "100000000000000001000001",
+    "100000000000000301000001",
+    "100000000000000000000001",
+    "100000000000000001000001",
+    "100000000000000001003001",
+    "100000000000000001000001",
+    "100000000000000001110011",
+    "100000000000000000000001",
+    "100000000000000000005501",
+    "100000000000000000000001",
+    "100000000000000000000001",
     "111111111111111111111111",
-},{
+},
+{
     "111111111111111111111111",
-    "100000211111111111111111",
-    "100030211111111111111111",
-    "100000000002111111111111",
-    "101111110002111111111111",
-    "101111110000003021111111",
-    "101111110000300021111111",
-    "100000011111110000000001",
-    "100300011111000000030001",
-    "100000011111000002000001",
-    "111111111111441111111111",
-    "111111111111000000000001",
-    "111111111111003000030001",
-    "111111111111001111110001",
-    "111111111111000000000001",
-    "111111111111030030000001",
-    "111111111111111110011111",
-    "111111111111111110000001",
-    "111111111111111110003001",
-    "111111111111111110000001",
-    "111111111111111110030001",
-    "111111111111111110000551",
-    "111111111111111110000001",
+    "100000001000000000000001",
+    "100000001000000000005501",
+    "100000001000000000000001",
+    "100000002003000000300001",
+    "100030002000000000000001",
+    "100000001000000000000001",
+    "100000001000000000000001",
+    "100000001111114411111111",
+    "100000000000000100000001",
+    "100000000000000100000001",
+    "100030000003000100000001",
+    "100000000000000100030001",
+    "100000000000000000000001",
+    "100000000000000100000001",
+    "111111114411111100000001",
+    "100000000000000100000001",
+    "100000000000000100000001",
+    "100000000000000100000001",
+    "100030000003000000030001",
+    "100000000000000100000001",
+    "100000000000000100000001",
+    "100000000000000100000001",
     "111111111111111111111111",
-},{
+},
+{
     "111111111111111111111111",
-    "100000211111111111111111",
-    "100000211111111111111111",
-    "100300000002111111111111",
-    "101111110002111111111111",
-    "101111110030000021111111",
-    "101111110000300021111111",
-    "100030011111110000000001",
-    "100000011111000003000001",
-    "103000011111000000200001",
-    "111111111111441111111111",
-    "111111111111000030000001",
-    "111111111111000300003001",
-    "111111111111001111110001",
-    "111111111111000030000001",
-    "111111111111030000300001",
-    "111111111111111110011111",
-    "111111111111111110000001",
-    "111111111111111110030001",
-    "111111111111111110000001",
-    "111111111111111110030001",
-    "111111111111111110000551",
-    "111111111111111110000001",
+    "100000010000000010000001",
+    "100000010000000010000001",
+    "100000010000000010000001",
+    "100000020000000020000001",
+    "100000020030030020000001",
+    "100000010000000010000001",
+    "100000010000000010000001",
+    "100000040040040040000001",
+    "100000010000000010000001",
+    "100000010000000010000001",
+    "100000020000000020005501",
+    "100000020030030020000001",
+    "100000010000000010000001",
+    "100000010000000010000001",
+    "100030010000000010030001",
+    "100000010000000010000001",
+    "100000040004400040000001",
+    "100000010000000010000001",
+    "100000010000000010000001",
+    "111101111111111111101111",
+    "100000010000000010000001",
+    "100000010000000010000001",
     "111111111111111111111111",
-},{
+},
+{
     "111111111111111111111111",
-    "100000211111111111111111",
-    "100000211111111111111111",
-    "100300000002111111111111",
-    "101111110002111111111111",
-    "101111110000000021111111",
-    "101111110000300021111111",
-    "100000011111110030000001",
-    "100300011111000003000001",
-    "103000011111000300200001",
-    "111111111111441111111111",
-    "111111111111000300030001",
-    "111111111111030000000001",
-    "111111111111001111110001",
-    "111111111111000300000001",
-    "111111111111030000300001",
-    "111111111111111110011111",
-    "111111111111111110000001",
-    "111111111111111110030001",
-    "111111111111111110000001",
-    "111111111111111110030001",
-    "111111111111111110000551",
-    "111111111111111110000001",
+    "100000000000000000000001",
+    "100000000000000000000001",
+    "100000000003000000000001",
+    "100000000000000000000001",
+    "101100111111111110011101",
+    "100000100000000000000001",
+    "100000000000000000000001",
+    "100000000000300000000001",
+    "100000100000000000000001",
+    "101111110011111111100101",
+    "100000000000000010000001",
+    "100030000000000000000001",
+    "100000000000000000000001",
+    "100000000000000010000001",
+    "101001111111110011111101",
+    "100000010000000000000001",
+    "100000000000000000030001",
+    "100000000000000000000001",
+    "111111111111114411111111",
+    "100000000000000000000001",
+    "100000000000000000005501",
+    "100000000000000000000001",
     "111111111111111111111111",
-},{
+},
+{
     "111111111111111111111111",
-    "100000211111111111111111",
-    "100030211111111111111111",
-    "100000000002111111111111",
-    "101111110002111111111111",
-    "101111110000003021111111",
-    "101111110000300021111111",
-    "100000011111110000000001",
-    "100300011111000000030001",
-    "100000011111000002000001",
-    "111111111111441111111111",
-    "111111111111000000000001",
-    "111111111111003000030001",
-    "111111111111001111110001",
-    "111111111111000030000001",
-    "111111111111030030000001",
-    "111111111111111110011111",
-    "111111111111111110000001",
-    "111111111111111110003001",
-    "111111111111111110000001",
-    "111111111111111110030001",
-    "111111111111111110000551",
-    "111111111111111110000001",
+    "100000000000000000100001",
+    "100000000000000000105501",
+    "100000000000000000400001",
+    "100000000000000000200001",
+    "100000000000000000100001",
+    "111122111114411111111111",
+    "100000000000000000130001",
+    "100000000000000000000001",
+    "100000030000000030000001",
+    "100000000000000000100001",
+    "100000000000030000100001",
+    "100000000000000000000001",
+    "100000000030000000000001",
+    "100001111001111111100111",
+    "100000000000000000000001",
+    "100000030000000000000001",
+    "100000000000000000000001",
+    "100030000000003000003001",
+    "100000000000000000000001",
+    "100000000000000000000001",
+    "100000000000000000000001",
+    "100000000000000000000001",
     "111111111111111111111111",
-}};
+}
+};
 
 static float angle_delta(float value);
 static void emit_sfx(neon_maze_game_t *game,uint8_t id);
+
+typedef struct {
+    float spawn_x,spawn_y,spawn_angle;
+    float extract_x,extract_y;
+    uint8_t enemy_total,start_ammo,start_armor;
+    uint16_t elite_mask;
+    const char *briefing;
+} neon_maze_layout_info_t;
+
+static const neon_maze_layout_info_t s_layouts[NEON_MAZE_LAYOUTS]={
+    {2.5f,3.5f,0.00f,20.5f,20.5f,5,20,2,0x000,"OBSERVE. CLEAR. OPEN THE GATE."},
+    {2.5f,20.5f,-1.05f,20.5f,2.5f,7,18,2,0x000,"CONTROL THE ROOM. USE THE BARRELS."},
+    {2.5f,11.5f,0.00f,20.5f,11.5f,8,17,1,0x0c0,"COUNT THEM. CHOOSE A FLANK."},
+    {2.5f,2.5f,0.78f,20.5f,21.5f,8,17,1,0x000,"WALK QUIET. STRIKE FIRST."},
+    {2.5f,21.5f,-0.78f,20.5f,2.5f,9,16,0,0x1c0,"THE PAD IS AHEAD. EARN THE EXIT."},
+};
+
+static const neon_maze_layout_info_t *layout_info(const neon_maze_game_t *game)
+{
+    unsigned layout=game&&game->layout<NEON_MAZE_LAYOUTS?game->layout:0;
+    return &s_layouts[layout];
+}
 
 static bool line_clear(const neon_maze_game_t *game,float x0,float y0,float x1,float y1)
 {
@@ -339,16 +367,21 @@ int neon_maze_enemies_alive(const neon_maze_game_t *game)
 
 int neon_maze_enemy_total(const neon_maze_game_t *game)
 {
-    static const uint8_t totals[NEON_MAZE_LAYOUTS]={5,7,8,8,9};
     if(!game)return 0;
-    return game->layout<NEON_MAZE_LAYOUTS?totals[game->layout]:8;
+    return layout_info(game)->enemy_total;
 }
+
+float neon_maze_extract_x(const neon_maze_game_t *game){return layout_info(game)->extract_x;}
+float neon_maze_extract_y(const neon_maze_game_t *game){return layout_info(game)->extract_y;}
+float neon_maze_spawn_x(const neon_maze_game_t *game){return layout_info(game)->spawn_x;}
+float neon_maze_spawn_y(const neon_maze_game_t *game){return layout_info(game)->spawn_y;}
+const char *neon_maze_briefing(const neon_maze_game_t *game){return layout_info(game)->briefing;}
 
 bool neon_maze_on_extract(const neon_maze_game_t *game)
 {
     if(!game)return false;
     if(neon_maze_cell(game,(int)game->x,(int)game->y)==5)return true;
-    float dx=game->x-NEON_MAZE_EXTRACT_X,dy=game->y-NEON_MAZE_EXTRACT_Y;
+    float dx=game->x-neon_maze_extract_x(game),dy=game->y-neon_maze_extract_y(game);
     return dx*dx+dy*dy<.36f;
 }
 
@@ -362,14 +395,25 @@ int neon_maze_last_enemy_index(const neon_maze_game_t *game)
 float neon_maze_extract_bearing(const neon_maze_game_t *game)
 {
     if(!game)return 0;
-    return angle_delta(atan2f(NEON_MAZE_EXTRACT_Y-game->y,NEON_MAZE_EXTRACT_X-game->x)-game->angle);
+    return angle_delta(atan2f(neon_maze_extract_y(game)-game->y,
+                             neon_maze_extract_x(game)-game->x)-game->angle);
 }
 
 char neon_maze_grade(const neon_maze_game_t *game)
 {
     if(!game||game->phase==NEON_MAZE_PHASE_DEAD)return 'D';
     unsigned seconds=game->tick/30U;
-    if(!game->spotted&&game->hp>=4&&seconds<=90U)return 'S';
+    bool mission_s=false;
+    switch(game->layout){
+        case 0: mission_s=game->shots_fired&&game->shots_hit*100U>=game->shots_fired*70U&&
+                         game->damage_taken<=1&&seconds<=105U;break;
+        case 1: mission_s=game->barrel_used&&game->damage_taken<=1&&seconds<=120U;break;
+        case 2: mission_s=game->armor_hit&&game->damage_taken<=2&&seconds<=135U;break;
+        case 3: mission_s=game->damage_taken==0&&seconds<=150U;break;
+        case 4: mission_s=game->hp>=4&&seconds<=150U;break;
+        default: break;
+    }
+    if(mission_s)return 'S';
     if(game->hp>=4&&seconds<=90U)return 'A';
     if(game->hp>=3&&seconds<=140U)return 'A';
     if(seconds<=200U)return 'B';
@@ -444,7 +488,7 @@ static void snap_reachable(float *px,float *py,const uint8_t seen[NEON_MAZE_HEIG
 static void repair_layout(neon_maze_game_t *game)
 {
     uint8_t seen[NEON_MAZE_HEIGHT][NEON_MAZE_WIDTH];
-    flood_layout(game,seen,2,3);
+    flood_layout(game,seen,(int)neon_maze_spawn_x(game),(int)neon_maze_spawn_y(game));
     for(int i=0;i<NEON_MAZE_ENEMIES;++i)
         snap_reachable(&game->enemies[i].x,&game->enemies[i].y,seen);
     for(int i=0;i<NEON_MAZE_PICKUPS;++i)
@@ -470,27 +514,27 @@ static void repair_layout(neon_maze_game_t *game)
 static void place_layout(neon_maze_game_t *game,uint8_t layout)
 {
     static const float enemy_xy[NEON_MAZE_LAYOUTS][NEON_MAZE_ENEMIES][2]={
-        {{14.5f,8.5f},{16.5f,8.5f},{21.5f,9.5f},{18.5f,8.5f},{13.5f,12.5f},
-         {21.5f,12.5f},{14.5f,15.5f},{21.5f,15.5f},{18.5f,18.5f},{20.5f,20.5f},
-         {18.5f,21.5f},{22.5f,17.5f}},
-        {{13.5f,5.5f},{16.5f,8.5f},{21.5f,8.5f},{18.5f,8.5f},{20.5f,11.5f},
-         {13.5f,12.5f},{16.5f,15.5f},{13.5f,14.5f},{18.5f,18.5f},{19.5f,21.5f},
-         {21.5f,18.5f},{17.5f,20.5f}},
-        {{16.5f,8.5f},{13.5f,9.5f},{18.5f,8.5f},{21.5f,8.5f},{14.5f,12.5f},
-         {21.5f,12.5f},{16.5f,14.5f},{21.5f,15.5f},{17.5f,18.5f},{20.5f,21.5f},
-         {18.5f,21.5f},{19.5f,17.5f}},
-        {{14.5f,8.5f},{16.5f,8.5f},{21.5f,9.5f},{13.5f,12.5f},{21.5f,12.5f},
-         {14.5f,15.5f},{18.5f,18.5f},{19.5f,17.5f},{17.5f,20.5f},{20.5f,18.5f},
-         {21.5f,9.5f},{22.5f,17.5f}},
-        {{13.5f,5.5f},{16.5f,8.5f},{18.5f,8.5f},{20.5f,11.5f},{13.5f,12.5f},
-         {16.5f,15.5f},{18.5f,18.5f},{19.5f,17.5f},{17.5f,20.5f},{21.5f,18.5f},
-         {13.5f,14.5f},{22.5f,17.5f}}};
+        {{10.5f,8.5f},{15.5f,8.5f},{15.5f,13.5f},{20.5f,15.5f},{20.5f,19.5f},
+         {3.5f,20.5f},{6.5f,20.5f},{9.5f,20.5f},{12.5f,20.5f},{15.5f,20.5f},
+         {18.5f,20.5f},{21.5f,20.5f}},
+        {{4.5f,11.5f},{11.5f,19.5f},{19.5f,19.5f},{11.5f,11.5f},{18.5f,12.5f},
+         {10.5f,4.5f},{19.5f,4.5f},{3.5f,3.5f},{6.5f,3.5f},{12.5f,3.5f},
+         {16.5f,3.5f},{21.5f,3.5f}},
+        {{11.5f,2.5f},{12.5f,6.5f},{20.5f,5.5f},{20.5f,15.5f},{11.5f,12.5f},
+         {13.5f,15.5f},{18.5f,15.5f},{20.5f,18.5f},{3.5f,3.5f},{4.5f,18.5f},
+         {18.5f,3.5f},{21.5f,21.5f}},
+        {{12.5f,3.5f},{18.5f,4.5f},{12.5f,8.5f},{4.5f,12.5f},{20.5f,13.5f},
+         {4.5f,17.5f},{12.5f,18.5f},{20.5f,20.5f},{3.5f,21.5f},{6.5f,21.5f},
+         {10.5f,21.5f},{16.5f,21.5f}},
+        {{4.5f,11.5f},{10.5f,18.5f},{16.5f,18.5f},{19.5f,17.5f},{8.5f,12.5f},
+         {14.5f,12.5f},{20.5f,12.5f},{14.5f,8.5f},{20.5f,7.5f},{4.5f,3.5f},
+         {8.5f,3.5f},{12.5f,3.5f}}};
     static const float pickup_xy[NEON_MAZE_LAYOUTS][NEON_MAZE_PICKUPS][2]={
-        {{9.5f,5.5f},{5.5f,8.5f},{19.5f,8.5f},{14.5f,12.5f},{16.5f,15.5f},{18.5f,20.5f}},
-        {{10.5f,6.5f},{3.5f,8.5f},{20.5f,8.5f},{14.5f,12.5f},{20.5f,15.5f},{18.5f,21.5f}},
-        {{9.5f,5.5f},{1.5f,8.5f},{17.5f,9.5f},{20.5f,12.5f},{14.5f,15.5f},{22.5f,20.5f}},
-        {{9.5f,5.5f},{5.5f,8.5f},{19.5f,8.5f},{14.5f,12.5f},{16.5f,15.5f},{18.5f,20.5f}},
-        {{10.5f,6.5f},{3.5f,8.5f},{20.5f,8.5f},{14.5f,12.5f},{20.5f,15.5f},{22.5f,20.5f}}};
+        {{5.5f,5.5f},{3.5f,9.5f},{10.5f,9.5f},{15.5f,12.5f},{20.5f,14.5f},{19.5f,21.5f}},
+        {{4.5f,18.5f},{3.5f,13.5f},{11.5f,18.5f},{18.5f,18.5f},{20.5f,10.5f},{18.5f,3.5f}},
+        {{4.5f,9.5f},{4.5f,18.5f},{10.5f,3.5f},{13.5f,13.5f},{19.5f,19.5f},{21.5f,9.5f}},
+        {{4.5f,3.5f},{3.5f,13.5f},{10.5f,8.5f},{19.5f,8.5f},{12.5f,17.5f},{18.5f,21.5f}},
+        {{4.5f,20.5f},{3.5f,16.5f},{10.5f,17.5f},{16.5f,12.5f},{6.5f,17.5f},{19.5f,3.5f}}};
     static const neon_maze_pickup_kind_t pickup_kind[NEON_MAZE_LAYOUTS][NEON_MAZE_PICKUPS]={
         {NEON_PICKUP_AMMO,NEON_PICKUP_HEALTH,NEON_PICKUP_AMMO,
          NEON_PICKUP_AMMO,NEON_PICKUP_AMMO,NEON_PICKUP_HEALTH},
@@ -507,7 +551,7 @@ static void place_layout(neon_maze_game_t *game,uint8_t layout)
     for(int i=0;i<NEON_MAZE_ENEMIES;++i){
         game->enemies[i].x=enemy_xy[layout][i][0];
         game->enemies[i].y=enemy_xy[layout][i][1];
-        game->enemies[i].elite=(layout==2&&i>=6)||(layout==4&&i>=6);
+        game->enemies[i].elite=(s_layouts[layout].elite_mask&(1U<<i))!=0;
         game->enemies[i].hp=(uint8_t)(game->enemies[i].elite?3:2);
         game->enemies[i].move_phase=(uint8_t)(i*37U+layout*19U);
         game->enemies[i].last_seen_x=game->enemies[i].x;
@@ -523,15 +567,24 @@ static void place_layout(neon_maze_game_t *game,uint8_t layout)
         game->pickups[i].kind=pickup_kind[layout][i];
         game->pickups[i].taken=false;
     }
-    static const float prop_xy[NEON_MAZE_PROPS][2]={
-        {1.5f,1.5f},{5.5f,3.5f},{15.5f,8.5f},{20.5f,8.5f},
-        {13.5f,11.5f},{21.5f,14.5f},{17.5f,19.5f},{19.5f,22.5f},
-        {14.5f,14.5f},{20.5f,18.5f},{18.5f,20.5f},{20.5f,17.5f}};
+    static const float prop_xy[NEON_MAZE_LAYOUTS][NEON_MAZE_PROPS][2]={
+        {{14.5f,12.5f},{3.5f,5.5f},{9.5f,8.5f},{19.5f,15.5f},{3.5f,21.5f},{6.5f,21.5f},
+         {9.5f,21.5f},{12.5f,21.5f},{15.5f,21.5f},{18.5f,21.5f},{21.5f,21.5f},{2.5f,18.5f}},
+        {{5.5f,11.5f},{12.5f,11.5f},{20.5f,12.5f},{3.5f,18.5f},{10.5f,19.5f},{18.5f,19.5f},
+         {3.5f,3.5f},{6.5f,3.5f},{9.5f,3.5f},{12.5f,3.5f},{16.5f,3.5f},{21.5f,3.5f}},
+        {{12.5f,4.5f},{18.5f,12.5f},{4.5f,10.5f},{11.5f,13.5f},{19.5f,16.5f},{20.5f,6.5f},
+         {3.5f,3.5f},{5.5f,3.5f},{18.5f,21.5f},{20.5f,21.5f},{3.5f,21.5f},{6.5f,21.5f}},
+        {{18.5f,17.5f},{3.5f,8.5f},{12.5f,13.5f},{20.5f,8.5f},{3.5f,21.5f},{6.5f,21.5f},
+         {9.5f,21.5f},{12.5f,21.5f},{15.5f,21.5f},{18.5f,21.5f},{21.5f,18.5f},{21.5f,16.5f}},
+        {{16.5f,8.5f},{19.5f,12.5f},{4.5f,18.5f},{8.5f,16.5f},{13.5f,12.5f},{20.5f,16.5f},
+         {3.5f,3.5f},{6.5f,3.5f},{9.5f,3.5f},{12.5f,3.5f},{15.5f,3.5f},{21.5f,21.5f}}};
+    static const uint16_t prop_active[NEON_MAZE_LAYOUTS]={0x00f,0x03f,0x03f,0x007,0x07f};
+    static const uint8_t barrel_count[NEON_MAZE_LAYOUTS]={1,3,2,1,2};
     for(int i=0;i<NEON_MAZE_PROPS;++i){
-        game->props[i].x=prop_xy[i][0];
-        game->props[i].y=prop_xy[i][1];
-        game->props[i].kind=(uint8_t)(i&1);
-        game->props[i].active=true;
+        game->props[i].x=prop_xy[layout][i][0];
+        game->props[i].y=prop_xy[layout][i][1];
+        game->props[i].kind=(uint8_t)(i>=barrel_count[layout]);
+        game->props[i].active=(prop_active[layout]&(1U<<i))!=0;
         game->props[i].blast_timer=0;
     }
     repair_layout(game);
@@ -539,8 +592,6 @@ static void place_layout(neon_maze_game_t *game,uint8_t layout)
 
 void neon_maze_reset(neon_maze_game_t *game)
 {
-    static const uint8_t start_ammo[NEON_MAZE_LAYOUTS]={20,18,17,17,16};
-    static const uint8_t start_armor[NEON_MAZE_LAYOUTS]={2,1,1,1,0};
     if(!game)return;
     uint32_t best=game->best_ticks;
     uint32_t layout_best[NEON_MAZE_LAYOUTS];
@@ -550,16 +601,17 @@ void neon_maze_reset(neon_maze_game_t *game)
     game->best_ticks=best;
     memcpy(game->layout_best,layout_best,sizeof(layout_best));
     game->unlocked=unlocked;
-    game->x=2.5f;game->y=3.5f;game->angle=-1.32f;
+    const neon_maze_layout_info_t *info=&s_layouts[layout<NEON_MAZE_LAYOUTS?layout:0];
+    game->x=info->spawn_x;game->y=info->spawn_y;game->angle=info->spawn_angle;
     game->radar_x=NEON_MAZE_RADAR_DEFAULT_X;
     game->radar_y=NEON_MAZE_RADAR_DEFAULT_Y;
     game->hp=NEON_MAZE_MAX_HP;
-    game->armor=layout<NEON_MAZE_LAYOUTS?start_armor[layout]:0;
-    game->ammo=layout<NEON_MAZE_LAYOUTS?start_ammo[layout]:NEON_MAZE_AMMO_START;
+    game->armor=info->start_armor;
+    game->ammo=info->start_ammo;
     game->display_hp=(float)NEON_MAZE_MAX_HP;
     game->phase=NEON_MAZE_PHASE_START;
     place_layout(game,layout);
-    game->explored[3][2]=1;
+    game->explored[(int)game->y][(int)game->x]=1;
     game->perf_logic_fps=game->perf_display_fps=30.0f;
 }
 
@@ -784,8 +836,8 @@ void neon_maze_update(neon_maze_game_t *game)
         if(i==last_enemy&&enemy->ai_state!=NEON_ENEMY_ENGAGE&&
            enemy->ai_state!=NEON_ENEMY_ALERT){
             enemy->ai_state=NEON_ENEMY_SEARCH;
-            enemy->last_seen_x=NEON_MAZE_EXTRACT_X;
-            enemy->last_seen_y=NEON_MAZE_EXTRACT_Y;
+            enemy->last_seen_x=neon_maze_extract_x(game);
+            enemy->last_seen_y=neon_maze_extract_y(game);
             enemy->search_timer=180;
         }
         float to_x=game->x-enemy->x,to_y=game->y-enemy->y;
@@ -962,7 +1014,8 @@ neon_maze_fire_result_t neon_maze_fire(neon_maze_game_t *game)
         for(int i=0;i<NEON_MAZE_ENEMIES;++i){
             neon_maze_enemy_t *enemy=&game->enemies[i];if(!enemy->active)continue;
             float dx=enemy->x-prop->x,dy=enemy->y-prop->y;
-            if(dx*dx+dy*dy>6.25f)continue;
+            if(dx*dx+dy*dy>6.25f||
+               !line_clear(game,prop->x,prop->y,enemy->x,enemy->y))continue;
             enemy->hp=0;enemy->active=false;enemy->death_timer=20;
             ++game->kills;++killed;game->score+=100;
         }
