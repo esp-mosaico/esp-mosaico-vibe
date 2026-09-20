@@ -42,6 +42,15 @@ jobs:
           submodules: recursive
           persist-credentials: false
 
+      - name: Set up GSP bootstrap Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.12"
+      - name: Prepare pinned GSP host dependencies
+        run: |
+          python -m pip install --disable-pip-version-check esp-gsp-tools==0.1.1
+          python submodule/esp-mosaico-utils/tools/ci/prepare_gsp.py
+
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
@@ -68,17 +77,6 @@ jobs:
           path: .host-deps/cjson
           persist-credentials: false
 
-      - name: Check out LVGL for Recovery UI tests
-        if: runner.os == 'Linux'
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          repository: lvgl/lvgl
-          ref: 85aa60d18b3d5e5588d7b247abf90198f07c8a63 # v9.5.0
-          path: .host-deps/lvgl
-          persist-credentials: false
-      - name: Configure Recovery UI test dependency
-        if: runner.os == 'Linux'
-        run: echo "LVGL_COMPONENT_DIR=$GITHUB_WORKSPACE/.host-deps/lvgl" >> "$GITHUB_ENV"
       - name: Configure Recovery C test dependency
         if: runner.os == 'Linux'
         run: echo "CJSON_COMPONENT_DIR=$GITHUB_WORKSPACE/.host-deps/cjson" >> "$GITHUB_ENV"
@@ -188,6 +186,11 @@ jobs:
           "$IDF_PATH/install.sh" all
           echo "IDF_PATH=$IDF_PATH" >> "$GITHUB_ENV"
           echo "IDF_TOOLS_PATH=$IDF_TOOLS_PATH" >> "$GITHUB_ENV"
+
+      - name: Prepare pinned Recovery GSP compiler
+        run: |
+          python -m pip install --disable-pip-version-check esp-gsp-tools==0.1.1
+          python submodule/esp-mosaico-utils/tools/ci/prepare_gsp.py --compiler-only
 
       - name: Verify pinned ESP-IDF revision
         shell: bash
