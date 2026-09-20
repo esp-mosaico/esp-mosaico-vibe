@@ -2,7 +2,7 @@
 name: gsp-sim
 description: >
   Preview ESP-GSP apps on the PC with sim_bridge (default) plus the
-  standalone sim matching espressif/esp-gsp 1.2.0 from the Component Registry.
+  standalone sim matching espressif/esp-gsp 1.4.0 from the Component Registry.
   Use when authoring or debugging GSP JSON/UI or portable C UI logic
   for ESP-Mosaico before flashing.
 ---
@@ -18,7 +18,7 @@ bars, lists, text updates) stay frozen at JSON defaults.
 
 ## Pin
 
-- Runtime: **espressif/esp-gsp 1.2.0** from the ESP Component Registry
+- Runtime: **espressif/esp-gsp 1.4.0** from the ESP Component Registry
 - Bridge: `managed_components/espressif__esp-gsp/tools/sim_bridge`
 - Compiler: standalone `gspc` from `.gspc_version` (fetched by `fetch_gspc.py`)
 - Simulator: standalone `sim` matching the component version (`GSP_SIM_EXECUTABLE`)
@@ -26,7 +26,7 @@ bars, lists, text updates) stay frozen at JSON defaults.
 ## First-time setup
 
 The first `sim_bridge` preview or firmware build needs
-`espressif/esp-gsp==1.2.0` in the application's `managed_components/`.
+`espressif/esp-gsp==1.4.0` in the application's `managed_components/`.
 From the application directory (for example `projects/hello_world`):
 
 ```sh
@@ -110,7 +110,7 @@ New GSP apps copy `projects/hello_world/pc/` and point `gsp_add_backend`
 - Start from `projects/hello_world` for a sim + flash Hello World.
 - Put bind/timer/list/canvas logic in portable C (no IDF headers).
 - Always add `pc/CMakeLists.txt` so `run.py` defaults to `sim_bridge`.
-- Firmware depends on `espressif/esp-gsp` `==1.2.0` via `idf_component.yml`.
+- Firmware depends on `espressif/esp-gsp` `==1.4.0` via `idf_component.yml`.
 - First `sim_bridge` run or firmware build in a project: `idf.py reconfigure`
   in that project directory to pull the component.
 - Do not import Mosaic claw hub, Lua runtime, or HTML review site into vibe.

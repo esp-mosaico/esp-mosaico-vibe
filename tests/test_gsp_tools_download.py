@@ -23,3 +23,17 @@ def test_windows_release_extracts_and_reuses_exe(tmp_path):
         download.reset_mock()
         assert fetch.resolve_release(product="gspc", version="0.3.0", env_var="GSPC_EXECUTABLE", cache_dir=tmp_path) == executable
         download.assert_not_called()
+
+
+def test_upgrade_bootstrap_ignores_old_managed_component():
+    # Reconfigure resolves GSPC before the component manager installs the new
+    # runtime. The upgrade command must not select that old runtime's compiler.
+    for simulator, version in ((False, fetch.PINNED_GSPC_VERSION),
+                               (True, fetch.PINNED_GSP_VERSION)):
+        argv = ['fetch_gspc.py', '--pinned'] + (['--sim'] if simulator else [])
+        with patch.object(fetch.sys, 'argv', argv), \
+                patch.object(fetch, 'resolve_release', return_value=Path('/tmp/tool')) as release, \
+                patch.object(fetch, 'resolve_gsp_root', side_effect=AssertionError('stale component consulted')):
+            assert fetch.main() == 0
+        assert release.call_args.kwargs['version'] == version
+        assert release.call_args.kwargs['product'] == ('sim' if simulator else 'gspc')

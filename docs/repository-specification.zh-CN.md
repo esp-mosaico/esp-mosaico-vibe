@@ -89,7 +89,7 @@ Agent-Led 的默认主导关系是：**Agent 持续推进，用户在关键节�
 
 - 应用 UI 可选择 LVGL 或 GSP；满足产品需求时优先使用 GSP，并分别遵守所选框架的显示、触摸、内存和生命周期约束。
 - Recovery 固件通过 ESP-Iris 注册 RGB565 屏幕镜像后端，使开发者和 Agent 可在 Gateway 工作台观察恢复界面；具体应用按自身 UI 架构注册对应后端。
-- 使用 GSP 的应用在 PC 上通过 `tools/gsp-sim` 预览 480×480 场景并保存渲染效果；仿真运行时与组件仓库中的 **espressif/esp-gsp 1.2.0** 配套。
+- 使用 GSP 的应用在 PC 上通过 `tools/gsp-sim` 预览 480×480 场景并保存渲染效果；仿真运行时与组件仓库中的 **espressif/esp-gsp 1.4.0** 配套。
 - UI 调整与固件调试共享同一设备记录，减少人工往返。
 - 专项 Skill 可扩展视觉比较能力。具体应用负责定义验收基准。
 
@@ -208,7 +208,7 @@ ESP-Mosaico 真实设备
 | 测试固件 | `tests/firmware/` | 容纳集成和验收测试使用的可烧录设备固件 | 不作为用户应用模板 |
 | Recovery 工程 | `submodule/esp-mosaico-utils/esp-mosaico-recovery/firmware/recovery` | 提供固定的保留 Recovery、OTA writer 和系统恢复能力 | 与 `mosaico.py recover` 同版本维护，不承载普通应用代码 |
 | 应用恢复组件 | `components/esp_mosaico_app_recovery` | 提供正常应用进入 Recovery 和健康确认能力 | 仅供正常应用使用，不包含 OTA writer |
-| GSP 运行时 | `espressif/esp-gsp==1.2.0` | 通过 ESP 组件仓库拉取的远程组件 | 固件与仿真共用同一 pin |
+| GSP 运行时 | `espressif/esp-gsp==1.4.0` | 通过 ESP 组件仓库拉取的远程组件 | 固件与仿真共用同一 pin |
 | GSP 主机仿真 | `tools/gsp-sim/` | 用独立 `sim` 预览场景 JSON | 不引入 claw hub/runtime |
 | 板级子模块 | `submodule/esp-mosaico-bsp` | 提供 BSP、扩展模块、交互/网络组件和示例 | 按任务初始化和检查 |
 | 工具子模块 | `submodule/esp-mosaico-utils` | 提供统一 CLI、构建 runner、Recovery 固件和 ESP-Iris | 主仓库只固定一个 utilities gitlink；Recovery 与 Iris 来自同一 revision |
@@ -310,7 +310,7 @@ ESP-Mosaico 真实设备
 | FR-222 | UI 必须可通过 Gateway 观察 | ESP-Iris screen backend 可返回当前 UI 框架的活动 RGB565 帧，工作台能够显示与设备一致的画面 |
 | FR-223 | UI 迭代必须进入真机闭环 | 每个关键界面完成真机显示和交互验证 |
 | FR-224 | 调试证据必须支持多模态关联 | 同一次启动的日志、画面和设备状态可以关联 |
-| FR-225 | GSP 场景必须可在 PC 上用 pinned ESP-GSP 仿真 | `python3 tools/gsp-sim/run.py --headless --dump-ppm` 使用 `espressif/esp-gsp` 1.2.0 配套的独立 `sim` |
+| FR-225 | GSP 场景必须可在 PC 上用 pinned ESP-GSP 仿真 | `python3 tools/gsp-sim/run.py --headless --dump-ppm` 使用 `espressif/esp-gsp` 1.4.0 配套的独立 `sim` |
 
 ### 4.6 板级与扩展能力
 

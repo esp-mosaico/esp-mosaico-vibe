@@ -164,7 +164,7 @@ def main() -> int:
             raise SystemExit(
                 "espressif/esp-gsp is not installed. From the application "
                 "directory run `idf.py reconfigure` to pull "
-                "espressif/esp-gsp==1.2.0 from the ESP Component Registry, "
+                "espressif/esp-gsp==1.4.0 from the ESP Component Registry, "
                 "or set ESP_GSP_COMPONENT_DIR."
             )
         if sim_bridge_script(gsp_root).is_file():

@@ -1,6 +1,6 @@
 # ESP-Mosaico Hello World
 
-ESP-GSP 1.2.0 welcome application for the 480×480 ESP-Mosaico display, with
+ESP-GSP 1.4.0 welcome application for the 480×480 ESP-Mosaico display, with
 warm white, black, and orange styling inspired by https://mosaico.espressif.com/.
 Tap **Say hello** to increment the two-digit counter. The 100th tap reveals
 orange and black animated confetti with “100 · Hello, Maker!” for about three

@@ -70,7 +70,7 @@ install.
    and follow the constraints of the selected UI framework. For GSP UI work,
    load `skills/gsp-sim/SKILL.md` and preview with
    `python3 tools/gsp-sim/run.py` (sim_bridge by default) using
-   **espressif/esp-gsp 1.2.0** from the ESP Component Registry.
+   **espressif/esp-gsp 1.4.0** from the ESP Component Registry.
    Do not import Mosaic claw hub/runtime into this repository.
 4. Component repositories and supporting project material are Git submodules.
    Initialize and inspect only the submodules needed for the current task.

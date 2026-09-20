@@ -43,7 +43,7 @@ and read only the relevant `SKILL.md` guides.
 Applications may use LVGL or GSP. Prefer GSP when it fits the product, preview
 its 480×480 scenes on the PC, and preserve rendering evidence before flashing. Use
 [`tools/gsp-sim`](tools/gsp-sim/README.md) with the pinned
-**espressif/esp-gsp 1.2.0** component from the ESP Component Registry.
+**espressif/esp-gsp 1.4.0** component from the ESP Component Registry.
 Start from [`projects/hello_world`](projects/hello_world) for a GSP Hello World
 that runs in the PC simulator and on the device.
 
@@ -236,7 +236,7 @@ partitions without explicit user authorization.
 - `projects/hello_world` — single GSP reference application for new projects, PC simulation, and device installation.
 - `tests/firmware/` — flashable device firmware used only by integration and acceptance tests.
 - `components/esp_mosaico_app_recovery` — normal-application Recovery entry and health support.
-- `espressif/esp-gsp==1.2.0` — remote ESP-GSP component (device prebuilts via the registry; sim/gspc fetched separately).
+- `espressif/esp-gsp==1.4.0` — remote ESP-GSP component (device prebuilts via the registry; sim/gspc fetched separately).
 - `tools/gsp-sim/` — packs scenes and runs the standalone ESP-GSP `sim`.
 - `submodule/esp-mosaico-utils/` — pinned utilities monorepo containing the
   `mosaico-tools` CLI, `esp-mosaico-recovery` firmware and the sibling
