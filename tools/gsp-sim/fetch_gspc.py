@@ -17,8 +17,8 @@ from pathlib import Path
 TOOLS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TOOLS_DIR.parents[1]
 MANAGED_GSP = "espressif__esp-gsp"
-PINNED_GSP_VERSION = "1.2.0"
-PINNED_GSPC_VERSION = "0.3.0"
+PINNED_GSP_VERSION = "1.4.0"
+PINNED_GSPC_VERSION = "0.5.0"
 LICENSE_NAME = "THIRD_PARTY_LICENSES.txt"
 
 
@@ -40,7 +40,7 @@ def resolve_gsp_root(project_dir: Path | None = None) -> Path | None:
         candidates.append(_managed_gsp_dir(project))
         if project.name == "pc":
             candidates.append(_managed_gsp_dir(project.parent))
-    candidates.append(_managed_gsp_dir(REPO_ROOT / "projects" / "gsp_hello"))
+    candidates.append(_managed_gsp_dir(REPO_ROOT / "projects" / "hello_world"))
 
     seen: set[Path] = set()
     for candidate in candidates:
@@ -226,9 +226,21 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path)
     parser.add_argument("--sim", action="store_true", help="print the simulator path")
+    parser.add_argument(
+        "--pinned", action="store_true",
+        help="use workspace tool pins, ignoring an older installed component during upgrades",
+    )
     args = parser.parse_args()
     try:
-        path = resolve_sim(args.output_dir) if args.sim else resolve_gspc(args.output_dir)
+        if args.pinned:
+            path = resolve_release(
+                product="sim" if args.sim else "gspc",
+                version=PINNED_GSP_VERSION if args.sim else PINNED_GSPC_VERSION,
+                env_var="GSP_SIM_EXECUTABLE" if args.sim else "GSPC_EXECUTABLE",
+                cache_dir=args.output_dir,
+            )
+        else:
+            path = resolve_sim(args.output_dir) if args.sim else resolve_gspc(args.output_dir)
     except Exception as error:
         print(f"{'sim' if args.sim else 'gspc'}: {error}", file=sys.stderr)
         return 1

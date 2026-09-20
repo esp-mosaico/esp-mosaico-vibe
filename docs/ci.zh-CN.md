@@ -31,8 +31,8 @@ CI 的 Windows 命令还明确排除 4 个硬编码 POSIX 路径显示的测试�
 GitHub Actions 在面向 `main` 的 Pull Request、`main` push 和手动触发时运行：
 
 - 主机矩阵：原生 Linux、macOS、Windows，Python 3.8 与 3.12；执行工作区和工具测试。
-- 固件矩阵：Hello World、由 `project init` 生成的应用、GSP Hello World、ESP-Iris
-  验收固件和保留 Recovery。
+- 固件矩阵：GSP Hello World、由 `project init` 生成的应用、ESP-Iris 验收固件
+  和保留 Recovery。
 - GSP 检查：编译 PC bridge，并渲染一张 480×480 的无界面帧。
 
 固件任务使用 GitHub 托管的 Ubuntu runner，安装工作流固定 revision 的 ESP-IDF

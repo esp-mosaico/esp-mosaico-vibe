@@ -4,8 +4,10 @@
 #include "esp_gsp.h"
 
 typedef struct {
-    int32_t load;
+    uint32_t count;
     void *timer;
+    unsigned celebration_tick;
+    unsigned confetti_frame;
     esp_gsp_err_t last_error;
 } hello_ui_t;
 

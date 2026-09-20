@@ -2,7 +2,7 @@
 name: gsp-sim
 description: >
   Preview ESP-GSP apps on the PC with sim_bridge (default) plus the
-  standalone sim matching espressif/esp-gsp 1.2.0 from the Component Registry.
+  standalone sim matching espressif/esp-gsp 1.4.0 from the Component Registry.
   Use when authoring or debugging GSP JSON/UI or portable C UI logic
   for ESP-Mosaico before flashing.
 ---
@@ -18,7 +18,7 @@ bars, lists, text updates) stay frozen at JSON defaults.
 
 ## Pin
 
-- Runtime: **espressif/esp-gsp 1.2.0** from the ESP Component Registry
+- Runtime: **espressif/esp-gsp 1.4.0** from the ESP Component Registry
 - Bridge: `managed_components/espressif__esp-gsp/tools/sim_bridge`
 - Compiler: standalone `gspc` from `.gspc_version` (fetched by `fetch_gspc.py`)
 - Simulator: standalone `sim` matching the component version (`GSP_SIM_EXECUTABLE`)
@@ -26,8 +26,8 @@ bars, lists, text updates) stay frozen at JSON defaults.
 ## First-time setup
 
 The first `sim_bridge` preview or firmware build needs
-`espressif/esp-gsp==1.2.0` in the application's `managed_components/`.
-From the application directory (for example `projects/gsp_hello`):
+`espressif/esp-gsp==1.4.0` in the application's `managed_components/`.
+From the application directory (for example `projects/hello_world`):
 
 ```sh
 idf.py reconfigure
@@ -41,7 +41,7 @@ project. Scene-only `--dump-ppm` / `--scene-only` does not need this.
 ## Run
 
 From the vibe repository root. `run.py` uses `sim_bridge` whenever the
-project has `pc/CMakeLists.txt` (gsp_hello does):
+project has `pc/CMakeLists.txt` (hello_world does):
 
 ```sh
 python3 tools/gsp-sim/run.py --interactive
@@ -49,16 +49,16 @@ python3 tools/gsp-sim/run.py projects/<name>/ui/main.json --interactive
 python3 tools/gsp-sim/run.py --headless
 ```
 
-The default scene is `projects/gsp_hello/ui/main.json`. Interactive mode
+The default scene is `projects/hello_world/ui/main.json`. Interactive mode
 opens the official local browser preview (listen URL is printed as
 `Preview: http://127.0.0.1:<port>/`).
 
 Call the component runner directly when you need extra bridge flags:
 
 ```sh
-python3 projects/gsp_hello/managed_components/espressif__esp-gsp/tools/sim_bridge/run.py \
-  --project projects/gsp_hello/pc \
-  --component-dir projects/gsp_hello/managed_components/espressif__esp-gsp \
+python3 projects/hello_world/managed_components/espressif__esp-gsp/tools/sim_bridge/run.py \
+  --project projects/hello_world/pc \
+  --component-dir projects/hello_world/managed_components/espressif__esp-gsp \
   --gspc "$(python3 tools/gsp-sim/fetch_gspc.py)" \
   --host "$(python3 tools/gsp-sim/fetch_gspc.py --sim)"
 ```
@@ -69,7 +69,7 @@ Use only for a static screenshot or extra `sim` flags (`--tap`, `--drag`).
 This packs JSON and runs `sim --bundle` with **no** native backend:
 
 ```sh
-python3 tools/gsp-sim/run.py --headless --dump-ppm /tmp/gsp-hello.ppm
+python3 tools/gsp-sim/run.py --headless --dump-ppm /tmp/hello-world.ppm
 python3 tools/gsp-sim/run.py --interactive --scene-only
 python3 tools/gsp-sim/run.py projects/<name>/ui/main.json --interactive -- --drag 80 360 400 360
 ```
@@ -85,11 +85,11 @@ or extra flags after `--` all skip `sim_bridge`.
 3. Official `sim` starts with `--backend-enable --backend-required`.
 4. Backend connects over loopback TCP, runs `gsp_bridge_app_init`, and
    pumps timers/callbacks via `gsp_sim_bridge_poll`.
-5. Bind/component writes (`gsp_hello_load_set_value`, …) update the live
+5. Bind/component writes (`gsp_hello_count_set_text`, …) update the live
    preview. Rendering stays in `sim`.
 
 Keep display/touch/FreeRTOS/Iris out of the Backend. Share one portable
-UI file between device and PC, as `projects/gsp_hello/main/hello_ui.c`
+UI file between device and PC, as `projects/hello_world/main/hello_ui.c`
 does. `app_main` only does hardware + `hello_ui_init`; `platform_pc.c`
 only implements:
 
@@ -100,17 +100,17 @@ void gsp_bridge_app_deinit(esp_gsp_handle_t ui);
 
 Init must return. A blocking loop prevents event dispatch.
 
-New GSP apps copy `projects/gsp_hello/pc/` and point `gsp_add_backend`
+New GSP apps copy `projects/hello_world/pc/` and point `gsp_add_backend`
 `SOURCES` / `SCENES` at that project's portable `.c` and `ui/main.json`.
 
 ## Authoring rules
 
 - Scene size **480×480**, RGB565, matching the CO5300 panel.
 - Keep JSON under the application, typically `projects/<name>/ui/`.
-- Start from `projects/gsp_hello` for a sim + flash Hello World.
+- Start from `projects/hello_world` for a sim + flash Hello World.
 - Put bind/timer/list/canvas logic in portable C (no IDF headers).
 - Always add `pc/CMakeLists.txt` so `run.py` defaults to `sim_bridge`.
-- Firmware depends on `espressif/esp-gsp` `==1.2.0` via `idf_component.yml`.
+- Firmware depends on `espressif/esp-gsp` `==1.4.0` via `idf_component.yml`.
 - First `sim_bridge` run or firmware build in a project: `idf.py reconfigure`
   in that project directory to pull the component.
 - Do not import Mosaic claw hub, Lua runtime, or HTML review site into vibe.
@@ -120,8 +120,11 @@ New GSP apps copy `projects/gsp_hello/pc/` and point `gsp_add_backend`
 
 1. `run.py --interactive` (or `--headless` without `--dump-ppm`) builds the
    Backend and prints `Preview:` / keeps the process running. Widgets
-   driven by C timers or bind writes must change, not stay at JSON defaults.
+   driven by C callbacks or timers must change, not stay at JSON defaults.
+   In Hello World, click Say hello and verify the count increases.
 2. `run.py --headless --dump-ppm` stays scene-only, exits 0, and writes a
    480×480 PPM.
 3. The same scene JSON is what firmware will pack with the pinned ESP-GSP.
-4. True-device validation still uses `python mosaico.py iris app-update` after Recovery.
+4. True-device validation uses `python mosaico.py iris system-update` for a
+   first install or changed UI assets, after Recovery. Use `iris app-update`
+   only for code-only changes with matching partitions and UI assets.

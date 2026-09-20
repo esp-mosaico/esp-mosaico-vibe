@@ -9,7 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 HOST = Path(__file__).parent / "gsp_mirror_host"
-MIRROR = ROOT / "projects" / "gsp_hello" / "main" / "iris_screen_mirror.c"
+MIRROR = ROOT / "projects" / "hello_world" / "main" / "iris_screen_mirror.c"
 MAIN = MIRROR.parent
 
 

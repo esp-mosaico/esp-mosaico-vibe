@@ -2,9 +2,9 @@ cmake_minimum_required(VERSION 3.16)
 set(mosaico_root "${CMAKE_CURRENT_LIST_DIR}/../../..")
 set(SDKCONFIG "${CMAKE_BINARY_DIR}/sdkconfig")
 set(SDKCONFIG_DEFAULTS
-    "${mosaico_root}/projects/gsp_hello/sdkconfig.defaults;${mosaico_root}/projects/gsp_hello/sdkconfig.application.defaults;${CMAKE_CURRENT_LIST_DIR}/sdkconfig.defaults")
+    "${mosaico_root}/projects/hello_world/sdkconfig.defaults;${mosaico_root}/projects/hello_world/sdkconfig.application.defaults;${CMAKE_CURRENT_LIST_DIR}/sdkconfig.defaults")
 set(EXTRA_COMPONENT_DIRS
-    "${mosaico_root}/projects/gsp_hello/main"
+    "${mosaico_root}/projects/hello_world/main"
     "${mosaico_root}/components/esp_mosaico_app_recovery")
 set(MOSAICO_IRIS_BUDGET_FIXTURE ON)
 if(NOT GSPC_EXECUTABLE)

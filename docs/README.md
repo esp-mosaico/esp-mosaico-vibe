@@ -17,8 +17,8 @@
 
 ## 专项与组件资料
 
-- UI 参考：[GSP Hello World](../projects/gsp_hello/README.md)、
-  [GSP 仿真工具](../tools/gsp-sim/README.md)、[Hello World](../projects/hello_world/README.md)。
+- UI 参考：[GSP Hello World](../projects/hello_world/README.md)、
+  [GSP 仿真工具](../tools/gsp-sim/README.md)。
 - 工具与恢复：[产品 CLI](../submodule/esp-mosaico-utils/mosaico-tools/README.md)、
   [Recovery 固件](../submodule/esp-mosaico-utils/esp-mosaico-recovery/firmware/recovery/README.md)、
   [组件边界](../submodule/esp-mosaico-utils/docs/component-boundaries.md)。
@@ -28,6 +28,15 @@
 
 组件链接依赖对应子模块已经初始化。API、协议和模板格式随所属组件维护；本目录
 保留工作区集成与操作流程，引用组件文档，不复制其完整规格。
+
+## 设计与验证记录
+
+以下资料保留对应版本的设计与实测背景，不代替现行使用指南：
+
+- Hello World：[设计概念](design/gsp-hello/concept-v1.md)、
+  [实现与验证](design/gsp-hello/implementation.md)。
+- Recovery Download Ideas：[延迟分析](download-ideas-pairing-latency-analysis.zh-CN.md)、
+  [预取与压缩验证](download-ideas-prefetch-validation.zh-CN.md)。
 
 ## 维护约定
 

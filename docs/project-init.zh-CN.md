@@ -18,11 +18,11 @@ python mosaico.py project init my_app
 
 ## 选择参考工程
 
-`project init` 默认使用工作区配置的 Hello World 模板，适合一般设备应用。
-GSP UI 可从 [GSP Hello World](../projects/gsp_hello/README.md)开始，先运行
-[PC 仿真](../tools/gsp-sim/README.md)再验证设备。游戏项目按
-[游戏开发指南](game-development.zh-CN.md)选择玩法和资源参考。
-这两类参考工程不会因本文的默认 `project init` 命令自动成为生成模板。
+`project init` 默认使用工作区配置的
+[GSP Hello World](../projects/hello_world/README.md) 模板，同时生成设备应用和 PC 后端。
+先运行[PC 仿真](../tools/gsp-sim/README.md)再验证设备。游戏项目按
+[游戏开发指南](game-development.zh-CN.md)选择玩法和资源参考，默认 `project init`
+不会自动选择游戏模板。
 
 ## 预览与自动化
 
@@ -42,7 +42,7 @@ python mosaico.py project init my_app --json
 
 ## 工程内容
 
-本工作区的 Hello World 描述生成以下八个源文件：
+本工作区的 Hello World 描述生成完整的 GSP 应用、PC 后端和字体资源：
 
 ```text
 projects/my_app/
@@ -51,16 +51,37 @@ projects/my_app/
 ├── partitions.csv
 ├── sdkconfig.defaults
 ├── sdkconfig.application.defaults
-└── main/
-    ├── CMakeLists.txt
-    ├── idf_component.yml
-    └── main.c
+├── main/
+│   ├── CMakeLists.txt
+│   ├── idf_component.yml
+│   ├── main.c
+│   ├── hello_ui.c / hello_ui.h
+│   ├── board_display.c / board_display.h
+│   ├── iris_screen_mirror.c / iris_screen_mirror.h
+│   └── ui_bundle.c / ui_bundle.h
+├── pc/
+│   ├── CMakeLists.txt
+│   └── platform_pc.c
+└── ui/
+    ├── main.json
+    └── fonts/  (DejaVu regular、bold 和许可证)
 ```
 
-生成时调整 CMake 工程名、日志 TAG、USB 产品名称和 README 安装路径；初始界面
-继续显示 `Hello World!`，应用版本沿用模板。分区表、ESP-IDF 版本约束、ESP-Iris
-接入和保留 Recovery 配置继续使用参考工程内容。普通应用保留
+生成时调整 CMake 工程名、日志 TAG、USB 产品名称、工具依赖路径和 README 安装路径；
+初始界面为橙黑暖白风格的 Hello World，点击 Say hello 后计数递增；第 100 次
+显示彩纸动画，约 3 秒后回到 00，庆祝期间忽略额外点击。
+场景与交互 C 代码由 PC 仿真和真机共用，应用版本沿用模板。分区表、ESP-IDF 版本约束、
+ESP-Iris 接入和保留 Recovery 配置继续使用参考工程内容。普通应用保留
 `esp_mosaico_app_recovery` 和 `iris_ota_support_start()`，OTA writer 留在 Recovery。
+
+在应用目录完成 `idf.py reconfigure` 后，可在工作区根目录预览：
+
+```sh
+python3 tools/gsp-sim/run.py --interactive projects/my_app/ui/main.json
+```
+
+首次安装或修改场景、字体、图片时必须使用 `iris system-update`，同时安装 `ui_apps`。
+只有分区表和 UI 资源匹配时，C 代码变更才可使用 `iris app-update`。
 
 命令不会复制构建目录、下载的组件、`sdkconfig` 或 `dependencies.lock`。模板
 源文件和工作区的 `default_project` 保持不变。写入失败会清理本次创建的文件和

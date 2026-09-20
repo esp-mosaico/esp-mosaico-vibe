@@ -1,54 +1,54 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "board_display.h"
 #include "bsp/esp_mosaico.h"
-#include "esp_check.h"
+#include "esp_gsp_esp_lcd.h"
 #include "esp_iris.h"
 #include "esp_log.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
+#include "hello_ui.h"
+#include "iris_screen_mirror.h"
 #include "iris_ota_support.h"
-#include "lvgl.h"
 #include "nvs_flash.h"
-
-#define HELLO_LOG_PERIOD_MS 5000
+#include "ui_bundle.h"
 
 static const char *TAG = "hello_world";
-
-static esp_err_t hello_world_ui_start(void)
-{
-    lv_display_t *display = bsp_display_start();
-    ESP_RETURN_ON_FALSE(display, ESP_FAIL, TAG, "start display");
-    ESP_RETURN_ON_FALSE(bsp_display_lock(-1), ESP_FAIL, TAG, "lock display");
-
-    lv_obj_t *screen = lv_display_get_screen_active(display);
-    lv_obj_clean(screen);
-    lv_obj_set_style_bg_color(screen, lv_color_hex(0xF6F6F3), LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_clear_flag(screen, LV_OBJ_FLAG_SCROLLABLE);
-
-    lv_obj_t *label = lv_label_create(screen);
-    lv_label_set_text(label, "Hello World!");
-    lv_obj_set_style_text_font(label, &lv_font_montserrat_48, LV_PART_MAIN);
-    lv_obj_set_style_text_color(label, lv_color_hex(0x101010), LV_PART_MAIN);
-    lv_obj_center(label);
-
-    bsp_display_unlock();
-    ESP_LOGI(TAG, "Hello World UI ready at %dx%d", BSP_LCD_H_RES,
-             BSP_LCD_V_RES);
-    return ESP_OK;
-}
+static hello_ui_t s_hello;
 
 void app_main(void)
 {
     ESP_ERROR_CHECK_WITHOUT_ABORT(esp_iris_boot_probe());
     ESP_ERROR_CHECK(nvs_flash_init());
-    ESP_ERROR_CHECK(hello_world_ui_start());
 
-    /* Start ESP-Iris and expose the enter-Recovery RPC before the main loop. */
+    /* Keep Recovery reachable even when the external UI image is absent or
+     * invalid. */
     iris_ota_support_start();
 
-    while (true) {
-        ESP_LOGI(TAG, "Hello World!");
-        vTaskDelay(pdMS_TO_TICKS(HELLO_LOG_PERIOD_MS));
+    esp_gsp_config_t app_config;
+    const esp_err_t bundle_err = ui_bundle_open(&app_config);
+    if (bundle_err != ESP_OK) {
+        ESP_LOGE(TAG,
+                 "GSP UI unavailable (0x%x); ESP-Iris Recovery RPC remains active",
+                 bundle_err);
+        return;
     }
+
+    esp_display_present_target_config_t display;
+    ESP_ERROR_CHECK(board_display_init(&display));
+
+    esp_lcd_touch_handle_t touch = NULL;
+    ESP_ERROR_CHECK(board_touch_init(&touch));
+
+    esp_gsp_esp_lcd_config_t lcd = ESP_GSP_ESP_LCD_CONFIG_INIT();
+    lcd.display = display;
+    lcd.touch = touch;
+
+    ESP_ERROR_CHECK(iris_screen_mirror_init());
+
+    esp_gsp_handle_t ui;
+    ESP_ERROR_CHECK(esp_gsp_esp_lcd_start(&app_config, &lcd, &ui));
+    ESP_ERROR_CHECK(iris_screen_mirror_attach(ui));
+    ESP_ERROR_CHECK(hello_ui_init(ui, &s_hello));
+
+    ESP_LOGI(TAG, "GSP Hello World ready at %dx%d RGB565",
+             BSP_LCD_H_RES, BSP_LCD_V_RES);
 }

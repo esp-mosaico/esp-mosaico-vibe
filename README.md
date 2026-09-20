@@ -19,7 +19,8 @@ git submodule update --init submodule/esp-mosaico-utils
 python mosaico.py project init my_app
 ```
 
-The command creates `projects/my_app` from [Hello World](projects/hello_world/README.md).
+The command creates `projects/my_app` from the shared PC/device
+[GSP Hello World](projects/hello_world/README.md) reference.
 It preserves Recovery integration, refuses existing destinations, and leaves
 the default project unchanged. Use `--dry-run` to preview the generated files.
 
@@ -47,9 +48,9 @@ and [CLI reference](docs/mosaico-cli.zh-CN.md) for details.
 
 ## Develop and observe
 
-- For device UI, start with [GSP Hello World](projects/gsp_hello/README.md) when
+- For device UI, start with [GSP Hello World](projects/hello_world/README.md) when
   GSP fits the application. [GSP simulation](tools/gsp-sim/README.md) uses
-  `espressif/esp-gsp` 1.2.0 and supports shared PC/device UI logic.
+  `espressif/esp-gsp` 1.4.0 and supports shared PC/device UI logic.
 - For Raylib-compatible games, follow the [game development guide](docs/game-development.zh-CN.md)
   for reference projects, shared C rendering, and deterministic Host replay.
 - For ongoing device observation, run `python mosaico.py iris run --project projects/my_app`

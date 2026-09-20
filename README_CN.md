@@ -18,7 +18,8 @@ git submodule update --init submodule/esp-mosaico-utils
 python mosaico.py project init my_app
 ```
 
-命令以 [Hello World](projects/hello_world/README.md) 为模板创建 `projects/my_app`，
+命令以 PC/设备共用的 [GSP Hello World](projects/hello_world/README.md) 为模板
+创建 `projects/my_app`，
 保留 Recovery 接入，拒绝覆盖已有目录，不更改默认工程。使用 `--dry-run` 预览
 将生成的文件。
 
@@ -44,8 +45,8 @@ python mosaico.py iris logs --project projects/my_app --timeout 20
 
 ## 开发与观察
 
-- 设备 UI：适合使用 GSP 时，从 [GSP Hello World](projects/gsp_hello/README.md)
-  开始。[GSP 仿真工具](tools/gsp-sim/README.md) 使用 `espressif/esp-gsp` 1.2.0，
+- 设备 UI：适合使用 GSP 时，从 [GSP Hello World](projects/hello_world/README.md)
+  开始。[GSP 仿真工具](tools/gsp-sim/README.md) 使用 `espressif/esp-gsp` 1.4.0，
   支持 PC 与设备共享 UI 逻辑。
 - Raylib 兼容游戏：按[游戏开发指南](docs/game-development.zh-CN.md)选择参考项目，
   使用同源 C 绘制和确定性 Host 回放。

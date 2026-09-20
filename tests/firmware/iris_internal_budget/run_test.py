@@ -71,7 +71,7 @@ async def exercise(args, context, url, initial):
         async def check_rpc():
             if args.production_check:
                 value = json.loads(await rpc(1, service=0x1200))
-                return value.get("project") == "gsp_hello" and value.get("mode") == "normal"
+                return value.get("project") == "hello_world" and value.get("mode") == "normal"
             return await rpc(1, payload) == payload
         for _ in range(args.rpc_count):
             if not await check_rpc():
@@ -182,7 +182,7 @@ def main():
     if gateway.connection_args[0] != "--url":
         raise RuntimeError("this fixture requires the managed loopback Gateway")
     device = select_device(connected_devices(context, gateway), args.device_id)
-    expected = "gsp_hello" if args.production_check else "iris_internal_budget"
+    expected = "hello_world" if args.production_check else "iris_internal_budget"
     if device.get("project_name") != expected:
         raise RuntimeError(f"install {expected} with mosaico.py first")
     return asyncio.run(exercise(args, context, gateway.connection_args[1], device))

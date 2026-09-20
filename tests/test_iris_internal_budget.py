@@ -10,7 +10,7 @@ spec.loader.exec_module(ledger)
 
 
 def test_normal_profiles_bound_internal_buffers():
-    for name in ("hello_world", "gsp_hello"):
+    for name in ("hello_world",):
         values = dict(line.split("=", 1) for line in
                       (ROOT / "projects" / name / "sdkconfig.defaults").read_text().splitlines()
                       if line.startswith("CONFIG_") and "=" in line)
@@ -25,10 +25,10 @@ def test_normal_profiles_bound_internal_buffers():
 
 
 def test_fixture_preserves_partitions_and_uses_real_ui():
-    assert (FIXTURE / "partitions.csv").read_text() == (ROOT / "projects/gsp_hello/partitions.csv").read_text()
+    assert (FIXTURE / "partitions.csv").read_text() == (ROOT / "projects/hello_world/partitions.csv").read_text()
     cmake = (FIXTURE / "CMakeLists.txt").read_text()
-    assert 'projects/gsp_hello/main' in cmake
-    assert 'projects/gsp_hello/sdkconfig.application.defaults' in cmake
+    assert 'projects/hello_world/main' in cmake
+    assert 'projects/hello_world/sdkconfig.application.defaults' in cmake
 
 
 def test_map_ledger_counts_only_live_internal_input_sections():
