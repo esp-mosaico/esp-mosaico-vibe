@@ -582,6 +582,13 @@ static void draw_rainforest_texture_flow(const underwater_world_t *world,
         {{4.0f,.750f},{4.0f,.820f}},
         {{8.0f,.755f},{8.0f,.790f}}
     };
+    static const rainforest_flow_slice_t waterfall[]={
+        {{264.0f,.308f},{270.0f,.308f}},
+        {{265.0f,.356f},{272.0f,.356f}},
+        {{266.0f,.407f},{274.0f,.407f}},
+        {{267.0f,.458f},{276.0f,.458f}},
+        {{268.0f,.500f},{277.0f,.500f}}
+    };
     draw_rainforest_flow_mesh(world,rainforest,pool,
         (int)(sizeof(pool)/sizeof(pool[0])),0.0f,.28f,1.30f);
     draw_rainforest_flow_mesh(world,rainforest,left_stream,
@@ -592,6 +599,8 @@ static void draw_rainforest_texture_flow(const underwater_world_t *world,
         (int)(sizeof(lower_stream_a)/sizeof(lower_stream_a[0])),3.0f,.08f,1.20f);
     draw_rainforest_flow_mesh(world,rainforest,lower_stream_b,
         (int)(sizeof(lower_stream_b)/sizeof(lower_stream_b[0])),4.0f,.08f,1.20f);
+    draw_rainforest_flow_mesh(world,rainforest,waterfall,
+        (int)(sizeof(waterfall)/sizeof(waterfall[0])),5.2f,.08f,3.20f);
 }
 
 /* One entry, then ripples. A polyline across the still pool reads as a worm. */
