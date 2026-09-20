@@ -9,6 +9,10 @@ include("${CMAKE_CURRENT_LIST_DIR}/../../cmake/raylib_lite_engine.cmake")
 mosaico_game_sdk_configure_gsp_compiler()
 mosaico_game_sdk_add_components(RAYLIB AUDIO SAVE)
 include("${CMAKE_CURRENT_LIST_DIR}/../../cmake/mosaico_application.cmake")
+# The retained Recovery layout leaves 0x6000 bytes for the second-stage
+# bootloader. Keep the splash component available to the application, but do
+# not pull its LCD/SPI renderer into this application's bootloader.
+set(MOSAICO_BOOT_SPLASH_IN_BOOTLOADER OFF)
 include("${CMAKE_CURRENT_LIST_DIR}/../../cmake/mosaico_idf_project.cmake")
 project(last_zone_extraction VERSION 0.1.0)
 include(../../cmake/system_update.cmake)

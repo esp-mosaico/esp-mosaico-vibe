@@ -22,7 +22,6 @@ typedef struct {
     const char *name;
     Color sky;
     Color haze;
-    Color world_grade;
     Color accent;
     Color accent_dim;
 } neon_maze_look_t;
@@ -43,15 +42,15 @@ typedef struct {
 } neon_maze_wall_sample_t;
 
 static const neon_maze_look_t s_looks[NEON_MAZE_LAYOUTS] = {
-    {"DOCK", {255, 255, 255, 255}, {150, 174, 184, 255}, {62, 152, 184, 8},
+    {"DOCK", {255, 255, 255, 255}, {150, 174, 184, 255},
      {72, 255, 214, 255}, {72, 255, 214, 92}},
-    {"DEPOT", {255, 255, 255, 255}, {186, 142, 88, 255}, {214, 92, 28, 34},
+    {"DEPOT", {255, 255, 255, 255}, {186, 142, 88, 255},
      {255, 168, 64, 255}, {255, 168, 64, 100}},
-    {"COMMAND", {255, 255, 255, 255}, {90, 116, 154, 255}, {36, 70, 138, 40},
+    {"COMMAND", {255, 255, 255, 255}, {90, 116, 154, 255},
      {96, 170, 255, 255}, {96, 170, 255, 100}},
-    {"GHOST", {255, 255, 255, 255}, {112, 136, 112, 255}, {42, 94, 54, 32},
+    {"GHOST", {255, 255, 255, 255}, {112, 136, 112, 255},
      {140, 220, 160, 255}, {140, 220, 160, 100}},
-    {"RUN", {255, 255, 255, 255}, {166, 96, 122, 255}, {174, 42, 92, 34},
+    {"RUN", {255, 255, 255, 255}, {166, 96, 122, 255},
      {255, 92, 140, 255}, {255, 92, 140, 100}},
 };
 
@@ -172,12 +171,6 @@ static void draw_panorama(const neon_maze_game_t *game, MosaicoAtlas environment
             layout_look(game)->sky);
         consumed += chunk;
     }
-}
-
-static void draw_world_grade(const neon_maze_game_t *game)
-{
-    Color grade = layout_look(game)->world_grade;
-    if (grade.a) DrawRectangle(0, 0, 480, 480, grade);
 }
 
 static void project_sprite(const neon_maze_game_t *game, float world_x, float world_y,
@@ -1198,8 +1191,7 @@ void neon_maze_view_render(const neon_maze_game_t *game, MosaicoAtlas enemies,
     int64_t t4 = view_now_us();
     draw_walls(game, materials, s_material_frames);
     int64_t t5 = view_now_us();
-    draw_world_grade(game);
-    int64_t t6 = view_now_us();
+    int64_t t6 = t5;
     draw_extract(game);
     draw_pickups(game, props);
     draw_enemies(game, enemies);

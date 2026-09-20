@@ -36,6 +36,7 @@ static neon_maze_phase_t s_previous_phase;
 static uint8_t s_second_strength;
 static uint16_t s_second_duration_ms;
 
+#define TAG "last_zone"
 #define JOYSTICK_RADIUS 58
 
 extern const uint8_t _binary_enemy_atlas_start[], _binary_enemy_atlas_end[];
@@ -61,78 +62,62 @@ extern const uint8_t _binary_neon_explode_start[], _binary_neon_explode_end[];
 extern const uint8_t _binary_neon_extract_start[], _binary_neon_extract_end[];
 extern const uint8_t _binary_neon_music_start[], _binary_neon_music_end[];
 
-static esp_err_t before_display(void)
+static esp_err_t embed(const char *name, const uint8_t *start, const uint8_t *end)
 {
     esp_err_t err = mosaico_game_asset_register_memory(
-        "enemy.atlas", _binary_enemy_atlas_start,
-        (size_t)(_binary_enemy_atlas_end - _binary_enemy_atlas_start));
-    if (err != ESP_OK) return err;
-    err = mosaico_game_asset_register_memory("rifle.sound", _binary_neon_rifle_start,
-        (size_t)(_binary_neon_rifle_end - _binary_neon_rifle_start));
-    if (err != ESP_OK) return err;
-    err = mosaico_game_asset_register_memory("bolt.sound", _binary_neon_bolt_start,
-        (size_t)(_binary_neon_bolt_end - _binary_neon_bolt_start));
-    if (err != ESP_OK) return err;
-    err = mosaico_game_asset_register_memory("impact.sound", _binary_neon_impact_start,
-        (size_t)(_binary_neon_impact_end - _binary_neon_impact_start));
-    if (err != ESP_OK) return err;
-    err = mosaico_game_asset_register_memory("confirm.sound", _binary_neon_confirm_start,
-        (size_t)(_binary_neon_confirm_end - _binary_neon_confirm_start));
-    if (err != ESP_OK) return err;
-    err = mosaico_game_asset_register_memory("hurt.sound", _binary_neon_hurt_start,
-        (size_t)(_binary_neon_hurt_end - _binary_neon_hurt_start));
-    if (err != ESP_OK) return err;
-    err = mosaico_game_asset_register_memory("empty.sound", _binary_neon_empty_start,
-        (size_t)(_binary_neon_empty_end - _binary_neon_empty_start));
-    if (err != ESP_OK) return err;
-    err = mosaico_game_asset_register_memory("pickup.sound", _binary_neon_pickup_start,
-        (size_t)(_binary_neon_pickup_end - _binary_neon_pickup_start));
-    if (err != ESP_OK) return err;
-    err = mosaico_game_asset_register_memory("alert.sound", _binary_neon_alert_start,
-        (size_t)(_binary_neon_alert_end - _binary_neon_alert_start));
-    if (err != ESP_OK) return err;
-    err = mosaico_game_asset_register_memory("step_l.sound", _binary_neon_step_l_start,
-        (size_t)(_binary_neon_step_l_end - _binary_neon_step_l_start));
-    if (err != ESP_OK) return err;
-    err = mosaico_game_asset_register_memory("step_r.sound", _binary_neon_step_r_start,
-        (size_t)(_binary_neon_step_r_end - _binary_neon_step_r_start));
-    if (err != ESP_OK) return err;
-    err = mosaico_game_asset_register_memory("explode.sound", _binary_neon_explode_start,
-        (size_t)(_binary_neon_explode_end - _binary_neon_explode_start));
-    if (err != ESP_OK) return err;
-    err = mosaico_game_asset_register_memory("extract.sound", _binary_neon_extract_start,
-        (size_t)(_binary_neon_extract_end - _binary_neon_extract_start));
-    if (err != ESP_OK) return err;
-    err = mosaico_game_asset_register_memory("music.sound", _binary_neon_music_start,
-        (size_t)(_binary_neon_music_end - _binary_neon_music_start));
-    if (err != ESP_OK) return err;
-    err = mosaico_game_asset_register_memory("controls.atlas", _binary_controls_atlas_start,
-        (size_t)(_binary_controls_atlas_end - _binary_controls_atlas_start));
-    if (err != ESP_OK) return err;
-    err = mosaico_game_asset_register_memory("weapon.atlas", _binary_weapon_atlas_start,
-        (size_t)(_binary_weapon_atlas_end - _binary_weapon_atlas_start));
-    if (err != ESP_OK) return err;
-    err = mosaico_game_asset_register_memory(
-        "materials.atlas", _binary_materials_atlas_start,
-        (size_t)(_binary_materials_atlas_end - _binary_materials_atlas_start));
-    if (err != ESP_OK) return err;
-    err = mosaico_game_asset_register_memory(
-        "props.atlas", _binary_props_atlas_start,
-        (size_t)(_binary_props_atlas_end - _binary_props_atlas_start));
-    if (err != ESP_OK) return err;
-    err = mosaico_game_asset_register_memory(
-        "environment.atlas", _binary_environment_atlas_start,
-        (size_t)(_binary_environment_atlas_end - _binary_environment_atlas_start));
-    if (err != ESP_OK) return err;
+        name, start, (size_t)(end - start));
+    if (err != ESP_OK)
+        ESP_LOGE(TAG, "embed %s failed: %s", name, esp_err_to_name(err));
+    return err;
+}
+
+static esp_err_t before_display(void)
+{
+    const struct {
+        const char *name;
+        const uint8_t *start;
+        const uint8_t *end;
+    } assets[] = {
+        {"enemy.atlas", _binary_enemy_atlas_start, _binary_enemy_atlas_end},
+        {"rifle.sound", _binary_neon_rifle_start, _binary_neon_rifle_end},
+        {"bolt.sound", _binary_neon_bolt_start, _binary_neon_bolt_end},
+        {"impact.sound", _binary_neon_impact_start, _binary_neon_impact_end},
+        {"confirm.sound", _binary_neon_confirm_start, _binary_neon_confirm_end},
+        {"hurt.sound", _binary_neon_hurt_start, _binary_neon_hurt_end},
+        {"empty.sound", _binary_neon_empty_start, _binary_neon_empty_end},
+        {"pickup.sound", _binary_neon_pickup_start, _binary_neon_pickup_end},
+        {"alert.sound", _binary_neon_alert_start, _binary_neon_alert_end},
+        {"step_l.sound", _binary_neon_step_l_start, _binary_neon_step_l_end},
+        {"step_r.sound", _binary_neon_step_r_start, _binary_neon_step_r_end},
+        {"explode.sound", _binary_neon_explode_start, _binary_neon_explode_end},
+        {"extract.sound", _binary_neon_extract_start, _binary_neon_extract_end},
+        {"music.sound", _binary_neon_music_start, _binary_neon_music_end},
+        {"controls.atlas", _binary_controls_atlas_start, _binary_controls_atlas_end},
+        {"weapon.atlas", _binary_weapon_atlas_start, _binary_weapon_atlas_end},
+        {"materials.atlas", _binary_materials_atlas_start, _binary_materials_atlas_end},
+        {"props.atlas", _binary_props_atlas_start, _binary_props_atlas_end},
+        {"environment.atlas", _binary_environment_atlas_start,
+         _binary_environment_atlas_end},
+    };
+    for (size_t i = 0; i < sizeof(assets) / sizeof(assets[0]); ++i) {
+        esp_err_t err = embed(assets[i].name, assets[i].start, assets[i].end);
+        if (err != ESP_OK) return err;
+    }
     s_enemies = LoadMosaicoAtlas("enemy.atlas");
     s_weapon = LoadMosaicoAtlas("weapon.atlas");
     s_controls = LoadMosaicoAtlas("controls.atlas");
     s_environment = LoadMosaicoAtlas("environment.atlas");
     s_materials = LoadMosaicoAtlas("materials.atlas");
     s_props = LoadMosaicoAtlas("props.atlas");
-    return s_enemies.texture.id && s_weapon.texture.id && s_controls.texture.id &&
-           s_environment.texture.id && s_materials.texture.id && s_props.texture.id
-        ? ESP_OK : ESP_ERR_NOT_FOUND;
+    if (!(s_enemies.texture.id && s_weapon.texture.id && s_controls.texture.id &&
+          s_environment.texture.id && s_materials.texture.id && s_props.texture.id)) {
+        ESP_LOGE(TAG,
+                 "atlas load failed enemy=%u weapon=%u controls=%u env=%u mat=%u props=%u",
+                 s_enemies.texture.id, s_weapon.texture.id, s_controls.texture.id,
+                 s_environment.texture.id, s_materials.texture.id, s_props.texture.id);
+        return ESP_ERR_NOT_FOUND;
+    }
+    return ESP_OK;
 }
 
 static void haptic_stop(TimerHandle_t timer)
@@ -477,7 +462,7 @@ static void on_stats(void)
 static const mosaico_game_app_config_t s_config = {
     .tag = "neon_maze",
     .window_title = "Last Zone: Extraction",
-    .canvas_bind = GSP_NEON_MAZE_25D_BIND_GAME_CANVAS,
+    .canvas_bind = GSP_LAST_ZONE_EXTRACTION_BIND_GAME_CANVAS,
     .touch_points = 2,
     .enable_imu = false,
     .target_fps = 30,

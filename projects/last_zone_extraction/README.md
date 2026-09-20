@@ -58,12 +58,12 @@ standard hostiles with tighter sight and sound pressure, and Run 9 including
 3 elites. Starting ammo is 20 / 18 / 17 / 17 / 16; starting armor is
 2 / 2 / 1 / 1 / 0. Enemy aim and recovery also become progressively faster.
 
-Each mission has its own seamless 360-degree horizon and matching world grade:
+Each mission has its own seamless 360-degree horizon and HUD accent:
 Dock overlooks a clear coastal port, Depot uses an amber freight-yard sunset,
 Command is a cold predawn mountain base, Ghost is a misty overgrown compound,
-and Run faces a magenta dusk airfield. Gameplay colors remain stable: the gold
-gate, cyan extract pad, pickups, enemies, weapon, and controls are drawn after
-the world grade so their meanings do not change between missions.
+and Run faces a magenta dusk airfield. Gameplay colors stay fixed: the gold
+gate, cyan extract pad, pickups, enemies, weapon, and controls are not washed
+by a full-screen grade overlay.
 
 Ammo boxes restore six rounds, medkits restore one HP, and blue armor plates
 absorb up to three incoming hits. Barrels detonate when shot and eliminate
