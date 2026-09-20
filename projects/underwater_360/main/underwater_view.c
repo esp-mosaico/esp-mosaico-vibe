@@ -423,12 +423,24 @@ static int rainforest_in_water(float lon,float v)
         {342.0f,.718f},{348.0f,.742f},{340.0f,.768f},{322.0f,.762f},
         {304.0f,.740f},{290.0f,.722f}
     };
+    static const rainforest_flow_point_t lower_stream_a[]={
+        {340.0f,.718f},{349.0f,.736f},{359.5f,.760f},
+        {359.5f,.838f},{350.0f,.814f},{340.0f,.770f}
+    };
+    static const rainforest_flow_point_t lower_stream_b[]={
+        {.5f,.758f},{4.0f,.750f},{8.0f,.755f},
+        {8.0f,.790f},{4.0f,.820f},{.5f,.838f}
+    };
     return rainforest_in_poly(lon,v,left_stream,
                (int)(sizeof(left_stream)/sizeof(left_stream[0])))||
            rainforest_in_poly(lon,v,pool,
                (int)(sizeof(pool)/sizeof(pool[0])))||
            rainforest_in_poly(lon,v,right_stream,
-               (int)(sizeof(right_stream)/sizeof(right_stream[0])));
+               (int)(sizeof(right_stream)/sizeof(right_stream[0])))||
+           rainforest_in_poly(lon,v,lower_stream_a,
+               (int)(sizeof(lower_stream_a)/sizeof(lower_stream_a[0])))||
+           rainforest_in_poly(lon,v,lower_stream_b,
+               (int)(sizeof(lower_stream_b)/sizeof(lower_stream_b[0])));
 }
 
 /* DrawEllipseLines only stamps the left/right x of each scanline, so a
@@ -444,6 +456,142 @@ static void draw_rainforest_ripple(int cx,int cy,float rh,float rv,Color color)
         DrawLine((int)prev_x,(int)prev_y,(int)x,(int)y,color);
         prev_x=x;prev_y=y;
     }
+}
+
+typedef struct {
+    rainforest_flow_point_t left;
+    rainforest_flow_point_t right;
+} rainforest_flow_slice_t;
+
+static rainforest_flow_point_t rainforest_flow_sample_ribbon(
+    const rainforest_flow_slice_t *slices,int count,float progress,float lane)
+{
+    float scaled=fminf(.9999f,fmaxf(0.0f,progress))*(float)(count-1);
+    int segment=(int)scaled;
+    float t=scaled-(float)segment;
+    rainforest_flow_point_t a={
+        slices[segment].left.longitude+
+            (slices[segment].right.longitude-slices[segment].left.longitude)*lane,
+        slices[segment].left.source_v+
+            (slices[segment].right.source_v-slices[segment].left.source_v)*lane
+    };
+    rainforest_flow_point_t b={
+        slices[segment+1].left.longitude+
+            (slices[segment+1].right.longitude-slices[segment+1].left.longitude)*lane,
+        slices[segment+1].left.source_v+
+            (slices[segment+1].right.source_v-slices[segment+1].left.source_v)*lane
+    };
+    return (rainforest_flow_point_t){
+        a.longitude+(b.longitude-a.longitude)*t,
+        a.source_v+(b.source_v-a.source_v)*t
+    };
+}
+
+static mosaico_textured_vertex_t rainforest_flow_vertex(
+    const underwater_world_t *world,MosaicoAtlas rainforest,
+    const rainforest_flow_slice_t *slices,int count,float progress,float lane,
+    float phase,float inset,float speed_scale)
+{
+    float actual_lane=inset+lane*(1.0f-inset*2.0f);
+    rainforest_flow_point_t destination=rainforest_flow_sample_ribbon(
+        slices,count,progress,actual_lane);
+    /* Two forward-travelling waves deform the photographed water itself.
+       Their unequal wavelength and velocity prevent a synchronized push/pull.
+       Fade deformation at the traced bank so rocks and plants stay locked. */
+    float bank=4.0f*fminf(lane,1.0f-lane);
+    float end=5.0f*fminf(progress,1.0f-progress);
+    float envelope=fminf(1.0f,fminf(bank,end));
+    float time=(float)world->tick*speed_scale;
+    float flow=progress+phase;
+    float longitudinal=(sinf(flow*31.0f-time*.105f)*.0080f+
+                        sinf(flow*53.0f-time*.071f)*.0035f)*envelope;
+    float lateral=(sinf(flow*39.0f-time*.083f+lane*5.0f)*.0070f)*envelope;
+    rainforest_flow_point_t source=rainforest_flow_sample_ribbon(slices,count,
+        fminf(.9999f,fmaxf(0.0f,progress+longitudinal)),
+        fminf(.9999f,fmaxf(0.0f,actual_lane+lateral)));
+    Vector2 p=rainforest_flow_project(world,rainforest,
+        (Vector2){destination.longitude,destination.source_v});
+    return (mosaico_textured_vertex_t){
+        p.x,p.y,
+        source.longitude*((float)rainforest.texture.width/360.0f),
+        source.source_v*(float)rainforest.texture.height
+    };
+}
+
+static void draw_rainforest_flow_mesh(const underwater_world_t *world,
+                                      MosaicoAtlas rainforest,
+                                      const rainforest_flow_slice_t *slices,
+                                      int count,float phase,float inset,
+                                      float speed_scale)
+{
+    int along=(count-1)*effect_count(world,3,4,5);
+    int across=effect_count(world,2,3,4);
+    for(int iy=0;iy<along;++iy){
+        float p0=(float)iy/(float)along;
+        float p1=(float)(iy+1)/(float)along;
+        for(int ix=0;ix<across;++ix){
+            float l0=(float)ix/(float)across;
+            float l1=(float)(ix+1)/(float)across;
+            mosaico_textured_vertex_t a=rainforest_flow_vertex(
+                world,rainforest,slices,count,p0,l0,phase,inset,speed_scale);
+            mosaico_textured_vertex_t b=rainforest_flow_vertex(
+                world,rainforest,slices,count,p0,l1,phase,inset,speed_scale);
+            mosaico_textured_vertex_t c=rainforest_flow_vertex(
+                world,rainforest,slices,count,p1,l0,phase,inset,speed_scale);
+            mosaico_textured_vertex_t d=rainforest_flow_vertex(
+                world,rainforest,slices,count,p1,l1,phase,inset,speed_scale);
+            float min_x=fminf(fminf(a.x,b.x),fminf(c.x,d.x));
+            float max_x=fmaxf(fmaxf(a.x,b.x),fmaxf(c.x,d.x));
+            float min_y=fminf(fminf(a.y,b.y),fminf(c.y,d.y));
+            float max_y=fmaxf(fmaxf(a.y,b.y),fmaxf(c.y,d.y));
+            if(max_x<0.0f||min_x>=480.0f||max_y<0.0f||min_y>=420.0f||
+               max_x-min_x>120.0f)continue;
+            Mosaico2DDrawTexturedQuad(rainforest.texture,a,b,c,d,256U);
+        }
+    }
+}
+
+static void draw_rainforest_texture_flow(const underwater_world_t *world,
+                                         MosaicoAtlas rainforest)
+{
+    static const rainforest_flow_slice_t pool[]={
+        {{170.0f,.654f},{194.0f,.660f}},
+        {{158.0f,.680f},{210.0f,.688f}},
+        {{150.0f,.716f},{224.0f,.726f}},
+        {{152.0f,.764f},{216.0f,.788f}},
+        {{164.0f,.798f},{200.0f,.808f}}
+    };
+    static const rainforest_flow_slice_t left_stream[]={
+        {{154.0f,.700f},{159.0f,.724f}},
+        {{138.0f,.708f},{146.0f,.736f}},
+        {{118.0f,.722f},{124.0f,.746f}}
+    };
+    static const rainforest_flow_slice_t right_stream[]={
+        {{286.0f,.686f},{290.0f,.722f}},
+        {{300.0f,.664f},{306.0f,.740f}},
+        {{316.0f,.672f},{324.0f,.760f}},
+        {{336.0f,.704f},{342.0f,.764f}}
+    };
+    static const rainforest_flow_slice_t lower_stream_a[]={
+        {{336.0f,.704f},{342.0f,.764f}},
+        {{346.0f,.730f},{352.0f,.804f}},
+        {{359.5f,.760f},{359.5f,.838f}}
+    };
+    static const rainforest_flow_slice_t lower_stream_b[]={
+        {{.5f,.758f},{.5f,.838f}},
+        {{4.0f,.750f},{4.0f,.820f}},
+        {{8.0f,.755f},{8.0f,.790f}}
+    };
+    draw_rainforest_flow_mesh(world,rainforest,pool,
+        (int)(sizeof(pool)/sizeof(pool[0])),0.0f,.28f,1.30f);
+    draw_rainforest_flow_mesh(world,rainforest,left_stream,
+        (int)(sizeof(left_stream)/sizeof(left_stream[0])),1.3f,.16f,1.45f);
+    draw_rainforest_flow_mesh(world,rainforest,right_stream,
+        (int)(sizeof(right_stream)/sizeof(right_stream[0])),2.0f,.16f,1.45f);
+    draw_rainforest_flow_mesh(world,rainforest,lower_stream_a,
+        (int)(sizeof(lower_stream_a)/sizeof(lower_stream_a[0])),3.0f,.08f,1.20f);
+    draw_rainforest_flow_mesh(world,rainforest,lower_stream_b,
+        (int)(sizeof(lower_stream_b)/sizeof(lower_stream_b[0])),4.0f,.08f,1.20f);
 }
 
 /* One entry, then ripples. A polyline across the still pool reads as a worm. */
@@ -486,6 +634,7 @@ static void draw_rainforest_water(const underwater_world_t *world,
                                   MosaicoAtlas rainforest)
 {
     if(!rainforest.texture.id||rainforest.texture.height<=0)return;
+    draw_rainforest_texture_flow(world,rainforest);
     static const rainforest_flow_point_t entries[]={
         {174.0f,.676f},
         {322.2f,.703f},
