@@ -42,15 +42,23 @@ static void assert_mission_reachable(neon_maze_game_t *game)
 
 int main(void)
 {
+    static const uint8_t expected_enemies[NEON_MAZE_LAYOUTS] = {5, 7, 8, 8, 9};
+    static const uint8_t expected_elites[NEON_MAZE_LAYOUTS] = {0, 0, 2, 0, 3};
+    static const uint8_t expected_ammo[NEON_MAZE_LAYOUTS] = {20, 18, 17, 17, 16};
+    static const uint8_t expected_armor[NEON_MAZE_LAYOUTS] = {2, 1, 1, 1, 0};
     neon_maze_game_t game = {0};
     for (int mission = 0; mission < NEON_MAZE_LAYOUTS; ++mission) {
         game.layout = (uint8_t)mission;
         neon_maze_reset(&game);
         assert(game.layout == mission);
         assert(neon_maze_enemies_alive(&game) == neon_maze_enemy_total(&game));
-        assert(game.armor == (mission == 0 ? 2 : ((mission == 1 || mission == 3) ? 1 : 0)));
+        assert(neon_maze_enemy_total(&game) == expected_enemies[mission]);
+        assert(game.ammo == expected_ammo[mission]);
+        assert(game.armor == expected_armor[mission]);
+        int elites = 0;
         for (int i = 0; i < NEON_MAZE_ENEMIES; ++i) {
             if (!game.enemies[i].active) continue;
+            if (game.enemies[i].elite) ++elites;
             assert(game.enemies[i].ai_state == NEON_ENEMY_PATROL);
             float dx = game.enemies[i].x - game.x;
             float dy = game.enemies[i].y - game.y;
@@ -59,6 +67,7 @@ int main(void)
             float cy = game.enemies[i].y - game.pickups[1].y;
             assert(cx * cx + cy * cy > 2.56f);
         }
+        assert(elites == expected_elites[mission]);
         assert_mission_reachable(&game);
         assert(neon_maze_cell(&game, 21, 21) == 5);
         assert(neon_maze_cell(&game, 22, 21) == 5);

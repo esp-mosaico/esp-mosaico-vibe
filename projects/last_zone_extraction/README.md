@@ -45,6 +45,12 @@ alerts nearby posts. The extract pad is the cyan `5` cells — stand on it only
 after the compound is clear. Device NVS keeps campaign layout, per-mission
 bests, and unlocks. Death retries the current mission; extraction advances.
 
+Difficulty rises across the campaign without relying on enemy count alone:
+Dock has 5 standard hostiles, Depot 7, Command 8 including 2 elites, Ghost 8
+standard hostiles with tighter sight and sound pressure, and Run 9 including
+3 elites. Starting ammo is 20 / 18 / 17 / 17 / 16; starting armor is
+2 / 1 / 1 / 1 / 0. Enemy aim and recovery also become progressively faster.
+
 Each mission has its own seamless 360-degree horizon and matching world grade:
 Dock overlooks a clear coastal port, Depot uses an amber freight-yard sunset,
 Command is a cold predawn mountain base, Ghost is a misty overgrown compound,

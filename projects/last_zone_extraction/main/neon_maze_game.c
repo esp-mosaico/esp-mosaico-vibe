@@ -339,7 +339,7 @@ int neon_maze_enemies_alive(const neon_maze_game_t *game)
 
 int neon_maze_enemy_total(const neon_maze_game_t *game)
 {
-    static const uint8_t totals[NEON_MAZE_LAYOUTS]={5,7,9,6,8};
+    static const uint8_t totals[NEON_MAZE_LAYOUTS]={5,7,8,8,9};
     if(!game)return 0;
     return game->layout<NEON_MAZE_LAYOUTS?totals[game->layout]:8;
 }
@@ -507,7 +507,7 @@ static void place_layout(neon_maze_game_t *game,uint8_t layout)
     for(int i=0;i<NEON_MAZE_ENEMIES;++i){
         game->enemies[i].x=enemy_xy[layout][i][0];
         game->enemies[i].y=enemy_xy[layout][i][1];
-        game->enemies[i].elite=(layout==2&&i>=7)||(layout==4&&i>=6);
+        game->enemies[i].elite=(layout==2&&i>=6)||(layout==4&&i>=6);
         game->enemies[i].hp=(uint8_t)(game->enemies[i].elite?3:2);
         game->enemies[i].move_phase=(uint8_t)(i*37U+layout*19U);
         game->enemies[i].last_seen_x=game->enemies[i].x;
@@ -539,8 +539,8 @@ static void place_layout(neon_maze_game_t *game,uint8_t layout)
 
 void neon_maze_reset(neon_maze_game_t *game)
 {
-    static const uint8_t start_ammo[NEON_MAZE_LAYOUTS]={20,16,14,16,14};
-    static const uint8_t start_armor[NEON_MAZE_LAYOUTS]={2,1,0,1,0};
+    static const uint8_t start_ammo[NEON_MAZE_LAYOUTS]={20,18,17,17,16};
+    static const uint8_t start_armor[NEON_MAZE_LAYOUTS]={2,1,1,1,0};
     if(!game)return;
     uint32_t best=game->best_ticks;
     uint32_t layout_best[NEON_MAZE_LAYOUTS];
@@ -820,10 +820,10 @@ void neon_maze_update(neon_maze_game_t *game)
         if(enemy->ai_state==NEON_ENEMY_ENGAGE&&sees_player&&distance>.9f&&distance<6.2f){
             if(!enemy->attack_cooldown&&!game->enemy_shot_lock){
                 if(!enemy->aim_timer){
-                    static const uint8_t aim_ticks[NEON_MAZE_LAYOUTS]={28,24,20,24,20};
+                    static const uint8_t aim_ticks[NEON_MAZE_LAYOUTS]={30,27,24,22,20};
                     enemy->aim_timer=game->layout<NEON_MAZE_LAYOUTS?aim_ticks[game->layout]:20;
                 }else if(!--enemy->aim_timer){
-                    static const uint8_t cool_ticks[NEON_MAZE_LAYOUTS]={90,78,64,78,64};
+                    static const uint8_t cool_ticks[NEON_MAZE_LAYOUTS]={96,86,76,70,64};
                     enemy->attack_flash=4;
                     enemy->attack_cooldown=game->layout<NEON_MAZE_LAYOUTS?cool_ticks[game->layout]:64;
                     game->enemy_shot_lock=12;
