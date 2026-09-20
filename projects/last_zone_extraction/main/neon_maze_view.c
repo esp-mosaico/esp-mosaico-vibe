@@ -8,15 +8,17 @@
 #endif
 #include "assets_ids.h"
 #include "mosaico_raylib_fast.h"
+#include "mosaico_rgb565.h"
 
 #define NEON_MAZE_COLUMNS 120
 #define NEON_MAZE_COLUMN_WIDTH 4
-#define NEON_MAZE_HALF_COLUMNS 240
-#define NEON_MAZE_REFINEMENT_BUDGET 48
-#define NEON_MAZE_MAX_WALL_SAMPLES (NEON_MAZE_COLUMNS + NEON_MAZE_REFINEMENT_BUDGET)
+#define NEON_MAZE_SCREEN 480
+#define NEON_MAZE_EDGE_RAY_BUDGET 64
+#define NEON_MAZE_MAX_WALL_SAMPLES NEON_MAZE_SCREEN
 #define NEON_MAZE_HORIZON 205
 #define NEON_MAZE_CAMERA_PLANE 0.577350269f /* tan(60 degrees / 2) */
 #define NEON_MAZE_FLOOR_SCALE 165.0f
+#define NEON_MAZE_NEAR_WALL 3.6f
 
 typedef struct {
     const char *name;
@@ -27,7 +29,7 @@ typedef struct {
 } neon_maze_look_t;
 
 typedef struct {
-    float depth;
+    float depth, q, uq, u;
     int16_t top;
     int16_t height;
     uint16_t bottom;
@@ -37,7 +39,6 @@ typedef struct {
     uint8_t width;
     uint8_t wall;
     uint8_t side;
-    uint8_t u;
     uint8_t shift;
 } neon_maze_wall_sample_t;
 
@@ -63,11 +64,10 @@ static const neon_maze_look_t *layout_look(const neon_maze_game_t *game)
 static uint16_t s_wall_bottom[NEON_MAZE_COLUMNS];
 static uint8_t s_wall_type[NEON_MAZE_COLUMNS];
 static int16_t s_wall_top[NEON_MAZE_COLUMNS];
-static neon_maze_wall_sample_t s_base_walls[NEON_MAZE_COLUMNS];
-static neon_maze_wall_sample_t s_render_walls[NEON_MAZE_MAX_WALL_SAMPLES];
-static float s_half_depth[NEON_MAZE_HALF_COLUMNS];
+static neon_maze_wall_sample_t s_anchors[NEON_MAZE_COLUMNS];
+static neon_maze_wall_sample_t s_pixels[NEON_MAZE_SCREEN];
+static float s_col_depth[NEON_MAZE_SCREEN];
 static mosaico_raycast_wall_t s_wall_batch[NEON_MAZE_MAX_WALL_SAMPLES];
-static int s_render_wall_count;
 static float s_camera_dir_x;
 static float s_camera_dir_y;
 static float s_camera_plane_x;
@@ -200,15 +200,11 @@ static void project_sprite(const neon_maze_game_t *game, float world_x, float wo
 
 static bool column_visible(int screen, float distance)
 {
-    int column = screen / 2;
-    if (screen < 0 || screen >= 480 || column < 0 || column >= NEON_MAZE_HALF_COLUMNS) return false;
-    /* A sprite represents an area rather than an infinitely thin point.  The small
-       margin and adjacent-column depth stop wall edges from making it blink while
-       either the actor or camera moves. */
-    float depth = s_half_depth[column];
-    if (column > 0 && s_half_depth[column - 1] > depth) depth = s_half_depth[column - 1];
-    if (column + 1 < NEON_MAZE_HALF_COLUMNS && s_half_depth[column + 1] > depth)
-        depth = s_half_depth[column + 1];
+    if (screen < 0 || screen >= NEON_MAZE_SCREEN) return false;
+    float depth = s_col_depth[screen];
+    if (screen > 0 && s_col_depth[screen - 1] > depth) depth = s_col_depth[screen - 1];
+    if (screen + 1 < NEON_MAZE_SCREEN && s_col_depth[screen + 1] > depth)
+        depth = s_col_depth[screen + 1];
     return distance < depth + .10f;
 }
 
@@ -480,10 +476,30 @@ static void draw_extract(const neon_maze_game_t *game)
     DrawRectangle(center - 2, top - 28, 4, 28, neon);
 }
 
-static void cast_wall_sample(const neon_maze_game_t *game, float sample_x,
-                             int screen_x, int width, int horizon,
+static void project_wall(neon_maze_wall_sample_t *sample, int horizon)
+{
+    float distance = sample->depth;
+    if (distance < .08f) distance = .08f;
+    if (distance > 64.0f) distance = 64.0f;
+    sample->depth = distance;
+    sample->q = 1.0f / distance;
+    sample->uq = sample->u * sample->q;
+    int height = (int)(330.0f / distance);
+    if (height < 1) height = 1;
+    int top = horizon - height / 2;
+    int bottom = top + height;
+    if (bottom > NEON_MAZE_SCREEN) bottom = NEON_MAZE_SCREEN;
+    if (bottom < horizon) bottom = horizon;
+    if (bottom < 0) bottom = 0;
+    sample->top = (int16_t)top;
+    sample->height = (int16_t)height;
+    sample->bottom = (uint16_t)bottom;
+}
+
+static void cast_wall_sample(const neon_maze_game_t *game, int screen_x, int horizon,
                              neon_maze_wall_sample_t *sample)
 {
+    float sample_x = (float)screen_x + 0.5f;
     float camera_x = sample_x / 240.0f - 1.0f;
     float rx = s_camera_dir_x + s_camera_plane_x * camera_x;
     float ry = s_camera_dir_y + s_camera_plane_y * camera_x;
@@ -510,29 +526,21 @@ static void cast_wall_sample(const neon_maze_game_t *game, float sample_x,
     }
     float distance = side ? side_y - delta_y : side_x - delta_x;
     if (!wall) distance = 64.0f;
-    if (distance < .08f) distance = .08f;
-    int height = (int)(330.0f / distance);
-    if (height > 356) height = 356;
-    int top = horizon - height / 2;
-    int bottom = top + height;
-    if (bottom > 480) bottom = 480;
-    if (bottom < horizon) bottom = horizon;
     float hit = side ? game->x + distance * rx : game->y + distance * ry;
     float u = hit - floorf(hit);
+    if (u < 0.0f) u += 1.0f;
     *sample = (neon_maze_wall_sample_t){
         .depth = distance,
-        .top = (int16_t)top,
-        .height = (int16_t)(bottom - top > 0 ? bottom - top : 1),
-        .bottom = (uint16_t)bottom,
+        .u = u,
         .map_x = (int16_t)map_x,
         .map_y = (int16_t)map_y,
         .screen_x = (int16_t)screen_x,
-        .width = (uint8_t)width,
+        .width = 1,
         .wall = wall,
         .side = side ? 1U : 0U,
-        .u = (uint8_t)(u * 255.0f),
         .shift = (uint8_t)((map_x * 37 + map_y * 13) & 31),
     };
+    project_wall(sample, horizon);
 }
 
 static bool wall_boundary(const neon_maze_wall_sample_t *a,
@@ -544,77 +552,140 @@ static bool wall_boundary(const neon_maze_wall_sample_t *a,
     return fabsf(a->depth - b->depth) > .22f;
 }
 
-static int refine_closest(bool refine[NEON_MAZE_COLUMNS],
-                          const bool preferred[NEON_MAZE_COLUMNS],
-                          bool preferred_only, float max_depth, int used)
+static void interp_wall(const neon_maze_wall_sample_t *a,
+                        const neon_maze_wall_sample_t *b, float t, int screen_x,
+                        int horizon, neon_maze_wall_sample_t *out)
 {
-    while (used < NEON_MAZE_REFINEMENT_BUDGET) {
-        int best = -1;
-        float best_depth = max_depth;
-        for (int column = 0; column < NEON_MAZE_COLUMNS; ++column) {
-            if (refine[column] || (preferred_only && !preferred[column])) continue;
-            if (s_base_walls[column].depth < best_depth) {
-                best = column;
-                best_depth = s_base_walls[column].depth;
-            }
-        }
-        if (best < 0) break;
-        refine[best] = true;
-        ++used;
+    float q = a->q + (b->q - a->q) * t;
+    float uq = a->uq + (b->uq - a->uq) * t;
+    if (q < 1.0f / 64.0f) q = 1.0f / 64.0f;
+    *out = *a;
+    out->screen_x = (int16_t)screen_x;
+    out->width = 1;
+    out->depth = 1.0f / q;
+    out->u = uq * out->depth;
+    out->u -= floorf(out->u);
+    if (out->u < 0.0f) out->u += 1.0f;
+    project_wall(out, horizon);
+}
+
+static void fill_interp_span(const neon_maze_wall_sample_t *a,
+                             const neon_maze_wall_sample_t *b, int x0, int x1,
+                             int horizon)
+{
+    if (x1 < x0) return;
+    if (x0 < 0) x0 = 0;
+    if (x1 >= NEON_MAZE_SCREEN) x1 = NEON_MAZE_SCREEN - 1;
+    int span = x1 - x0;
+    for (int x = x0; x <= x1; ++x) {
+        float t = span > 0 ? (float)(x - x0) / (float)span : 0.0f;
+        interp_wall(a, b, t, x, horizon, &s_pixels[x]);
     }
-    return used;
+}
+
+static int bisect_edge(const neon_maze_game_t *game, int x0, int x1, int horizon,
+                       neon_maze_wall_sample_t *left, neon_maze_wall_sample_t *right,
+                       int *used)
+{
+    neon_maze_wall_sample_t L = *left, R = *right;
+    int lo = x0, hi = x1;
+    while (hi - lo > 1 && *used < NEON_MAZE_EDGE_RAY_BUDGET) {
+        int mid = (lo + hi) >> 1;
+        neon_maze_wall_sample_t mid_s;
+        cast_wall_sample(game, mid, horizon, &mid_s);
+        ++*used;
+        if (!wall_boundary(&L, &mid_s)) {
+            lo = mid;
+            L = mid_s;
+        } else {
+            hi = mid;
+            R = mid_s;
+        }
+    }
+    *left = L;
+    *right = R;
+    return hi;
+}
+
+typedef struct {
+    int x0;
+    int x1;
+    neon_maze_wall_sample_t left;
+    neon_maze_wall_sample_t right;
+    float near_depth;
+} neon_maze_wall_gap_t;
+
+static int wall_gap_cmp(const void *a, const void *b)
+{
+    const neon_maze_wall_gap_t *ga = a;
+    const neon_maze_wall_gap_t *gb = b;
+    if (ga->near_depth < gb->near_depth) return -1;
+    if (ga->near_depth > gb->near_depth) return 1;
+    return ga->x0 - gb->x0;
+}
+
+static void fill_gap(const neon_maze_game_t *game, neon_maze_wall_gap_t *gap,
+                     int horizon, int *extra)
+{
+    neon_maze_wall_sample_t edge_l = gap->left, edge_r = gap->right;
+    int split = bisect_edge(game, gap->x0, gap->x1, horizon, &edge_l, &edge_r, extra);
+    fill_interp_span(&gap->left, &edge_l, gap->x0,
+                     split > gap->x0 ? split - 1 : gap->x0, horizon);
+    fill_interp_span(&edge_r, &gap->right, split, gap->x1, horizon);
 }
 
 static void raycast_world(const neon_maze_game_t *game)
 {
-    bool refine[NEON_MAZE_COLUMNS] = {false};
-    bool edge[NEON_MAZE_COLUMNS] = {false};
+    static neon_maze_wall_gap_t gaps[NEON_MAZE_COLUMNS];
+    int gap_count = 0;
     int horizon = view_horizon(game);
+    int extra = 0;
     s_camera_dir_x = cosf(game->angle);
     s_camera_dir_y = sinf(game->angle);
     s_camera_plane_x = -s_camera_dir_y * NEON_MAZE_CAMERA_PLANE;
     s_camera_plane_y = s_camera_dir_x * NEON_MAZE_CAMERA_PLANE;
     for (int column = 0; column < NEON_MAZE_COLUMNS; ++column) {
         int screen_x = column * NEON_MAZE_COLUMN_WIDTH;
-        cast_wall_sample(game, (float)screen_x + 1.0f, screen_x,
-                         NEON_MAZE_COLUMN_WIDTH, horizon, &s_base_walls[column]);
-        const neon_maze_wall_sample_t *sample = &s_base_walls[column];
-        s_wall_bottom[column] = sample->bottom;
-        s_wall_top[column] = sample->top;
-        s_wall_type[column] = sample->wall;
+        cast_wall_sample(game, screen_x, horizon, &s_anchors[column]);
     }
-    for (int column = 1; column < NEON_MAZE_COLUMNS; ++column) {
-        if (!wall_boundary(&s_base_walls[column - 1], &s_base_walls[column])) continue;
-        edge[column - 1] = true;
-        edge[column] = true;
-    }
-    /* Spend a deterministic, bounded number of extra rays on discontinuities
-       first and then on the closest wall.  This sharpens motion without making
-       the quality level depend on measured frame time. */
-    int refined = refine_closest(refine, edge, true, 64.0f, 0);
-    refined = refine_closest(refine, edge, false, 3.6f, refined);
-
-    s_render_wall_count = 0;
+    neon_maze_wall_sample_t tail;
+    cast_wall_sample(game, NEON_MAZE_SCREEN - 1, horizon, &tail);
+    ++extra;
     for (int column = 0; column < NEON_MAZE_COLUMNS; ++column) {
-        neon_maze_wall_sample_t left = s_base_walls[column];
-        int half = column * 2;
-        if (refine[column]) {
-            neon_maze_wall_sample_t right;
-            left.width = 2;
-            cast_wall_sample(game, (float)left.screen_x + 3.0f,
-                             left.screen_x + 2, 2, horizon, &right);
-            s_render_walls[s_render_wall_count++] = left;
-            s_render_walls[s_render_wall_count++] = right;
-            s_half_depth[half] = left.depth;
-            s_half_depth[half + 1] = right.depth;
-        } else {
-            s_render_walls[s_render_wall_count++] = left;
-            s_half_depth[half] = left.depth;
-            s_half_depth[half + 1] = left.depth;
+        int x0 = column * NEON_MAZE_COLUMN_WIDTH;
+        int x1 = column + 1 < NEON_MAZE_COLUMNS ? x0 + NEON_MAZE_COLUMN_WIDTH
+                                                : NEON_MAZE_SCREEN - 1;
+        neon_maze_wall_sample_t left = s_anchors[column];
+        neon_maze_wall_sample_t right = column + 1 < NEON_MAZE_COLUMNS
+            ? s_anchors[column + 1] : tail;
+        if (!wall_boundary(&left, &right)) {
+            fill_interp_span(&left, &right, x0, x1, horizon);
+            continue;
         }
+        float near = left.depth < right.depth ? left.depth : right.depth;
+        gaps[gap_count++] = (neon_maze_wall_gap_t){
+            .x0 = x0, .x1 = x1, .left = left, .right = right, .near_depth = near};
     }
-    s_view_stats.refined_columns = (uint16_t)refined;
-    s_view_stats.rays_cast = (uint16_t)(NEON_MAZE_COLUMNS + refined);
+    qsort(gaps, (size_t)gap_count, sizeof(gaps[0]), wall_gap_cmp);
+    for (int i = 0; i < gap_count; ++i)
+        fill_gap(game, &gaps[i], horizon, &extra);
+    for (int x = 0; x < NEON_MAZE_SCREEN; ++x) s_col_depth[x] = s_pixels[x].depth;
+    for (int column = 0; column < NEON_MAZE_COLUMNS; ++column) {
+        int x0 = column * NEON_MAZE_COLUMN_WIDTH;
+        uint16_t bottom = s_pixels[x0].bottom;
+        int16_t top = s_pixels[x0].top;
+        uint8_t wall = s_pixels[x0].wall;
+        for (int x = x0; x < x0 + NEON_MAZE_COLUMN_WIDTH && x < NEON_MAZE_SCREEN; ++x) {
+            if (s_pixels[x].bottom < bottom) bottom = s_pixels[x].bottom;
+            if (s_pixels[x].top > top) top = s_pixels[x].top;
+            if (s_pixels[x].wall == 2) wall = 2;
+        }
+        s_wall_bottom[column] = bottom;
+        s_wall_top[column] = top;
+        s_wall_type[column] = wall;
+    }
+    s_view_stats.refined_columns = (uint16_t)extra;
+    s_view_stats.rays_cast = (uint16_t)(NEON_MAZE_COLUMNS + extra);
 }
 
 static int floor_kind_at(const neon_maze_game_t *game, float wx, float wy)
@@ -705,25 +776,55 @@ static void draw_wall_footing(int screen_x, int width, int top, int bottom)
     DrawRectangle(screen_x, bottom - edge, width, edge, (Color){24, 20, 16, 255});
 }
 
+static bool wall_run_match(const neon_maze_wall_sample_t *a,
+                           const neon_maze_wall_sample_t *b)
+{
+    if (wall_boundary(a, b)) return false;
+    int dt = a->top - b->top;
+    if (dt < 0) dt = -dt;
+    return dt <= 1;
+}
+
+static int wall_dest_width(int x)
+{
+    const neon_maze_wall_sample_t *sample = &s_pixels[x];
+    if (sample->wall == 2 || sample->wall == 4) return 1;
+    if (x + 1 >= NEON_MAZE_SCREEN || !wall_run_match(sample, &s_pixels[x + 1]))
+        return 1;
+    if (sample->depth >= NEON_MAZE_NEAR_WALL &&
+        x + 3 < NEON_MAZE_SCREEN &&
+        wall_run_match(sample, &s_pixels[x + 2]) &&
+        wall_run_match(sample, &s_pixels[x + 3]))
+        return 4;
+    return 2;
+}
+
 static void draw_walls(const neon_maze_game_t *game, MosaicoAtlas materials,
                        const MosaicoSpriteFrame *frames[4])
 {
     float flash = game->weapon_recoil;
     int batch = 0;
     int horizon = view_horizon(game);
-    for (int column = 0; column < s_render_wall_count; ++column) {
-        const neon_maze_wall_sample_t *sample = &s_render_walls[column];
+    for (int x = 0; x < NEON_MAZE_SCREEN; ) {
+        const neon_maze_wall_sample_t *sample = &s_pixels[x];
         uint8_t wall = sample->wall;
-        if (!wall) continue;
+        if (!wall) {
+            ++x;
+            continue;
+        }
+        int width = wall_dest_width(x);
         int mat = 0;
         if (wall == 2 || wall == 4) mat = 1;
         else if (wall == 3) mat = 2;
         const MosaicoSpriteFrame *material = frames[mat];
-        if (!material) continue;
+        if (!material) {
+            x += width;
+            continue;
+        }
         float inset = 4.0f;
         float inner = material->source.width - inset * 2.0f;
         if (inner < 4.0f) inner = material->source.width;
-        float u = (float)sample->u / 255.0f + (float)sample->shift / 48.0f;
+        float u = sample->u + (float)sample->shift / 48.0f;
         u = u - floorf(u);
         if (wall == 4) u = u * 0.26f;
         else if (wall == 2) u = 0.42f + u * 0.50f;
@@ -733,13 +834,13 @@ static void draw_walls(const neon_maze_game_t *game, MosaicoAtlas materials,
         if (wall == 4 && (game->tick % 20U) < 10U) light += 36U;
         if (light > 256U) light = 256U;
         int screen_x = sample->screen_x;
-        int width = sample->width;
         int top = sample->top;
-        int bottom = sample->bottom;
-        int height = bottom - top;
+        int height = sample->height;
         if (height < 1) height = 1;
-        Rectangle src = {material->source.x + inset + u * (inner - 2.0f),
-                         material->source.y + inset, 2,
+        int bottom = top + height;
+        float src_w = (float)width;
+        Rectangle src = {material->source.x + inset + u * (inner - src_w),
+                         material->source.y + inset, src_w,
                          material->source.height - inset * 2.0f};
         if (src.height < 4.0f) src.height = material->source.height;
         if (wall == 4) {
@@ -754,6 +855,7 @@ static void draw_walls(const neon_maze_game_t *game, MosaicoAtlas materials,
             DrawRectangle(screen_x, top + height * 55 / 100, width, 7,
                           (Color){255, 232, 128, 255});
             draw_wall_footing(screen_x, width, top, bottom);
+            x += width;
             continue;
         }
         if (wall == 2) {
@@ -780,6 +882,7 @@ static void draw_walls(const neon_maze_game_t *game, MosaicoAtlas materials,
                     screen_x, open_bot, width, sill_h, light);
             }
             draw_wall_footing(screen_x, width, top, bottom);
+            x += width;
             continue;
         }
         if (batch < NEON_MAZE_MAX_WALL_SAMPLES) {
@@ -787,14 +890,15 @@ static void draw_walls(const neon_maze_game_t *game, MosaicoAtlas materials,
                 screen_x, top, width, height,
                 (int)src.x, (int)src.y, (int)src.width, (int)src.height, light};
         }
+        x += width;
     }
     if (batch) Mosaico2DDrawRaycastWalls(materials.texture, s_wall_batch, batch);
-    for (int column = 0; column < s_render_wall_count; ++column) {
-        const neon_maze_wall_sample_t *sample = &s_render_walls[column];
-        uint8_t wall = sample->wall;
-        if (wall != 1 && wall != 3) continue;
-        draw_wall_footing(sample->screen_x, sample->width,
-                          sample->top, sample->bottom);
+    for (int x = 0; x < NEON_MAZE_SCREEN; ) {
+        const neon_maze_wall_sample_t *sample = &s_pixels[x];
+        int width = wall_dest_width(x);
+        if (sample->wall == 1 || sample->wall == 3)
+            draw_wall_footing(sample->screen_x, width, sample->top, sample->bottom);
+        x += sample->wall ? width : 1;
     }
 }
 
@@ -1178,6 +1282,7 @@ void neon_maze_view_render(const neon_maze_game_t *game, MosaicoAtlas enemies,
                            MosaicoAtlas props)
 {
     if (!game) return;
+    mosaico_shade_lut_init();
     s_view_stats = (neon_maze_view_stats_t){0};
     load_material_frames(materials);
     int64_t t0 = view_now_us();

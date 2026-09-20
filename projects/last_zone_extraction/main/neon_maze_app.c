@@ -19,7 +19,8 @@ static neon_maze_game_t s_game;
 static MosaicoAtlas s_enemies, s_weapon, s_environment, s_materials, s_controls, s_props;
 static int32_t s_joystick_track = -1, s_look_track = -1, s_fire_track = -1,
                s_radar_track = -1;
-static float s_move_forward, s_move_strafe, s_target_forward, s_target_strafe;
+static float s_move_forward, s_move_strafe;
+static int32_t s_stick_x, s_stick_y;
 static int32_t s_look_x, s_look_y;
 static int32_t s_radar_dx, s_radar_dy;
 static Sound s_rifle_sound, s_bolt_sound, s_impact_sound, s_confirm_sound, s_hurt_sound;
@@ -37,7 +38,7 @@ static uint8_t s_second_strength;
 static uint16_t s_second_duration_ms;
 
 #define TAG "last_zone"
-#define JOYSTICK_RADIUS 58
+#define JOYSTICK_RADIUS 64
 
 extern const uint8_t _binary_enemy_atlas_start[], _binary_enemy_atlas_end[];
 extern const uint8_t _binary_weapon_atlas_start[], _binary_weapon_atlas_end[];
@@ -305,7 +306,8 @@ static esp_err_t on_start(void)
     }
     s_joystick_track = s_look_track = s_fire_track = s_radar_track = -1;
     s_move_forward = s_move_strafe = 0.0f;
-    s_target_forward = s_target_strafe = 0.0f;
+    s_stick_x = NEON_MAZE_MOVE_X;
+    s_stick_y = NEON_MAZE_MOVE_Y;
     s_previous_hp = s_game.hp;
     s_previous_armor = s_game.armor;
     s_previous_fire_cooldown = 0;
@@ -315,13 +317,26 @@ static esp_err_t on_start(void)
 
 static void update_joystick(int32_t x, int32_t y)
 {
-    float dx = (float)(x - NEON_MAZE_MOVE_X) / JOYSTICK_RADIUS;
-    float dy = (float)(y - NEON_MAZE_MOVE_Y) / JOYSTICK_RADIUS;
+    float dx = (float)(x - s_stick_x) / (float)JOYSTICK_RADIUS;
+    float dy = (float)(y - s_stick_y) / (float)JOYSTICK_RADIUS;
     float length = sqrtf(dx * dx + dy * dy);
     if (length > 1.0f) { dx /= length; dy /= length; }
-    if (length < .12f) dx = dy = 0.0f;
-    s_target_strafe = dx;
-    s_target_forward = -dy;
+    if (length < .08f) dx = dy = 0.0f;
+    s_move_strafe = dx;
+    s_move_forward = -dy;
+}
+
+static void begin_joystick(int32_t track, int32_t x, int32_t y)
+{
+    s_joystick_track = track;
+    if (neon_maze_in_move_zone(x, y)) {
+        s_stick_x = NEON_MAZE_MOVE_X;
+        s_stick_y = NEON_MAZE_MOVE_Y;
+    } else {
+        s_stick_x = x;
+        s_stick_y = y;
+    }
+    update_joystick(x, y);
 }
 
 static void on_event(const mosaico_device_event_t *event)
@@ -332,7 +347,7 @@ static void on_event(const mosaico_device_event_t *event)
         if (event->pressed) neon_maze_confirm(&s_game);
         if (s_game.phase != NEON_MAZE_PHASE_PLAYING || !event->pressed) {
             s_joystick_track = s_look_track = s_fire_track = s_radar_track = -1;
-            s_target_forward = s_target_strafe = 0.0f;
+            s_move_forward = s_move_strafe = 0.0f;
             return;
         }
     }
@@ -340,7 +355,7 @@ static void on_event(const mosaico_device_event_t *event)
     if (!event->pressed) {
         if (track == s_joystick_track) {
             s_joystick_track = -1;
-            s_target_forward = s_target_strafe = 0.0f;
+            s_move_forward = s_move_strafe = 0.0f;
         }
         if (track == s_look_track) s_look_track = -1;
         if (track == s_fire_track) s_fire_track = -1;
@@ -364,9 +379,8 @@ static void on_event(const mosaico_device_event_t *event)
         s_radar_dy = event->y - s_game.radar_y;
     } else if (neon_maze_in_fire_zone(event->x, event->y) && s_fire_track < 0) {
         s_fire_track = track;
-    } else if (neon_maze_in_move_zone(event->x, event->y) && s_joystick_track < 0) {
-        s_joystick_track = track;
-        update_joystick(event->x, event->y);
+    } else if (neon_maze_in_move_capture(event->x, event->y) && s_joystick_track < 0) {
+        begin_joystick(track, event->x, event->y);
     } else if (event->x >= NEON_MAZE_LOOK_MIN_X && s_look_track < 0) {
         s_look_track = track;
         s_look_x = event->x;
@@ -376,10 +390,6 @@ static void on_event(const mosaico_device_event_t *event)
 
 static void on_update(void)
 {
-    s_move_forward += (s_target_forward - s_move_forward) * .38f;
-    s_move_strafe += (s_target_strafe - s_move_strafe) * .38f;
-    if (fabsf(s_move_forward) < .01f) s_move_forward = 0.0f;
-    if (fabsf(s_move_strafe) < .01f) s_move_strafe = 0.0f;
     neon_maze_set_motion(&s_game, s_move_forward, s_move_strafe, 0.0f);
     neon_maze_set_fire_held(&s_game, s_fire_track >= 0);
     if (s_look_track < 0) neon_maze_settle_look(&s_game);

@@ -15,26 +15,38 @@ typedef struct {
     MosaicoAtlas enemies,weapon,environment,materials,controls,props;
     bool paused,left,right,forward,backward,fire,sprint,strafe_left,strafe_right;
     int32_t joystick_track,look_track,fire_track,radar_track,look_x,look_y;
-    int32_t radar_dx,radar_dy;
-    float move_forward,move_strafe,target_forward,target_strafe;
+    int32_t radar_dx,radar_dy,stick_x,stick_y;
+    float move_forward,move_strafe;
 } neon_maze_module_t;
 
-#define JOYSTICK_RADIUS 58
+#define JOYSTICK_RADIUS 64
 
 static void update_joystick(neon_maze_module_t *state,int x,int y)
 {
-    float dx=(float)(x-NEON_MAZE_MOVE_X)/JOYSTICK_RADIUS;
-    float dy=(float)(y-NEON_MAZE_MOVE_Y)/JOYSTICK_RADIUS;
+    float dx=(float)(x-state->stick_x)/(float)JOYSTICK_RADIUS;
+    float dy=(float)(y-state->stick_y)/(float)JOYSTICK_RADIUS;
     float length=sqrtf(dx*dx+dy*dy);
     if(length>1.0f){dx/=length;dy/=length;}
-    if(length<.12f)dx=dy=0;
-    state->target_strafe=dx;state->target_forward=-dy;
+    if(length<.08f)dx=dy=0;
+    state->move_strafe=dx;state->move_forward=-dy;
+}
+
+static void begin_joystick(neon_maze_module_t *state,int track,int x,int y)
+{
+    state->joystick_track=track;
+    if(neon_maze_in_move_zone(x,y)){
+        state->stick_x=NEON_MAZE_MOVE_X;state->stick_y=NEON_MAZE_MOVE_Y;
+    }else{
+        state->stick_x=x;state->stick_y=y;
+    }
+    update_joystick(state,x,y);
 }
 
 static void clear_tracks(neon_maze_module_t *state)
 {
     state->joystick_track=state->look_track=state->fire_track=state->radar_track=-1;
-    state->target_forward=state->target_strafe=0;
+    state->move_forward=state->move_strafe=0;
+    state->stick_x=NEON_MAZE_MOVE_X;state->stick_y=NEON_MAZE_MOVE_Y;
     neon_maze_set_fire_held(&state->game,false);
 }
 
@@ -102,7 +114,7 @@ static void input(void *value,const mosaico_host_input_v1_t *event)
         int track=event->track_id;
         if(!event->pressed){
             if(track==state->joystick_track){state->joystick_track=-1;
-                state->target_forward=state->target_strafe=0;}
+                state->move_forward=state->move_strafe=0;}
             if(track==state->look_track)state->look_track=-1;
             if(track==state->fire_track)state->fire_track=-1;
             if(track==state->radar_track)state->radar_track=-1;
@@ -122,9 +134,9 @@ static void input(void *value,const mosaico_host_input_v1_t *event)
             state->radar_dy=event->y-state->game.radar_y;
         }else if(neon_maze_in_fire_zone(event->x,event->y)&&state->fire_track<0)
             state->fire_track=track;
-        else if(neon_maze_in_move_zone(event->x,event->y)&&state->joystick_track<0){
-            state->joystick_track=track;update_joystick(state,event->x,event->y);
-        }else if(event->x>=NEON_MAZE_LOOK_MIN_X&&state->look_track<0){
+        else if(neon_maze_in_move_capture(event->x,event->y)&&state->joystick_track<0)
+            begin_joystick(state,track,event->x,event->y);
+        else if(event->x>=NEON_MAZE_LOOK_MIN_X&&state->look_track<0){
             state->look_track=track;state->look_x=event->x;state->look_y=event->y;
         }
     }
@@ -132,10 +144,6 @@ static void input(void *value,const mosaico_host_input_v1_t *event)
 static void update(void *value)
 {
     neon_maze_module_t *state=value;if(!state||state->paused)return;
-    state->move_forward+=(state->target_forward-state->move_forward)*.38f;
-    state->move_strafe+=(state->target_strafe-state->move_strafe)*.38f;
-    if(fabsf(state->move_forward)<.01f)state->move_forward=0;
-    if(fabsf(state->move_strafe)<.01f)state->move_strafe=0;
     float forward=state->move_forward;
     float strafe=state->move_strafe;
     float walk=state->sprint?1.0f:0.62f;

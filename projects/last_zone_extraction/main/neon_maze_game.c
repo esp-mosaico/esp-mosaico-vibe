@@ -426,6 +426,13 @@ bool neon_maze_in_move_zone(int x,int y)
     return dx*dx+dy*dy<=NEON_MAZE_MOVE_R*NEON_MAZE_MOVE_R;
 }
 
+bool neon_maze_in_move_capture(int x,int y)
+{
+    if(neon_maze_in_move_zone(x,y))return true;
+    if(x<0||x>=NEON_MAZE_LOOK_MIN_X||y<260)return false;
+    return true;
+}
+
 bool neon_maze_in_fire_zone(int x,int y)
 {
     int dx=x-NEON_MAZE_FIRE_X,dy=y-NEON_MAZE_FIRE_Y;
@@ -797,8 +804,8 @@ void neon_maze_update(neon_maze_game_t *game)
         }
     }
     if(game->sprinting)game->look_kick+=sinf(game->move_phase)*2.4f;
-    game->vel_x=game->vel_x*.62f+wish_x*.38f;
-    game->vel_y=game->vel_y*.62f+wish_y*.38f;
+    game->vel_x=game->vel_x*.18f+wish_x*.82f;
+    game->vel_y=game->vel_y*.18f+wish_y*.82f;
     if(fabsf(game->vel_x)<.002f)game->vel_x=0;
     if(fabsf(game->vel_y)<.002f)game->vel_y=0;
     float nx=game->x+game->vel_x,ny=game->y+game->vel_y;

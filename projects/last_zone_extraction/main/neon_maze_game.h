@@ -144,6 +144,7 @@ const char *neon_maze_briefing(const neon_maze_game_t *game);
 char neon_maze_grade(const neon_maze_game_t *game);
 uint32_t neon_maze_state_hash(const neon_maze_game_t *game);
 bool neon_maze_in_move_zone(int x,int y);
+bool neon_maze_in_move_capture(int x,int y);
 bool neon_maze_in_fire_zone(int x,int y);
 bool neon_maze_in_radar(const neon_maze_game_t *game,int x,int y);
 void neon_maze_move_radar(neon_maze_game_t *game,int x,int y);
