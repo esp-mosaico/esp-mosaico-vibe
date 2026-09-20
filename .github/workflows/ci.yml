@@ -49,6 +49,7 @@ jobs:
       - name: Prepare pinned GSP host dependencies
         run: |
           python -m pip install --disable-pip-version-check esp-gsp-tools==0.1.1
+          python -m pip install --disable-pip-version-check -r submodule/esp-mosaico-utils/esp-mosaico-recovery/firmware/recovery/tools/requirements.txt
           python submodule/esp-mosaico-utils/tools/ci/prepare_gsp.py
 
       - name: Set up Python
@@ -227,6 +228,13 @@ jobs:
           python3 submodule/esp-mosaico-utils/esp-mosaico-recovery/skills/idf-low-noise-build/scripts/idf_low_noise_build.py
           --project "${{ matrix.project }}"
           doctor
+
+      - name: Install Recovery resource encoder in ESP-IDF Python
+        if: matrix.name == 'recovery'
+        shell: bash
+        run: |
+          source "$IDF_PATH/export.sh"
+          python -m pip install --disable-pip-version-check -r submodule/esp-mosaico-utils/esp-mosaico-recovery/firmware/recovery/tools/requirements.txt
 
       - name: Build firmware
         shell: bash
