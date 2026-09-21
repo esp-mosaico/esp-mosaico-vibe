@@ -1,0 +1,10 @@
+{
+  "image": "sunrise.jpg",
+  "columns": 1,
+  "rows": 1,
+  "output_cell": 768,
+  "alpha_mode": "opaque",
+  "frames": [
+    {"name": "sunrise_space", "pivot_x": 0, "pivot_y": 0}
+  ]
+}

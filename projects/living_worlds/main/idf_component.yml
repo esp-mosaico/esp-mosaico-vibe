@@ -1,4 +1,5 @@
 dependencies:
+  # Public engine/runtime versions are platform ABI pins.
   idf: ">=6.1"
   georgik/raylib: "==6.0.0~2"
   espressif/esp-gsp: "==1.4.0"

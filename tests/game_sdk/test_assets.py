@@ -4,6 +4,7 @@ import importlib.util
 import json
 from pathlib import Path
 import struct
+import subprocess
 import tempfile
 import unittest
 import wave
@@ -70,7 +71,10 @@ class GameAssetCompilerTests(unittest.TestCase):
             self.assertGreater(lum(8, 0), 40)
 
     def test_neon_wall_tiles_darken_seams_and_keep_floor_in_bounds(self) -> None:
-        path = ROOT / "projects/last_zone_extraction/assets_src/tactical_materials.png"
+        source = ROOT / "projects/last_zone_extraction/assets_src"
+        subprocess.run(["python3", str(source / "prepare_sprites.py")],
+                       check=True, cwd=source)
+        path = source / "tactical_materials.png"
         image = Image.open(path).convert("RGB")
         self.assertEqual(image.size, (512, 128))
         pixels = image.load()

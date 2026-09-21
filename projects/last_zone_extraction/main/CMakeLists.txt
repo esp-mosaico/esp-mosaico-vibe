@@ -1,6 +1,6 @@
 idf_component_register(
-    SRCS "main.c" "neon_maze_app.c" "neon_maze_game.c" "neon_maze_view.c"
-         "neon_maze_save.c"
+    SRCS "main.c" "last_zone_app.c" "last_zone_game.c" "last_zone_view.c"
+         "last_zone_save.c"
     INCLUDE_DIRS "."
     REQUIRES mosaico_game_app mosaico_game_assets mosaico_game_2d
              mosaico_raylib_fast mosaico_raylib_port mosaico_game_audio
@@ -8,7 +8,7 @@ idf_component_register(
 
 set(GAME_ASSET_SOURCE "${CMAKE_CURRENT_LIST_DIR}/../assets_src")
 set(GAME_ASSET_OUTPUT "${CMAKE_CURRENT_LIST_DIR}/../assets/generated")
-add_custom_target(neon_maze_assets ALL
+add_custom_target(last_zone_assets ALL
     COMMAND "${PYTHON}" "${GAME_ASSET_SOURCE}/prepare_sprites.py"
     COMMAND "${PYTHON}" "${GAME_ASSET_SOURCE}/generate_audio.py"
     COMMAND "${PYTHON}" "${CMAKE_CURRENT_LIST_DIR}/../../../submodule/raylib-lite-engine/tools/pack_game_assets.py"
@@ -49,22 +49,22 @@ add_custom_target(neon_maze_assets ALL
             "${GAME_ASSET_SOURCE}/tactical_materials_source.png"
             "${GAME_ASSET_SOURCE}/prepare_sprites.py"
             "${GAME_ASSET_SOURCE}/generate_audio.py")
-add_dependencies(${COMPONENT_LIB} neon_maze_assets)
+add_dependencies(${COMPONENT_LIB} last_zone_assets)
 target_add_binary_data(${COMPONENT_LIB} "${GAME_ASSET_OUTPUT}/enemy.atlas" BINARY
-    RENAME_TO enemy_atlas DEPENDS neon_maze_assets)
+    RENAME_TO enemy_atlas DEPENDS last_zone_assets)
 target_add_binary_data(${COMPONENT_LIB} "${GAME_ASSET_OUTPUT}/weapon.atlas" BINARY
-    RENAME_TO weapon_atlas DEPENDS neon_maze_assets)
+    RENAME_TO weapon_atlas DEPENDS last_zone_assets)
 target_add_binary_data(${COMPONENT_LIB} "${GAME_ASSET_OUTPUT}/controls.atlas" BINARY
-    RENAME_TO controls_atlas DEPENDS neon_maze_assets)
+    RENAME_TO controls_atlas DEPENDS last_zone_assets)
 target_add_binary_data(${COMPONENT_LIB} "${GAME_ASSET_OUTPUT}/environment.atlas" BINARY
-    RENAME_TO environment_atlas DEPENDS neon_maze_assets)
+    RENAME_TO environment_atlas DEPENDS last_zone_assets)
 target_add_binary_data(${COMPONENT_LIB} "${GAME_ASSET_OUTPUT}/materials.atlas" BINARY
-    RENAME_TO materials_atlas DEPENDS neon_maze_assets)
+    RENAME_TO materials_atlas DEPENDS last_zone_assets)
 target_add_binary_data(${COMPONENT_LIB} "${GAME_ASSET_OUTPUT}/props.atlas" BINARY
-    RENAME_TO props_atlas DEPENDS neon_maze_assets)
+    RENAME_TO props_atlas DEPENDS last_zone_assets)
 foreach(sound rifle bolt impact confirm hurt empty pickup alert step_l step_r explode extract music)
     target_add_binary_data(${COMPONENT_LIB} "${GAME_ASSET_OUTPUT}/${sound}.sound" BINARY
-        RENAME_TO "neon_${sound}" DEPENDS neon_maze_assets)
+        RENAME_TO "last_zone_${sound}" DEPENDS last_zone_assets)
 endforeach()
 target_include_directories(${COMPONENT_LIB} PRIVATE "${GAME_ASSET_OUTPUT}")
 

@@ -119,6 +119,4 @@ Raylib 游戏通过 `mosaico_game_app_run()` 走同一条启动路径，项目 `
 - `sky_hop`：横版物理、卷轴相机、双触点 Action Mapper、动画与原创资源生成流水线。
 
 三者都用同源 view、`game.sim.json` 和 `mosaico_game_app_run()`。
-
-后续平台能力、交付顺序和效率指标见
-[`game-platform-upgrade-plan.md`](game-platform-upgrade-plan.md)。
+`living_worlds` 和 `last_zone_extraction` 也走同一条路径。

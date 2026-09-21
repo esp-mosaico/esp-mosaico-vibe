@@ -2,11 +2,7 @@
 
 本文面向 ESP32-S31、480×480 RGB565 游戏。目标是在 Host 与设备使用同一份游戏
 模型和 view 的前提下，稳定达到 30 FPS，并保持墙体、地板、精灵和 HUD 的视觉质量。
-
-本文依据 Last Zone: Extraction 的实测整理：原始路径约 17–20 FPS、单帧渲染 50–58 ms；第一轮
-批量墙体和双行地板达到 30.3 FPS、约 27.9 ms，但出现墙脚和透明素材回归；修复画面后
-因逐列小绘制和逐像素除法回退到约 18.2 FPS、54.6 ms。这说明性能和画质必须用同一组
-场景、截图与设备日志联合验收。
+性能和画质必须用同一组场景、截图与设备日志联合验收。
 
 ## 目标和边界
 
@@ -260,8 +256,8 @@ Host 的毫秒数不能代表 S31 性能，只用于比较算法和发现画面�
 固件只通过：
 
 ```bash
-python3 mosaico.py install --project projects/<game>
-python3 mosaico.py monitor --grep '<game-tag>'
+python3 mosaico.py iris system-update --project projects/<game>
+python3 mosaico.py iris logs
 ```
 
 每次记录：

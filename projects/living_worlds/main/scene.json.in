@@ -1,0 +1,11 @@
+{
+  "screen": "living_worlds",
+  "w": 480,
+  "h": 480,
+  "screen_bg": "#062F4A",
+  "objects": [
+    {"type":"container","parent":-1,"x":0,"y":0,"w":480,"h":480,"bg_color":"#062F4A"},
+    {"type":"image","parent":0,"x":0,"y":0,"w":480,"h":480,
+     "image":"@CANVAS_IMAGE@","codec":"lossless","bind":"game_canvas"}
+  ]
+}

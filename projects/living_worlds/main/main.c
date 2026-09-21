@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "esp_check.h"
 #include "mosaico_game_app.h"
-#include "last_zone_app.h"
+#include "living_worlds_app.h"
 
 void app_main(void)
 {
-    ESP_ERROR_CHECK(mosaico_game_app_run(last_zone_app_config()));
+    ESP_ERROR_CHECK(mosaico_game_app_run(living_worlds_app_config()));
 }

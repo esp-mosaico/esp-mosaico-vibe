@@ -1,70 +1,63 @@
 # Last Zone: Extraction
 
 A compact battle-royale-inspired training-ground game for the ESP-Mosaico Game
-SDK. Fight through five tactical drills, scavenge supplies, clear the final
-hostile, and reach the extraction pad. The native C Host preview and device
-firmware share the same fixed-step model and RGB565 view; there is no Wasm
-runtime.
+SDK. Fight through five tactical drills, scavenge supplies, clear the last
+hostile, and reach the extraction pad. The native C Host preview and the
+device share the same fixed-step model and RGB565 view.
+
+轻量训练场射击 Demo。五关战术关卡、搜刮补给、清掉最后一名敌人后走到撤离点。Host RGB565 预览与真机共用同一套固定步长模型和画面。
+
+![Last Zone: Extraction](docs/screenshot.png)
+
+The screenshot is a Host RGB565 frame of the Dock mission. The current device
+present path writes GRAM directly, so the ESP-Iris screen-mirror RPC can return
+an empty frame even while the game is running.
+
+截图为 Dock 关卡的 Host RGB565 画面。真机当前走 GRAM 直写，ESP-Iris 镜像 RPC 可能在游戏正常运行时仍返回空帧。
+
+## Play / 玩法
+
+- Tap the briefing to deploy or redeploy. / 点击简报部署或重新部署。
+- Left stick moves. Push the outer ring forward to sprint. / 左摇杆移动，外环前推冲刺。
+- Right drag looks and pitches. / 右侧拖动转向和俯仰。
+- Tap fire (Host `F` / Ctrl) to shoot or open a facing gate. Hold fire to
+  steady the bolt. / 点射击开火或打开面前的门；按住射击稳住枪机。
+- Drag the radar to park it. / 拖动雷达面板挪开视线。
+- Host keys: `A/D` turn, `W`/`S` walk, `Shift` sprint, `Q`/`E` strafe.
+
+Dock teaches windows, cover, the gold gate, and extract. Later missions cut
+spare ammo and add elites. Clear every hostile, then follow the extract arrow
+onto the pad.
+
+Dock 是教学关；之后弹药更紧、会出精英。清完敌人后沿箭头走上撤离点。
+
+## Campaign / 战役
+
+| Mission | Role | Hostiles |
+| --- | --- | --- |
+| Dock | observe / 观察 | 5 standard |
+| Depot | control / 控制 | 7 standard |
+| Command | flank / 侧翼 | 8 including 2 elites |
+| Ghost | ambush / 伏击 | 8 standard |
+| Run | assault / 突击 | 9 including 3 elites |
+
+Starting ammo is 20 / 18 / 17 / 17 / 16; starting armor is 2 / 2 / 1 / 1 / 0.
+Each mission has its own 360-degree horizon. Device NVS keeps campaign
+progress and per-mission bests.
+
+每关有独立的 360° 天际线。设备 NVS 保存战役进度和每关最好成绩。
+
+## Run / 运行
 
 ```bash
 python3 mosaico.py game sim projects/last_zone_extraction
+python3 mosaico.py game sim projects/last_zone_extraction --headless --frames 90
+python3 mosaico.py recover   # blank or unverified devices first
+python3 mosaico.py iris system-update --project projects/last_zone_extraction
+python3 mosaico.py iris logs
 ```
 
-Round 480×480 dual-touch loop:
+Use `iris system-update` for the first install or layout/resource changes;
+`iris app-update` only when the full partition table is unchanged.
 
-- Tap the briefing overlay to deploy or redeploy.
-- Left stick: move. Push the outer ring forward to sprint.
-- Right drag: look / pitch. Vertical look is slower and settles after lift.
-- Tap fire (or `F` / Ctrl on Host) to shoot or open a facing gate. Hold fire to
-  steady the bolt (tighter cone, slower walk). The modern tactical rifle is one
-  shot per click, followed by a visible and audible bolt cycle.
-- Drag the radar panel to park it away from the current sightline.
-- `A/D` turn, `W`/`S` walk, `Shift` sprint, `Q`/`E` strafe.
-
-Each mission now has its own spawn, facing, route, gate position, floor zones,
-props, supplies, hostile posts, and extraction point. Dock is the teaching
-mission: 5 hostiles, 5 HP, two armor plates, and 20 rounds — enough to miss and
-still reach the gold gate. Later missions cut the spare ammo and add elites. Hostiles still take two hits
-and will take cover instead of stacking on one point. Medkits stay on the
-ground if you are already full. The gold gate must be shot open. Windows punch
-through to the sky. Fog, wall-edge shading, and muzzle flash light the
-corridor. Radar marks explored cells, windows, crates, doors, loot, extract,
-and last-known hostiles. Clear all opponents, then follow the extract
-arrow onto the pad. BEST time, hit rate, damage taken, remaining HP/ammo, and
-a grade show on the results screen. Redeploy after a win advances the campaign;
-redeploy after a death retries the same mission. Walking plays boot steps;
-sprinting shortens the stride and can be heard; standing is silent.
-
-The campaign advances through five distinct drills:
-
-- **Dock — observe:** a short teaching route introduces windows, cover, the
-  gate, and extraction without putting an enemy in the spawn doorway.
-- **Depot — control:** two freight halls and a crate island reward deliberate
-  barrel shots; bags are visual freight rather than pickups.
-- **Command — flank:** windowed office wings surround a central court, with a
-  short exposed approach and a longer route toward armor.
-- **Ghost — ambush:** broken two-cell corridors repeatedly cut sightlines;
-  walking preserves the first shot while sprinting can alert enemies through walls.
-- **Run — assault:** the pad is visible early across an exposed yard, but the
-  final elite screen must be cleared before it becomes active.
-
-The extract pad is the cyan `5` cells and moves with each mission. Device NVS
-keeps campaign layout, per-mission bests, and unlocks. Death retries the current
-mission; extraction advances.
-
-Difficulty rises across the campaign without relying on enemy count alone:
-Dock has 5 standard hostiles, Depot 7, Command 8 including 2 elites, Ghost 8
-standard hostiles with tighter sight and sound pressure, and Run 9 including
-3 elites. Starting ammo is 20 / 18 / 17 / 17 / 16; starting armor is
-2 / 2 / 1 / 1 / 0. Enemy aim and recovery also become progressively faster.
-
-Each mission has its own seamless 360-degree horizon and HUD accent:
-Dock overlooks a clear coastal port, Depot uses an amber freight-yard sunset,
-Command is a cold predawn mountain base, Ghost is a misty overgrown compound,
-and Run faces a magenta dusk airfield. Gameplay colors stay fixed: the gold
-gate, cyan extract pad, pickups, enemies, weapon, and controls are not washed
-by a full-screen grade overlay.
-
-Ammo boxes restore six rounds, medkits restore one HP, and blue armor plates
-absorb up to three incoming hits. Barrels detonate when shot and eliminate
-hostiles within 2.5 visible map cells; walls now stop blast damage.
+首次安装或布局/资源变化用 `iris system-update`；分区表完全一致且只改代码时可用 `iris app-update`。

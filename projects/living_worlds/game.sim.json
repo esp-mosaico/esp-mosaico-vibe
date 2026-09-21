@@ -1,0 +1,12 @@
+{
+  "schema": "mosaico-game-sim/v1",
+  "tick_hz": 30,
+  "sources": [
+    "main/game_module.c",
+    "main/living_worlds_world.c",
+    "main/living_worlds_aurora.c",
+    "main/living_worlds_ocean.c",
+    "main/living_worlds_volume.c",
+    "main/living_worlds_view.c"
+  ]
+}

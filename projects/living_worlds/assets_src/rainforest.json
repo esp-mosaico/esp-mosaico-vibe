@@ -1,0 +1,11 @@
+{
+  "image": "rainforest.jpg",
+  "columns": 2,
+  "rows": 1,
+  "output_cell": 600,
+  "alpha_mode": "opaque",
+  "frames": [
+    {"name": "rainforest_west", "pivot_x": 0, "pivot_y": 0},
+    {"name": "rainforest_east", "pivot_x": 0, "pivot_y": 0}
+  ]
+}

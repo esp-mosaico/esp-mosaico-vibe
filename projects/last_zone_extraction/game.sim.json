@@ -1,10 +1,9 @@
 {
   "schema": "mosaico-game-sim/v1",
   "tick_hz": 30,
-  "preview": "sim_preview.html",
   "sources": [
     "main/game_module.c",
-    "main/neon_maze_game.c",
-    "main/neon_maze_view.c"
+    "main/last_zone_game.c",
+    "main/last_zone_view.c"
   ]
 }
