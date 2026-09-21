@@ -24,6 +24,8 @@ jobs:
     name: Host / ${{ matrix.os }} / Python ${{ matrix.python }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
+    env:
+      CJSON_COMPONENT_DIR: ${{ github.workspace }}/.host-deps/cjson
     strategy:
       fail-fast: false
       matrix:
@@ -70,17 +72,12 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libssl-dev
 
       - name: Check out cJSON for Recovery C tests
-        if: runner.os == 'Linux'
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: DaveGamble/cJSON
           ref: c859b25da02955fef659d658b8f324b5cde87be3 # v1.7.19
           path: .host-deps/cjson
           persist-credentials: false
-
-      - name: Configure Recovery C test dependency
-        if: runner.os == 'Linux'
-        run: echo "CJSON_COMPONENT_DIR=$GITHUB_WORKSPACE/.host-deps/cjson" >> "$GITHUB_ENV"
 
       - name: Create test result directory
         run: python -c "from pathlib import Path; Path('test-results').mkdir(exist_ok=True)"

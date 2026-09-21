@@ -3,7 +3,7 @@
 [返回文档索引](README.md)
 
 在工作区根目录执行 `python mosaico.py --help` 查看顶层入口。使用
-`python mosaico.py iris --help`、`python mosaico.py iris transfer --help`
+`python mosaico.py iris --help`、`python mosaico.py iris takeover --help`
 或具体命令的 `--help` 查看参数。
 
 ```text
@@ -13,7 +13,7 @@ mosaico.py
 ├── iris
 │   ├── run / status
 │   ├── list / claim / release / reconcile
-│   ├── transfer start / status / accept / abort / reconcile
+│   ├── takeover start / status / resume / abort / reconcile
 │   ├── logs / memory / crash / rpc
 │   ├── app-update
 │   ├── system-update
@@ -32,7 +32,7 @@ mosaico.py
 | `iris status [--all]` | 被动查询本项目或同用户跨工作区 Gateway、使用者及设备归属；不启动、不保活 |
 | `iris list` | 枚举可见端点和已知设备；发现不等于认领或连接 |
 | `iris claim/release/reconcile` | 认领、释放设备，或显式清理已确认失效的普通归属 |
-| `iris transfer start/status/accept/abort/reconcile` | 发起、查询、接受、中止或核对设备归属转让 |
+| `iris takeover start/status/resume/abort/reconcile` | 请求接管、查询记录、继续验证、撤销或核对归属 |
 | `iris logs` | 显示保留日志并持续跟随；`--snapshot` 只读取保留日志 |
 | `iris memory` | 读取内存状态；`--follow` 持续采样 |
 | `iris crash` | 查看崩溃信息；`--archive` 归档并解码 Core Dump |
@@ -99,7 +99,7 @@ SHA-256 及 `system-update` 建议，不会自动扩大写入范围或修改工�
 ## 调试与恢复入口
 
 运行 `python mosaico.py iris run --project projects/my_app` 并打开输出中的 URL，
-可持续观察 Gateway Web 工作台。生命周期、设备占用与转让的完整规则见
+可持续观察 Gateway Web 工作台。生命周期、设备占用与接管的完整规则见
 [Gateway 指南](project-gateway.zh-CN.md)。CLI 和工作台应显示同一设备的 Device ID、
 Boot ID 和操作记录。
 
@@ -127,7 +127,6 @@ High-Speed USB 默认交给 ESP-Iris；产品功能需要占用它的 normal 应
 | `init` | `project init` |
 | `session run/status` | `iris run/status` |
 | `list`、`device claim/release/reconcile` | `iris list/claim/release/reconcile` |
-| `device transfer`、`device transfer-*` | `iris transfer start`、`iris transfer ...` |
 | `monitor` | `iris logs` |
 | `memory/crash/rpc` | `iris memory/crash/rpc` |
 | `install` | `iris app-update` |

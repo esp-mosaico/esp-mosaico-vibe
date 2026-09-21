@@ -1,6 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import pathlib
+import shutil
+import subprocess
+import tempfile
 import unittest
 
 
@@ -26,14 +29,6 @@ class BootSplashContractTest(unittest.TestCase):
             source.index("select_partition_number(&bs)"),
         )
 
-    def test_bootloader_does_not_publish_cross_stage_handoff(self) -> None:
-        boot = (RECOVERY / "bootloader_components/main/mosaico_boot_splash.c").read_text(
-            encoding="utf-8"
-        )
-        self.assertNotIn("HANDOFF", boot)
-        self.assertNotIn("LP_STORE", boot)
-        self.assertNotIn("REG_WRITE", boot)
-
     def test_bsp_keeps_its_original_full_initialization(self) -> None:
         source = BSP_DISPLAY.read_text(encoding="utf-8")
         self.assertNotIn("bootloader_panel_ready", source)
@@ -41,16 +36,32 @@ class BootSplashContractTest(unittest.TestCase):
         self.assertIn("ESP_GOTO_ON_ERROR(esp_lcd_panel_reset(s_panel)", source)
         self.assertIn("ESP_GOTO_ON_ERROR(esp_lcd_panel_disp_on_off(s_panel, true)", source)
 
-    def test_display_failure_is_nonfatal(self) -> None:
+    def test_splash_result_controls_handoff_and_stops_feedback(self) -> None:
         source = (RECOVERY / "bootloader_components/main/mosaico_boot_splash.c").read_text(
             encoding="utf-8"
         )
-        entry = source.split("bool mosaico_boot_splash_show(void)", 1)[1]
-        self.assertRegex(
-            entry,
-            r"if \(!panel_init\(\) \|\| !draw_splash\(\)\) \{"
-            r"[^}]*return false;\s*\}[^}]*return true;",
-        )
+        # Exercise the actual entry point with host fakes for hardware access.
+        # It is the final function in the source; do not duplicate its logic.
+        entry = source[source.index("bool mosaico_boot_splash_show(void)"):]
+        compiler = shutil.which("cc")
+        self.assertIsNotNone(compiler, "a C compiler is required for the splash contract test")
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            (root / "splash_entry.inc").write_text(entry, encoding="utf-8")
+            executable = root / "splash-contract"
+            build = subprocess.run(
+                [str(compiler), "-std=c11", "-Wall", "-Wextra", "-Werror",
+                 "-I", str(root), str(ROOT / "tests/boot_splash_host/splash_contract.c"),
+                 "-o", str(executable)],
+                capture_output=True, text=True, timeout=60, check=False,
+            )
+            self.assertEqual(build.returncode, 0, build.stdout + build.stderr)
+            run = subprocess.run(
+                [str(executable)], capture_output=True, text=True, timeout=30, check=False,
+            )
+            self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+
+    def test_display_failure_is_nonfatal(self) -> None:
         boot_entry = (RECOVERY / "bootloader_components/main/bootloader_start.c").read_text(
             encoding="utf-8"
         )
@@ -58,7 +69,7 @@ class BootSplashContractTest(unittest.TestCase):
 
     def test_bootloader_uses_size_constrained_logging(self) -> None:
         defaults = (RECOVERY / "sdkconfig.defaults").read_text(encoding="utf-8")
-        self.assertIn("CONFIG_BOOTLOADER_LOG_LEVEL_ERROR=y", defaults)
+        self.assertIn("CONFIG_BOOTLOADER_LOG_LEVEL_NONE=y", defaults)
 
     def test_partition_table_offset_stays_at_retained_contract(self) -> None:
         defaults = (RECOVERY / "sdkconfig.defaults").read_text(encoding="utf-8")
