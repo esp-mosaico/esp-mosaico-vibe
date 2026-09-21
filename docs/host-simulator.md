@@ -34,7 +34,9 @@ python3 mosaico.py game sim projects/raylib_shooter --headless \
 后下载，或按下面的事件格式手写。
 
 `game sim` 始终走确定性 Host runner，不编译、不链接、不启动 ESP-GSP。它用于暂停、
-单步、变速、重置、截图、录制和输入回放。Host runner 默认监听 `127.0.0.1:8460`，
+单步、变速、重置、截图、录制和输入回放。共用预览页可以把可视区域裁成圆角 60px，
+对照真机面板四角；这是预览建议，不是强制游戏 UI 画出圆角。帧缓冲仍是方形
+RGB565。面板与布局建议见 [`design/ui.zh-CN.md`](design/ui.zh-CN.md)。Host runner 默认监听 `127.0.0.1:8460`，
 HTTP 接口为：
 
 - `GET /api/v1/info`、`GET /api/v1/state`、`GET /api/v1/frame`；

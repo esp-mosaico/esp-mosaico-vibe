@@ -99,7 +99,8 @@ static void apply_menu_actions(void)
     bool pause_hit = false;
     for (size_t i = 0; i < MOSAICO_CONTACT_CAPACITY; ++i) {
         mosaico_input_contact_t contact = mosaico_action_contact(i);
-        if (contact.active && contact.y < 54 && contact.x > 420) pause_hit = true;
+        if (contact.active && contact.x >= 408 && contact.y >= 10 && contact.y < 58)
+            pause_hit = true;
     }
     if (s_game.phase == PLATFORM_PAUSED)
         platform_game_set_action(&s_game, PLATFORM_ACTION_PAUSE, true);

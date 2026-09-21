@@ -102,64 +102,67 @@ static void draw_core(const tower_view_t *view)
 
 static void draw_hud(const tower_game_t *game)
 {
-    DrawRectangle(0, 0, 480, 69, C_BG);
-    DrawRectangle(0, 65, 480, 4, (Color){13, 72, 83, 255});
-    DrawRectangle(0, 65, 110, 2, C_CYAN);
-    DrawRectangle(12, 9, 118, 47, (Color){10, 27, 39, 255});
-    DrawRectangleLines(12, 9, 118, 47, (Color){35, 100, 112, 255});
-    DrawRectangle(18, 15, 4, 35, C_CYAN);
-    DrawText(TextFormat("WAVE %02u", game->wave), 29, 14, 17, RAYWHITE);
-    DrawText(TextFormat("CRED %03u", game->credits), 29, 36, 13, C_GOLD);
-    DrawRectangle(140, 9, 132, 47, (Color){10, 27, 39, 255});
-    DrawRectangleLines(140, 9, 132, 47, (Color){35, 77, 91, 255});
-    DrawText("TACTICAL SCORE", 151, 15, 11, (Color){107, 151, 160, 255});
-    DrawText(TextFormat("%06lu", (unsigned long)game->score), 151, 34, 17, RAYWHITE);
-    DrawRectangle(282, 9, 125, 47, (Color){10, 27, 39, 255});
-    DrawRectangleLines(282, 9, 125, 47, (Color){35, 77, 91, 255});
-    DrawText(TextFormat("CORE %02u", game->base_hp), 293, 15, 14,
+    DrawRectangleRounded((Rectangle){20, 12, 440, 56}, 0.20f, 4, C_BG);
+    DrawRectangle(20, 64, 440, 3, (Color){13, 72, 83, 255});
+    DrawRectangle(20, 64, 96, 2, C_CYAN);
+    DrawRectangle(28, 16, 110, 44, (Color){10, 27, 39, 255});
+    DrawRectangleLines(28, 16, 110, 44, (Color){35, 100, 112, 255});
+    DrawRectangle(34, 21, 4, 34, C_CYAN);
+    DrawText(TextFormat("WAVE %02u", game->wave), 44, 20, 17, RAYWHITE);
+    DrawText(TextFormat("CRED %03u", game->credits), 44, 40, 13, C_GOLD);
+    DrawRectangle(146, 16, 124, 44, (Color){10, 27, 39, 255});
+    DrawRectangleLines(146, 16, 124, 44, (Color){35, 77, 91, 255});
+    DrawText("TACTICAL SCORE", 156, 21, 11, (Color){107, 151, 160, 255});
+    DrawText(TextFormat("%06lu", (unsigned long)game->score), 156, 38, 17, RAYWHITE);
+    DrawRectangle(278, 16, 116, 44, (Color){10, 27, 39, 255});
+    DrawRectangleLines(278, 16, 116, 44, (Color){35, 77, 91, 255});
+    DrawText(TextFormat("CORE %02u", game->base_hp), 288, 21, 14,
         game->base_hp > 6 ? (Color){102, 233, 139, 255} : C_RED);
-    DrawRectangle(293, 39, 102, 7, (Color){28, 48, 53, 255});
-    DrawRectangle(295, 41, game->base_hp * 5, 3,
+    DrawRectangle(288, 42, 96, 7, (Color){28, 48, 53, 255});
+    DrawRectangle(290, 44, game->base_hp * 4, 3,
         game->base_hp > 6 ? (Color){78, 228, 134, 255} : C_RED);
-    DrawRectangle(418, 9, 50, 47, (Color){13, 36, 47, 255});
-    DrawRectangleLines(418, 9, 50, 47, C_CYAN);
-    DrawRectangle(432, 21, 7, 22, (Color){181, 246, 245, 255});
-    DrawRectangle(447, 21, 7, 22, (Color){181, 246, 245, 255});
+    DrawRectangleRounded((Rectangle){402, 16, 48, 44}, 0.22f, 4, (Color){13, 36, 47, 255});
+    DrawRectangleLines(402, 16, 48, 44, C_CYAN);
+    DrawRectangle(416, 26, 7, 22, (Color){181, 246, 245, 255});
+    DrawRectangle(431, 26, 7, 22, (Color){181, 246, 245, 255});
 }
 
-static void draw_shop_card(const tower_game_t *game, int type, int x, const char *name,
-                           const char *role, const char *cost, Color color)
+static void draw_shop_card(const tower_game_t *game, int type, int x, int y,
+                           const char *name, const char *role, const char *cost,
+                           Color color)
 {
     bool selected = game->selected_type == type;
-    DrawRectangle(x + 3, 405, 143, 67, (Color){2, 8, 14, 255});
-    DrawRectangle(x, 402, 146, 67, selected ? (Color){19, 47, 56, 255} : (Color){10, 25, 32, 255});
-    DrawRectangleLines(x, 402, 146, 67, selected ? color : (Color){39, 72, 78, 255});
-    DrawRectangle(x, 402, selected ? 45 : 18, 3, color);
-    DrawRectangle(x + 8, 411, 35, 42, (Color){5, 16, 24, 255});
-    DrawRectangleLines(x + 8, 411, 35, 42, (Color){44, 81, 88, 255});
-    DrawRectangle(x + 13, 419, 25, 25, color);
-    if (type == TOWER_PULSE) DrawRectangle(x + 23, 413, 5, 24, RAYWHITE);
+    DrawRectangle(x + 3, y + 3, 133, 58, (Color){2, 8, 14, 255});
+    DrawRectangleRounded((Rectangle){(float)x, (float)y, 136, 58}, 0.16f, 4,
+                         selected ? (Color){19, 47, 56, 255} : (Color){10, 25, 32, 255});
+    DrawRectangleLines(x, y, 136, 58, selected ? color : (Color){39, 72, 78, 255});
+    DrawRectangle(x, y, selected ? 40 : 16, 3, color);
+    DrawRectangle(x + 8, y + 9, 32, 40, (Color){5, 16, 24, 255});
+    DrawRectangleLines(x + 8, y + 9, 32, 40, (Color){44, 81, 88, 255});
+    DrawRectangle(x + 12, y + 16, 24, 24, color);
+    if (type == TOWER_PULSE) DrawRectangle(x + 21, y + 11, 5, 24, RAYWHITE);
     else if (type == TOWER_RAPID) {
-        DrawRectangle(x + 17, 413, 5, 24, RAYWHITE);
-        DrawRectangle(x + 29, 413, 5, 24, RAYWHITE);
-    } else DrawTriangle((Vector2){x + 25, 411}, (Vector2){x + 14, 442},
-                        (Vector2){x + 36, 442}, RAYWHITE);
-    DrawText(name, x + 50, 411, 14, RAYWHITE);
-    DrawText(role, x + 50, 431, 10, (Color){101, 148, 155, 255});
-    DrawText(cost, x + 96, 449, 13, C_GOLD);
+        DrawRectangle(x + 16, y + 11, 5, 24, RAYWHITE);
+        DrawRectangle(x + 27, y + 11, 5, 24, RAYWHITE);
+    } else DrawTriangle((Vector2){(float)(x + 24), (float)(y + 9)},
+                        (Vector2){(float)(x + 13), (float)(y + 40)},
+                        (Vector2){(float)(x + 35), (float)(y + 40)}, RAYWHITE);
+    DrawText(name, x + 46, y + 9, 14, RAYWHITE);
+    DrawText(role, x + 46, y + 28, 10, (Color){101, 148, 155, 255});
+    DrawText(cost, x + 88, y + 42, 13, C_GOLD);
     if (selected) {
-        DrawRectangle(x + 7, 460, 62, 2, color);
-        DrawText("READY", x + 13, 449, 10, color);
+        DrawRectangle(x + 7, y + 54, 56, 2, color);
+        DrawText("READY", x + 12, y + 42, 10, color);
     }
 }
 
 static void draw_shop(const tower_game_t *game)
 {
-    DrawRectangle(0, 392, 480, 88, (Color){3, 10, 16, 255});
-    DrawRectangle(0, 392, 480, 2, (Color){31, 106, 112, 255});
-    draw_shop_card(game, TOWER_PULSE, 8, "PULSE", "BALANCED", "$70", C_CYAN);
-    draw_shop_card(game, TOWER_RAPID, 164, "RAPID", "FIRE RATE", "$95", C_GOLD);
-    draw_shop_card(game, TOWER_FROST, 320, "FROST", "SLOW FIELD", "$120", C_BLUE);
+    DrawRectangleRounded((Rectangle){20, 396, 440, 68}, 0.18f, 4, (Color){3, 10, 16, 255});
+    DrawRectangle(20, 396, 440, 2, (Color){31, 106, 112, 255});
+    draw_shop_card(game, TOWER_PULSE, 28, 402, "PULSE", "BALANCED", "$70", C_CYAN);
+    draw_shop_card(game, TOWER_RAPID, 170, 402, "RAPID", "FIRE RATE", "$95", C_GOLD);
+    draw_shop_card(game, TOWER_FROST, 312, 402, "FROST", "SLOW FIELD", "$120", C_BLUE);
 }
 
 static void draw_feedback(const tower_game_t *game)

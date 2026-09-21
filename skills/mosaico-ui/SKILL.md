@@ -122,6 +122,9 @@ image counts, or approval for decorative details.
 
 ## Repository execution support
 
+- Panel size and optional 60px corner guidance (suggestion only, not a
+  required control style) are in
+  [`docs/design/ui.zh-CN.md`](../../docs/design/ui.zh-CN.md).
 - Follow [AGENTS.md](../../AGENTS.md) and the [skill index](../README.md).
   Preserve the Recovery contract and use `mosaico.py` for device operations,
   including live identity and evidence checks. Resolve the ESP-IDF environment

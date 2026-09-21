@@ -77,6 +77,12 @@ class SkyHopHostRunnerTests(unittest.TestCase):
             self.assertNotIn(project_name, source)
         self.assertFalse((ROOT / "submodule/raylib-lite-engine/host/tower_host_renderer.c").exists())
 
+    def test_preview_matches_device_corner_radius(self) -> None:
+        source = (ROOT / "submodule/raylib-lite-engine/host/run_game.py").read_text(encoding="utf-8")
+        self.assertIn("border-radius:60px", source)
+        self.assertIn("clip-path:inset(0 round 60px)", source)
+        self.assertIn("roundRect(0,0,480,480,60)", source)
+
     def test_headless_preview_uses_shared_game_model(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             state = Path(directory) / "state.json"

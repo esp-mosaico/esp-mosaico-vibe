@@ -94,13 +94,13 @@ static void handle_tap(tower_game_t *game, float x, float y)
         game->phase = TOWER_PLAYING;
         return;
     }
-    if (point_in(x, y, 418, 12, 50, 40)) {
+    if (point_in(x, y, 402, 14, 48, 46)) {
         game->phase = game->phase == TOWER_PAUSED ? TOWER_PLAYING : TOWER_PAUSED;
         return;
     }
     if (game->phase != TOWER_PLAYING) return;
     for (uint8_t type = 0; type < TOWER_TYPE_COUNT; ++type) {
-        if (point_in(x, y, 12 + type*154, 407, 146, 61)) {
+        if (point_in(x, y, 28 + type * 142, 400, 136, 60)) {
             game->selected_type = type;
             return;
         }

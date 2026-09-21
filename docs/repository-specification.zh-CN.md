@@ -92,6 +92,7 @@ Agent-Led 的默认主导关系是：**Agent 持续推进，用户在关键节�
 - 使用 GSP 的应用在 PC 上通过 `tools/gsp-sim` 预览 480×480 场景并保存渲染效果；仿真运行时与组件仓库中的 **espressif/esp-gsp 1.4.0** 配套。
 - UI 调整与固件调试共享同一设备记录，减少人工往返。
 - 专项 Skill 可扩展视觉比较能力。具体应用负责定义验收基准。
+- 面板圆角与预览裁切见 [`docs/design/ui.zh-CN.md`](design/ui.zh-CN.md)，仅为建议，不是强制显示。
 
 ### 2.6 ESP-Iris 下载、烧录与调试闭环
 

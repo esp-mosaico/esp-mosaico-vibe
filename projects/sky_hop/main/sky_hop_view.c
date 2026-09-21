@@ -183,21 +183,21 @@ bool sky_hop_view_render(const sky_hop_view_t *view)
     }
     EndMode2D();
 
-    DrawRectangle(0, 0, 480, 42, (Color){22, 42, 68, 230});
-    DrawText(TextFormat("SCORE %04u", game->score), 14, 11, 20, RAYWHITE);
+    DrawRectangleRounded((Rectangle){24, 14, 432, 40}, 0.28f, 4, (Color){22, 42, 68, 230});
+    DrawText(TextFormat("SCORE %04u", game->score), 36, 22, 20, RAYWHITE);
     DrawText(TextFormat("L%u/%u", game->level + 1, PLATFORM_LEVEL_COUNT),
-             181, 11, 18, (Color){129, 224, 171, 255});
-    DrawText(TextFormat("BEST %04u", view->best_score), 250, 13, 14,
+             188, 22, 18, (Color){129, 224, 171, 255});
+    DrawText(TextFormat("BEST %04u", view->best_score), 256, 24, 14,
              (Color){255, 220, 80, 255});
-    DrawText(TextFormat("LIFE %u", game->lives), 365, 11, 20, RAYWHITE);
-    DrawRectangle(438, 4, 36, 32, (Color){52, 77, 104, 255});
-    DrawRectangle(449, 11, 4, 18, RAYWHITE);
-    DrawRectangle(459, 11, 4, 18, RAYWHITE);
-    draw_button((Rectangle){8, 408, 138, 64}, "LEFT", (Color){25, 43, 65, 210},
+    DrawText(TextFormat("LIFE %u", game->lives), 348, 22, 20, RAYWHITE);
+    DrawRectangleRounded((Rectangle){416, 18, 32, 32}, 0.28f, 4, (Color){52, 77, 104, 255});
+    DrawRectangle(427, 25, 4, 18, RAYWHITE);
+    DrawRectangle(437, 25, 4, 18, RAYWHITE);
+    draw_button((Rectangle){20, 408, 128, 56}, "LEFT", (Color){25, 43, 65, 210},
                 game->move_left);
-    draw_button((Rectangle){154, 408, 138, 64}, "RIGHT", (Color){25, 43, 65, 210},
+    draw_button((Rectangle){156, 408, 128, 56}, "RIGHT", (Color){25, 43, 65, 210},
                 game->move_right);
-    draw_button((Rectangle){300, 408, 172, 64}, "JUMP", (Color){226, 95, 63, 230},
+    draw_button((Rectangle){292, 408, 168, 56}, "JUMP", (Color){226, 95, 63, 230},
                 game->jump_held);
     if (game->phase != PLATFORM_PLAYING)
         draw_overlay(game, view->overlay_y);

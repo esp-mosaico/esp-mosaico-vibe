@@ -105,21 +105,21 @@ static void draw_particles(const shooter_game_t *game)
 
 static void draw_hud(const shooter_game_t *game)
 {
-    DrawRectangle(12,12,456,52,(Color){9,15,43,255});
-    DrawRectangle(12,12,92,3,C_CYAN);
-    DrawRectangle(376,61,92,3,C_PINK);
-    DrawText("SCORE",25,20,12,(Color){94,151,193,255});
-    DrawText(TextFormat("%07lu",(unsigned long)game->score),25,36,19,RAYWHITE);
-    DrawText(TextFormat("SECTOR %02u",game->wave),200,20,13,(Color){105,169,206,255});
+    DrawRectangleRounded((Rectangle){24,16,432,48},0.22f,4,(Color){9,15,43,255});
+    DrawRectangle(24,16,80,3,C_CYAN);
+    DrawRectangle(376,61,80,3,C_PINK);
+    DrawText("SCORE",36,22,12,(Color){94,151,193,255});
+    DrawText(TextFormat("%07lu",(unsigned long)game->score),36,38,19,RAYWHITE);
+    DrawText(TextFormat("SECTOR %02u",game->wave),196,22,13,(Color){105,169,206,255});
     if(game->combo){
         Color color=game->combo>=8?C_GOLD:C_PINK;
-        DrawText(TextFormat("x%02u",game->combo),213,39,19,color);
-    }else DrawText("LINK --",204,40,12,(Color){48,70,103,255});
-    DrawText("HULL",390,20,12,(Color){117,150,184,255});
+        DrawText(TextFormat("x%02u",game->combo),208,40,19,color);
+    }else DrawText("LINK --",200,42,12,(Color){48,70,103,255});
+    DrawText("HULL",378,22,12,(Color){117,150,184,255});
     for(unsigned i=0;i<3;++i){
         Color color=i<game->lives?C_MINT:(Color){40,35,67,255};
-        int x=389+(int)i*20;
-        DrawTriangle((Vector2){x+7,38},(Vector2){x,51},(Vector2){x+14,51},color);
+        int x=377+(int)i*20;
+        DrawTriangle((Vector2){x+7,40},(Vector2){x,53},(Vector2){x+14,53},color);
     }
 }
 
