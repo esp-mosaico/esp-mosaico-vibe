@@ -94,6 +94,7 @@ class ToolSubmoduleIntegrationTests(unittest.TestCase):
             for filename in ("components/esp_mosaico_app_recovery/CMakeLists.txt",
                              "components/esp_mosaico_app_recovery/sdkconfig.defaults",
                              "cmake/mosaico_application.cmake",
+                             "cmake/mosaico_idf_project.cmake",
                              "cmake/system_update.cmake", "tools/prepare_system_update.py",
                              "tools/gsp-sim/fetch_gspc.py", "tools/pack_gsp_partition.py"):
                 target = root / filename

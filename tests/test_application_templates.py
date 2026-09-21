@@ -25,7 +25,7 @@ class ApplicationTemplateTests(unittest.TestCase):
                     self.assertEqual(GAME.main(["create", name, "--template", template],
                                                repository=root, tool_root=ROOT), 0)
                     cmake = (root / "projects" / name / "CMakeLists.txt").read_text()
-                    self.assertLess(cmake.index("mosaico_application.cmake"), cmake.index("$ENV{IDF_PATH}"))
+                    self.assertIn("mosaico_idf_project.cmake", cmake)
                     self.assertIn("project(" + name, cmake)
                     self.assertIn("system_update.cmake", cmake)
 

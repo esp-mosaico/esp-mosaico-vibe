@@ -34,6 +34,11 @@
     },
     "application_contract": {
       "base": "workspace",
+      "path": "cmake/mosaico_idf_project.cmake",
+      "required": "file"
+    },
+    "application_defaults": {
+      "base": "workspace",
       "path": "cmake/mosaico_application.cmake",
       "required": "file"
     },
@@ -65,7 +70,7 @@
           "replacement": "set(MOSAICO_ESP_IRIS_ROOT \"${CMAKE_CURRENT_LIST_DIR}/{{iris_root|cmake}}\")\ninclude(\"${CMAKE_CURRENT_LIST_DIR}/{{system_update|cmake}}\")"
         },
         {
-          "pattern": "^include\\([^\\n)]*mosaico_application\\.cmake\"?\\)",
+          "pattern": "^include\\([^\\n)]*mosaico_idf_project\\.cmake\"?\\)",
           "replacement": "include(\"${CMAKE_CURRENT_LIST_DIR}/{{application_contract|cmake}}\")"
         },
         {

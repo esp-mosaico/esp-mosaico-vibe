@@ -81,9 +81,10 @@ At minimum:
 
 Do not claim device or audio success from a successful build alone.
 
-All game templates include `cmake/mosaico_application.cmake` and validate the
-normal firmware contract through `esp_mosaico_app_recovery`. Keep this inclusion
-when copying a template. Declare generated resource images using the
+All game templates include `cmake/mosaico_idf_project.cmake` (which pulls in
+`cmake/mosaico_application.cmake`) and validate the normal firmware contract
+through `esp_mosaico_app_recovery`. Keep this inclusion when copying a template.
+Declare generated resource images using the
 `MOSAICO_SYSTEM_UPDATE_DATA_LABELS` and per-label `IMAGE`/`TARGET` CMake properties;
 `sky_hop/main/CMakeLists.txt` is the game_assets reference. A reserved but unused
 resource partition needs no image.

@@ -105,7 +105,8 @@ Unless the developer approves another architecture, every application must:
    `python mosaico.py iris app-update --project ...` for code-only updates when
    the full partition table matches the device. Do not reshape an application's
    intended layout merely to make app-update pass.
-5. Include `cmake/mosaico_application.cmake` before ESP-IDF project.cmake;
+5. Include `cmake/mosaico_idf_project.cmake` before `project()`; it includes
+   `cmake/mosaico_application.cmake` and ESP-IDF project.cmake.
    `esp_mosaico_app_recovery` validates the effective normal role, product/board/
    layout/ABI contract, Recovery routing, and disabled application OTA writer.
 

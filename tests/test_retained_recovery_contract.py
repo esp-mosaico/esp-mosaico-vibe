@@ -103,7 +103,11 @@ class RetainedRecoveryContractTests(unittest.TestCase):
                 config = defaults(ROOT / "components/esp_mosaico_app_recovery/sdkconfig.defaults") if role == 1 else {}
                 config.update(defaults(path))
                 if role == 1:
-                    self.assertIn("mosaico_application.cmake", (path.parent / "CMakeLists.txt").read_text())
+                    cmake = (path.parent / "CMakeLists.txt").read_text()
+                    if path.parent.parent.name == "projects":
+                        self.assertIn("mosaico_idf_project.cmake", cmake)
+                    else:
+                        self.assertIn("mosaico_application.cmake", cmake)
                 self.assertEqual(int(config["CONFIG_ESP_IRIS_FIRMWARE_ROLE"]), role)
                 for key in ("product_contract", "board_id", "layout_id", "recovery_abi"):
                     self.assertEqual(ast.literal_eval(config["CONFIG_ESP_IRIS_" + key.upper()]),
