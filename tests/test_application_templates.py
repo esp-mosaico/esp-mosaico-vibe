@@ -1,34 +1,14 @@
-"""Exercise generated game projects and the effective CMake contract gate."""
-import importlib.util
-from pathlib import Path
-import shutil
+"""Check the effective CMake contract gate without generating game templates."""
 import subprocess
 import tempfile
 import unittest
+from pathlib import Path
+import shutil
 
 ROOT = Path(__file__).resolve().parents[1]
-SPEC = importlib.util.spec_from_file_location("game_cli", ROOT / "submodule/raylib-lite-engine/tools/game_cli.py")
-GAME = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(GAME)
 
 
-class ApplicationTemplateTests(unittest.TestCase):
-    def test_each_created_game_loads_shared_contract_before_idf(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            (root / "projects").mkdir()
-            for template, source in GAME.TEMPLATES.items():
-                with self.subTest(template=template):
-                    shutil.copytree(ROOT / "projects" / source, root / "projects" / source,
-                                    ignore=shutil.ignore_patterns("build", "build-*", "managed_components", "assets", ".codex-runs", "pc"))
-                    name = "generated_" + source
-                    self.assertEqual(GAME.main(["create", name, "--template", template],
-                                               repository=root, tool_root=ROOT), 0)
-                    cmake = (root / "projects" / name / "CMakeLists.txt").read_text()
-                    self.assertIn("mosaico_idf_project.cmake", cmake)
-                    self.assertIn("project(" + name, cmake)
-                    self.assertIn("system_update.cmake", cmake)
-
+class ApplicationContractTests(unittest.TestCase):
     def test_component_rejects_existing_unknown_role_and_writer(self):
         # Run the real component configure gate with resolved values, without
         # invoking IDF or mutating a generated sdkconfig.

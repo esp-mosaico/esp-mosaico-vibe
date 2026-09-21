@@ -11,8 +11,6 @@
 | 创建应用、选择参考工程、配置模板并首次安装 | [工程初始化](project-init.zh-CN.md) |
 | 选择更新方式、查询命令或恢复设备 | [CLI 命令参考](mosaico-cli.zh-CN.md) |
 | 打开工作台、理解会话、选择或转让设备、排查占用 | [Gateway 与设备归属](project-gateway.zh-CN.md) |
-| 开发游戏、运行同源仿真与回放、验证真机 | [游戏开发](game-development.zh-CN.md) |
-| 对 Sky Hop 做可重复的真机性能对比 | [Sky Hop 性能测试](sky-hop-performance.zh-CN.md) |
 | 运行主机检查、了解固件构建矩阵 | [持续集成](ci.zh-CN.md) |
 
 ## 专项与组件资料
@@ -22,9 +20,6 @@
 - 工具与恢复：[产品 CLI](../submodule/esp-mosaico-utils/mosaico-tools/README.md)、
   [Recovery 固件](../submodule/esp-mosaico-utils/esp-mosaico-recovery/firmware/recovery/README.md)、
   [组件边界](../submodule/esp-mosaico-utils/docs/component-boundaries.md)。
-- 游戏引擎：[概览](../submodule/raylib-lite-engine/README.md)、
-  [组件生命周期](../submodule/raylib-lite-engine/components/README.md)、
-  [Host runner 与回放格式](../submodule/raylib-lite-engine/host/run_game.py)。
 
 组件链接依赖对应子模块已经初始化。API、协议和模板格式随所属组件维护；本目录
 保留工作区集成与操作流程，引用组件文档，不复制其完整规格。

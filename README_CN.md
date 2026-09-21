@@ -48,8 +48,6 @@ python mosaico.py iris logs --project projects/my_app --timeout 20
 - 设备 UI：适合使用 GSP 时，从 [GSP Hello World](projects/hello_world/README.md)
   开始。[GSP 仿真工具](tools/gsp-sim/README.md) 使用 `espressif/esp-gsp` 1.4.0，
   支持 PC 与设备共享 UI 逻辑。
-- Raylib 兼容游戏：按[游戏开发指南](docs/game-development.zh-CN.md)选择参考项目，
-  使用同源 C 绘制和确定性 Host 回放。
 - 持续观察设备：执行 `python mosaico.py iris run --project projects/my_app`，
   打开输出中的 Gateway Web 工作台地址。会话和设备归属见
   [Gateway 指南](docs/project-gateway.zh-CN.md)。
@@ -78,5 +76,5 @@ python mosaico.py iris logs --project projects/my_app --timeout 20
 
 ## 文档入口
 
-[文档索引](docs/README.md)汇总工程创建、设备操作、游戏开发和组件参考。
+[文档索引](docs/README.md)汇总工程创建、设备操作和组件参考。
 详细指南目前以中文维护。主机检查和固件 CI 见[持续集成指南](docs/ci.zh-CN.md)。
