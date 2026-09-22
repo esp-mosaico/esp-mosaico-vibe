@@ -37,7 +37,8 @@
   [实现与验证](design/gsp-hello/implementation.md)。
 - Recovery Download Ideas：[延迟分析](download-ideas-pairing-latency-analysis.zh-CN.md)、
   [预取与压缩验证](download-ideas-prefetch-validation.zh-CN.md)、
-  [ESP-61 二维码与页面实现计划](esp-61-recovery-ideas-plan.zh-CN.md)。
+  [ESP-61 二维码、页面与 OTA 进度实现计划](esp-61-recovery-ideas-plan.zh-CN.md)。
+  当前实现、容量与真机回路见 [ESP-61 验证记录](esp-61-validation.zh-CN.md)。
 - Recovery 容量：[固件大小分析与缩减实验](recovery-size-analysis.zh-CN.md)。
 
 ## 维护约定
