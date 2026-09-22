@@ -19,7 +19,7 @@ mosaico.py
 │   ├── system-update
 │   └── test enter-recovery / recovery-wifi / bridge-code
 ├── recover
-└── game（旧包装，不要用于新工作；仿真用引擎 tools/game_cli.py）
+└── game create/new/sim/run/build（BSP 示例与引擎 Host）
 ```
 
 ## 命令职责
@@ -40,7 +40,7 @@ mosaico.py
 | `iris app-update` | 仅更新正常应用代码，要求完整分区表与设备一致 |
 | `iris system-update` | 新应用、分区布局或资源变化的推荐入口，按更新包清单写入 |
 | `recover` | 初始化或恢复设备基础固件，包括 ESP-Iris 不可达时的恢复 |
-| `game` | 遗留入口，仍调用子模块里过期的 CLI。Host 仿真请在引擎根目录执行 `python3 tools/game_cli.py sim examples/<name>`，见[游戏开发入口](game-development.zh-CN.md) |
+| `game` | 从 BSP 示例创建游戏，调用引擎 Host 仿真或构建，见[游戏开发入口](game-development.zh-CN.md) |
 
 `iris test` 下的命令用于分别测试 Recovery 流程：
 
@@ -135,3 +135,6 @@ High-Speed USB 默认交给 ESP-Iris；产品功能需要占用它的 normal 应
 
 `recover`、`doctor` 和工作区的 `game` 入口保留。操作记录中的内部操作标识、
 JSON 业务结果及取证目录格式继续沿用；`iris status` 新增 `running` 字段。
+
+GSP 预览使用 `python mosaico.py project sim --project projects/my_app`；
+工作区不预置应用，先执行 `project init`。公共实现位于 utils。

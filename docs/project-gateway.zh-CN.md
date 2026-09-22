@@ -9,7 +9,7 @@
 ## 开始和结束调试
 
 ```sh
-python mosaico.py iris run --project projects/hello_world
+python mosaico.py iris run --project projects/my_app
 ```
 
 每次 `iris run` 都登记一个独立客户端，已有实例时也保持前台运行。打印的 URL
@@ -32,7 +32,7 @@ Gateway 已退出时，工作台不能自动唤醒它。重新执行 `iris run` 
 ## 查看谁在使用
 
 ```sh
-python mosaico.py iris status --project projects/hello_world
+python mosaico.py iris status --project projects/my_app
 python mosaico.py iris status --all
 python mosaico.py iris status --all --json
 ```
@@ -58,9 +58,9 @@ JSON 的 `running` 描述会话进程锁是否仍被持有，`reachable` 描述 
 离线设备；实际 Device ID、Boot ID 和在线状态须在操作时通过握手确认。
 
 ```sh
-python mosaico.py iris list --project projects/hello_world
-python mosaico.py iris claim --project projects/hello_world --endpoint '<发现的端点>'
-python mosaico.py iris logs --project projects/hello_world --device-id '<Device-ID>'
+python mosaico.py iris list --project projects/my_app
+python mosaico.py iris claim --project projects/my_app --endpoint '<发现的端点>'
+python mosaico.py iris logs --project projects/my_app --device-id '<Device-ID>'
 ```
 
 单设备操作可省略设备选择器。选择顺序如下：

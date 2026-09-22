@@ -1,34 +1,27 @@
-# 游戏开发入口
+# 游戏创建与仿真
 
-[返回文档索引](README.md)
+[返回索引](README.md)
 
-本工作区不再托管 Sky Hop、Tower Defense、Raylib Shooter 等游戏示例。
-Raylib 兼容运行时、Host 仿真、资源管线和参考实现以
-[Raylib Lite Engine](../submodule/raylib-lite-engine/README.md) 为准。
-
-```sh
-git submodule update --init submodule/raylib-lite-engine
-```
-
-Host 仿真在**引擎仓库根目录**运行，不要用本仓库的 `python mosaico.py game`
-（那是旧包装，指向子模块里过期的 CLI）：
+三个完整游戏由 BSP `examples/` 维护；通用运行时、绘制、资源工具与 Host 仿真
+由 Raylib Lite Engine 维护。工作区保留统一命令入口：
 
 ```sh
-cd submodule/raylib-lite-engine
-python3 -m pip install Pillow
-python3 tools/game_cli.py sim examples/sky_hop
-python3 tools/game_cli.py sim examples/last_zone_extraction --headless --frames 90
+git submodule update --init submodule/esp-mosaico-utils submodule/esp-mosaico-bsp submodule/raylib-lite-engine
+python mosaico.py game create my_game --template sky-hop
+python mosaico.py game sim --project projects/my_game --headless --frames 120
+python mosaico.py game build --project projects/my_game
+python mosaico.py iris system-update --project projects/my_game
 ```
 
-浏览器预览为 `http://127.0.0.1:8460/`。这不是 [GSP 仿真](../tools/gsp-sim/README.md)。
-完整契约见引擎 [游戏开发指南](../submodule/raylib-lite-engine/docs/game-development.zh-CN.md)。
+可选模板为 `sky-hop`、`tower-defense`、`shooter`。`game new` 等同于 `game create`；
+创建支持 `--dry-run`，拒绝覆盖。Host 需要 C 编译器与 Pillow；固件使用满足项目
+约束并支持 ESP32-S31 的 ESP-IDF。交互仿真省略 `--headless`。
 
-从引擎仓库继续：
+- [Sky Hop](../submodule/esp-mosaico-bsp/examples/sky_hop/README.md)
+- [Tower Defense](../submodule/esp-mosaico-bsp/examples/tower_defense/README.md)
+- [Raylib Shooter](../submodule/esp-mosaico-bsp/examples/raylib_shooter/README.md)
+- [游戏开发细节](../submodule/esp-mosaico-bsp/docs/game-development.zh-CN.md)
+- [引擎接口与 Host](../submodule/raylib-lite-engine/README.md)
 
-- 概览与集成：[README](../submodule/raylib-lite-engine/README.md)
-- 组件职责：[components](../submodule/raylib-lite-engine/components/README.md)
-- 绘制总表：[game-drawing-inventory](../submodule/raylib-lite-engine/docs/game-drawing-inventory.zh-CN.md)
-
-工作区只保留 CMake 适配 `cmake/raylib_lite_engine.cmake`。普通应用的 Recovery
-契约仍以 [GSP Hello World](../projects/hello_world/README.md) 为准；不要把
-Hello World 当成游戏模板。
+保留 Recovery 分区和 ESP-Iris 操作流程；首次安装在空白/未验证设备上先执行
+`python mosaico.py recover`。不直接照搬其他 BSP 示例的 IDF 刷写步骤。

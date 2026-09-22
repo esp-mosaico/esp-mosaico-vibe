@@ -2,13 +2,13 @@
   "schema_version": 1,
   "workspace": {
     "projects_dir": "projects",
-    "default_project": "projects/hello_world",
-    "init_template": "projects/hello_world/mosaico-template.json",
+    "init_template": "submodule/esp-mosaico-utils/mosaico-tools/templates/hello_world/mosaico-template.json",
     "run_dir": ".codex-runs/mosaico"
   },
   "dependencies": {
     "bsp": "submodule/esp-mosaico-bsp",
-    "esp_iris": "submodule/esp-mosaico-utils/ESP-Iris"
+    "esp_iris": "submodule/esp-mosaico-utils/ESP-Iris",
+    "raylib": "submodule/raylib-lite-engine"
   },
   "build": {
     "runner": "builtin"

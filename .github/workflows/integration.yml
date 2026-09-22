@@ -74,28 +74,31 @@ jobs:
             exit 1
           fi
 
+      - name: Create temporary application from the public template
+        run: python mosaico.py project init ci_hello
+
       - name: Verify ESP-IDF environment
         shell: bash
         run: >-
-          python3 submodule/esp-mosaico-utils/esp-mosaico-recovery/skills/idf-low-noise-build/scripts/idf_low_noise_build.py
-          --project "projects/hello_world"
+          python3 submodule/esp-mosaico-utils/mosaico-tools/skills/idf-low-noise-build/scripts/idf_low_noise_build.py
+          --project "projects/ci_hello"
           doctor
 
       - name: Build firmware
         shell: bash
         run: >-
-          python3 submodule/esp-mosaico-utils/esp-mosaico-recovery/skills/idf-low-noise-build/scripts/idf_low_noise_build.py
-          --project "projects/hello_world"
+          python3 submodule/esp-mosaico-utils/mosaico-tools/skills/idf-low-noise-build/scripts/idf_low_noise_build.py
+          --project "projects/ci_hello"
           --log-dir "$RUNNER_TEMP/idf-logs/hello-world"
           build
 
       - name: Build GSP PC bridge and render scene
         shell: bash
         run: |
-          gsp_root="$GITHUB_WORKSPACE/projects/hello_world/managed_components/espressif__esp-gsp"
-          gspc="$(python3 tools/gsp-sim/fetch_gspc.py)"
+          gsp_root="$GITHUB_WORKSPACE/projects/ci_hello/managed_components/espressif__esp-gsp"
+          gspc="$(python3 submodule/esp-mosaico-utils/mosaico-tools/tools/gsp-sim/fetch_gspc.py)"
           cmake \
-            -S projects/hello_world/pc \
+            -S projects/ci_hello/pc \
             -B "$RUNNER_TEMP/gsp-pc-build" \
             -D "CMAKE_BUILD_TYPE=Release" \
             -D "ESP_GSP_COMPONENT_DIR=$gsp_root" \
@@ -103,9 +106,9 @@ jobs:
           cmake --build "$RUNNER_TEMP/gsp-pc-build"
           python3 tests/hello_world_ui/run.py \
             --manifest "$RUNNER_TEMP/gsp-pc-build/hello_backend-Release.json" \
-            --sim "$(python3 tools/gsp-sim/fetch_gspc.py --sim)" \
+            --sim "$(python3 submodule/esp-mosaico-utils/mosaico-tools/tools/gsp-sim/fetch_gspc.py --sim)" \
             --output "$RUNNER_TEMP/hello-world-ui"
-          python3 tools/gsp-sim/run.py \
+          python3 mosaico.py project sim --project projects/ci_hello \
             --headless \
             --dump-ppm "$RUNNER_TEMP/hello-world.ppm"
           python3 - "$RUNNER_TEMP/hello-world.ppm" <<'PY'
@@ -133,13 +136,13 @@ jobs:
         with:
           name: firmware-hello-world
           path: |
-            projects/hello_world/build/*.bin
-            projects/hello_world/build/*.elf
-            projects/hello_world/build/*.map
-            projects/hello_world/build/*.irisfw
-            projects/hello_world/build/sdkconfig
-            projects/hello_world/build/bootloader/*.bin
-            projects/hello_world/build/partition_table/*.bin
+            projects/ci_hello/build/*.bin
+            projects/ci_hello/build/*.elf
+            projects/ci_hello/build/*.map
+            projects/ci_hello/build/*.irisfw
+            projects/ci_hello/build/sdkconfig
+            projects/ci_hello/build/bootloader/*.bin
+            projects/ci_hello/build/partition_table/*.bin
           if-no-files-found: error
           retention-days: 14
 
