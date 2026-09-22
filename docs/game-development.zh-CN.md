@@ -3,7 +3,8 @@
 [返回索引](README.md)
 
 三个完整游戏由 BSP `examples/` 维护；通用运行时、绘制、资源工具与 Host 仿真
-由 Raylib Lite Engine 维护。工作区保留统一命令入口：
+由 Raylib Lite Engine 维护。BSP 示例可单独克隆构建，所需固定依赖由示例声明并自动获取；
+本工作区生成的应用显式复用已固定的子模块，不依赖隐式相邻目录。工作区保留统一命令入口：
 
 ```sh
 git submodule update --init submodule/esp-mosaico-utils submodule/esp-mosaico-bsp submodule/raylib-lite-engine

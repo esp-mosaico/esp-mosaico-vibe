@@ -79,6 +79,9 @@ install.
    Do not import Mosaic claw hub/runtime into this repository.
 4. Component repositories and supporting project material are Git submodules.
    Initialize and inspect only the submodules needed for the current task.
+   Validate owning-repository examples from a standalone clone. Dependencies must
+   be declared and resolvable there; workspace sibling paths are not an example
+   dependency contract. Use explicit configured paths in generated applications.
 5. Follow component source, examples, and upstream documentation. Do not
    invent board or component APIs.
 6. Keep user-facing documentation in `docs/`, public product tooling in
