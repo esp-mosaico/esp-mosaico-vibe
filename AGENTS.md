@@ -1,190 +1,101 @@
 # ESP-Mosaico Agent Rules
 
-## Repository purpose
+Select task-relevant [skills](.agents/skills/README.md) at the task level.
+Skills must not discover, name or load other skills; reference docs, source and tools directly.
+User guides start at [docs](docs/README.md).
 
-This repository is the starting point for vibe coding on the development
-version of ESP-Mosaico. Keep user applications, reusable guidance, and device
-operations separated according to the repository layout.
+## Repository boundaries
 
-The `submodule/esp-mosaico-bsp/` Git submodule is the ESP-Mosaico board support
-package repository.
-It contains the board-level support implementation and the example projects
-under `submodule/esp-mosaico-bsp/examples/`. Examples referenced by the guides
-in `.agents/skills/` live in this BSP repository, so initialize and inspect the
-`submodule/esp-mosaico-bsp/` submodule before using those examples.
+- User applications belong in `projects/`; settings in `.mosaico.json`.
+  Public tooling/templates belong in `submodule/esp-mosaico-utils/mosaico-tools`;
+  Recovery firmware/integration/ABI in utils' `esp-mosaico-recovery/`, fixtures in its `tests/firmware/`.
+  Never use Recovery as an application template or mix test fixtures into user apps.
+- Board support and complete game examples belong in `submodule/esp-mosaico-bsp/`;
+  generic game implementation/tests belong in `submodule/raylib-lite-engine/`.
+  Initialize and inspect only needed submodules, including BSP before using its examples.
+- Keep user documentation in `docs/`, indexed by `docs/README.md`; keep root
+  English/Chinese READMEs aligned and short. Component API/protocol docs stay with owners.
+- Agent guidance/tools belong in `.agents/`, shared skills in version-controlled
+  `.agents/skills/`, local analysis in `.agents/analysis/`; this is not a secrecy boundary.
+- Dependencies must not read vibe internals. Validate owning-repository examples from
+  standalone clones with declared, resolvable dependencies, not workspace sibling paths.
+  Generated apps use explicit dependency roots and relocatable paths; follow the
+  [migration guide](docs/workspace-migration_CN.md) when moving or migrating a workspace.
+- Inspect component source, examples and upstream docs; do not invent APIs.
+  Do not import Mosaic claw hub/runtime.
 
-## Route development work
+## Environment and builds
 
-### Resolve the PC environment
+- Use Python **3.10+**, target **esp32s31**, and ESP-IDF at exactly
+  **`7b9cc1ac79f865983f59bb8ff3ff43eb74ff1dbe`**, not the latest `master`.
+- Before ESP-IDF work, verify the checkout with `git -C <idf-path> rev-parse HEAD`
+  and follow [build doctor/build workflow](.agents/skills/idf-low-noise-build/SKILL.md).
+  Check Python, target support and application/Recovery manifest constraints;
+  cached paths or version numbers alone are insufficient.
+- If the pinned checkout is missing, use [environment setup](.agents/skills/espressif-env-setup/SKILL.md)
+  and verify a first build. This repository authorizes that fresh installation without
+  another request, overriding the skill's explicit-install trigger. Use standard paths
+  when unspecified and preserve other SDK checkouts.
 
-Before running ESP-IDF tools, resolve the PC environment as follows:
+## Application development
 
-1. Resolve an ESP-IDF candidate from explicit user input, the active `IDF_PATH`,
-   an active `idf.py`, or an existing `build/project_description.json` under
-   the selected application or Recovery project, in that order. Treat build
-   metadata as an untrusted, generated hint: it may be absent or stale and its
-   recorded `idf_path` is not proof that the checkout is compatible.
-2. Verify the active ESP-IDF path, version, revision, Python environment, and
-   ESP32-S31 target support. The application constraint is declared in
-   the selected application manifest (or
-   `submodule/esp-mosaico-utils/mosaico-tools/templates/hello_world/main/idf_component.yml`
-   before creation), and the Recovery constraint
-   in `submodule/esp-mosaico-utils/esp-mosaico-recovery/firmware/recovery/main/idf_component.yml`;
-   do not rely only on build metadata.
-   The `mosaico.py` and ESP-Iris host tools support Python 3.8 or newer. ESP-IDF
-   6.1 still requires Python 3.10 or newer; allow `mosaico.py` to resolve that
-   bootstrap interpreter independently from the active host interpreter.
-3. If no compatible ESP-IDF environment exists, use
-   `.agents/skills/espressif-env-setup/SKILL.md` for the fresh ESP-IDF installation and
-   its first verification build.
-4. Query live device identity and availability at operation time; do not treat
-   cached Device ID or Boot ID values as current evidence.
+- Create apps with `python mosaico.py project init <name>` using utils' Hello World
+  template; create games with `python mosaico.py game create <name> --template ...`.
+- For device UI, prefer GSP and load [mosaico-ui](.agents/skills/mosaico-ui/SKILL.md);
+  for GSP also load [gsp-sim](.agents/skills/gsp-sim/SKILL.md) for its pinned Registry
+  version, native C preview commands and runtime constraints.
+- For games, prefer Raylib Lite Engine and load
+  [mosaico-game-development](.agents/skills/mosaico-game-development/SKILL.md).
+- Confirm unsettled UI designs before implementation, preferably with rendered mockups;
+  reuse existing confirmation. Validate shared native UI/game behavior in the simulator,
+  fixing and re-running affected flows before device validation. Screenshots alone
+  do not validate interaction. Start on hardware only for hardware-dependent issues
+  or unavailable simulator coverage, and state remaining validation gaps.
 
-If no compatible ESP-IDF environment exists, the agent may autonomously select
-and install one. Resolve the version, target, installation path, and tools path
-from explicit user input, project constraints, and current upstream
-compatibility information, in that order. Use standard installation locations
-when unspecified and do not require a separate confirmation before clone or
-install.
-
-### Route the application
-
-1. Translate the user's request into a project-level goal and identify the
-   required board capabilities.
-2. Create applications with `python mosaico.py project init <project-name>`.
-   The reference template lives in
-   `submodule/esp-mosaico-utils/mosaico-tools/templates/hello_world` and supports
-   PC and device execution. The main repository contains no pre-created
-   `projects/` or `components/`; user projects appear only after creation.
-   Game templates live in `submodule/esp-mosaico-bsp/examples/` and are copied
-   with `python mosaico.py game create <name> --template ...`.
-   Keep product test firmware in utils' `esp-mosaico-recovery/tests/firmware/`;
-   never mix fixtures into user projects. Recovery itself is an internal
-   `mosaico.py recover` resource, never an application template.
-3. Read `.agents/skills/README.md`, then load only the `SKILL.md` files relevant to the
-   requested capabilities. For new or existing device UI work, load
-   [`mosaico-ui`](.agents/skills/mosaico-ui/SKILL.md). Its three feedback loops are
-   design confirmation, simulator validation, and device validation; enter
-   where the current uncertainty lies and continue within the requested scope.
-   For unsettled designs, prefer rendered mockups and confirm the overall
-   style, layout, and main interactions with the user before implementation.
-   Reuse existing confirmation; route later problems to the responsible loop
-   and revalidate affected downstream behavior.
-   UI applications may use LVGL or GSP; prefer GSP
-   when it fits the product, use its simulator to produce rendering evidence,
-   and follow the constraints of the selected UI framework. For GSP UI work,
-   load `.agents/skills/gsp-sim/SKILL.md` and preview with
-   `python mosaico.py project sim --project projects/<name>` (sim_bridge by default) using
-   **espressif/esp-gsp 1.4.0** from the ESP Component Registry.
-   Do not import Mosaic claw hub/runtime into this repository.
-4. Component repositories and supporting project material are Git submodules.
-   Initialize and inspect only the submodules needed for the current task.
-   Validate owning-repository examples from a standalone clone. Dependencies must
-   be declared and resolvable there; workspace sibling paths are not an example
-   dependency contract. Use explicit configured paths in generated applications.
-5. Follow component source, examples, and upstream documentation. Do not
-   invent board or component APIs.
-6. Keep user-facing documentation in `docs/`, public product tooling in
-   `submodule/esp-mosaico-utils/mosaico-tools`, Recovery firmware and product ABI in
-   `submodule/esp-mosaico-utils/esp-mosaico-recovery`, workspace-specific tool settings in
-   `.mosaico.json`, and agent-facing skills, guidance, and tools in `.agents/`.
-   Keep shared skills in `.agents/skills/` under version control; `.agents/` is
-   not a confidentiality boundary. Put local analysis artifacts in `.agents/analysis/`.
-   Use `docs/README.md` as the user documentation index. Maintain component API
-   and protocol details with the owning submodule, and link to them from workspace
-   guides instead of duplicating them. Keep the English and Chinese root READMEs
-   aligned as short entry points.
-   Shared Recovery integration belongs to utils, complete games to BSP examples,
-   and generic game implementation/tests to the engine. Dependencies must not
-   read vibe internal files. Use explicit dependency roots and relocatable source
-   paths. Rebuild after moving/cloning the workspace; no legacy-path adapters
-   or standalone application export are required.
-
-### Preserve the retained recovery path
+## Retained Recovery contract
 
 Unless the developer approves another architecture, every application must:
 
-1. Retain the immutable prefix partition contract from
-   `submodule/esp-mosaico-utils/esp-mosaico-recovery/firmware/recovery` and the compatible
-   normal-application workflow from the utils-owned Hello World template.
-2. Set `CONFIG_ESP_IRIS_OTA_DEFAULT_VIA_RECOVERY=y` in normal builds, use the
-   utils-owned `esp-mosaico-recovery/components/esp_mosaico_app_recovery` component, keep the OTA writer only
-   in Recovery, and call `iris_ota_support_start()` to expose the
-   enter-recovery RPC.
-3. Run `python mosaico.py recover` before the first application install on a
-   blank or unverified device.
-4. Prefer `python mosaico.py iris system-update --project ...` for a new
-   application, changed partition layout, or changed external resources. Use
-   `python mosaico.py iris app-update --project ...` for code-only updates when
-   the full partition table matches the device. Do not reshape an application's
-   intended layout merely to make app-update pass.
-5. Include utils-owned `esp-mosaico-recovery/cmake/mosaico_idf_project.cmake` before `project()`; it includes
-   the sibling `mosaico_application.cmake` and ESP-IDF project.cmake.
-   `esp_mosaico_app_recovery` validates the effective normal role, product/board/
-   layout/ABI contract, Recovery routing, and disabled application OTA writer.
+- Preserve Recovery's immutable partition prefix and the utils Hello World workflow.
+  Before application integration changes, read the
+  [public integration contract](submodule/esp-mosaico-utils/mosaico-tools/docs/application-integration.md).
+- Set `CONFIG_ESP_IRIS_OTA_DEFAULT_VIA_RECOVERY=y`, use utils' `esp_mosaico_app_recovery`,
+  call `iris_ota_support_start()`, and keep the OTA writer only in Recovery.
+  Include utils' `esp-mosaico-recovery/cmake/mosaico_idf_project.cmake` before `project()`.
+- Use `python mosaico.py iris system-update --project ...` for new apps, changed
+  layouts or external resources. Use `iris app-update` only for code-only changes
+  with an identical full partition table; never reshape the layout to make it pass.
 
-Verify the same Device ID completes normal -> Recovery -> normal with new Boot
-IDs, a ready Recovery service, and a healthy application.
+## Device operations and acceptance
 
-## Operate devices through ESP-Iris
-
-- Use `python mosaico.py iris app-update`, `iris system-update`, `recover`, and `iris logs` for
-  routine device operations. Use `python mosaico.py iris list` for live Device ID
-  discovery.
-- For a single available USB device, omit device selectors: device operations
-  automatically connect it and pin the verified Device ID. Prefer the current
-  project's existing device, and never switch to another device after a failed
-  explicit selection or while waiting for a reconnect. Use `iris run` to retain
-  a debugging session across commands; every invocation holds its own client
-  and Ctrl-C releases only that client.
-  Device commands share the project's Gateway, which exits after 10 idle seconds
-  with no clients or active work. `iris list` remains passive device discovery;
-  `iris status` and `iris status --all` neither start nor keep a Gateway alive.
-  Use `iris status --all` to inspect same-user cross-workspace clients and device
-  ownership; never stop another client's Gateway merely to obtain a device.
-- Do not call ESP-Iris or ESP-IDF device-write commands directly; `mosaico.py`
-  owns Gateway lifecycle, evidence capture, device selection, and validation.
-- Avoid USB Serial/JTAG for application flashing and monitoring. Do not adopt
-  a BSP example's direct USB Serial/JTAG workflow as the product workflow.
-- ESP-Mosaico has one High-Speed USB interface. Recovery always assigns it to
-  ESP-Iris. A normal application must also assign it to ESP-Iris unless the
-  application's product function explicitly requires High-Speed USB. Such an
-  application must document the exception and preserve an ESP-Iris-supported
-  device-operation and recovery path through another available transport.
-- Do not open a device USB or serial session directly while the Gateway owns
-  that interface.
-- Tell the developer how to open the Gateway Web workbench when observation is
-  useful. Confirm that the CLI and Web workbench show the same Device ID, Boot
-  ID, and operation records.
-- Preserve structured evidence and raw logs. Let `mosaico.py` save any valid
-  core dump before an operation that could destroy it.
-- Do not treat an uploaded image, a reconnect, or a reachable recovery service
-  as proof of successful recovery. Verify the intended firmware and product
-  behavior.
+- Before device work, load [mosaico-device-operations](.agents/skills/mosaico-device-operations/SKILL.md)
+  for diagnosis, update/recovery decisions, evidence checks and task-specific guides.
+- Use only `python mosaico.py` for device operations. Do not invoke ESP-IDF/ESP-Iris
+  device-write commands directly or borrow BSP Serial/JTAG flashing/monitoring flows.
+- Start with `python mosaico.py iris status --all --json` and
+  `python mosaico.py iris list --details --json`; coordinate ownership before connecting.
+  Prefer the project's existing device; omit selectors for a sole available USB device.
+  Never change boards after failed explicit selection or while awaiting reconnection.
+- Never stop another client's Gateway to obtain a device or open USB/serial directly
+  while Gateway owns it. Follow active operation/takeover records before new writes.
+- Recovery always assigns High-Speed USB to ESP-Iris. Normal apps do too unless the
+  product requires it; document that exception and preserve Iris operations/recovery
+  through another available transport.
+- Require live identity/state evidence; discovery caches, host Gateway status,
+  port names and screens do not establish firmware mode or health.
+  Verify the same Device ID, new Boot IDs after reboots, ready Recovery and healthy
+  intended application behavior across normal -> Recovery -> normal.
+- Preserve structured evidence/raw logs and let `mosaico.py` save valid core dumps
+  before destructive operations. Upload, reconnect or reachable Recovery is not acceptance.
+- When observation helps, share the Gateway Web URL and verify CLI/Web agree on
+  Device ID, Boot ID and operation records.
 
 ## Provisioning and last-resort recovery
 
-Use `python mosaico.py recover` for blank/unverified devices and when neither
-normal nor Recovery ESP-Iris is reachable. Do not bypass the product command.
-The agent handles the software procedure; the developer performs only required
-physical actions.
-
-When the device is unrecoverable and both normal and recovery USB are
-unavailable, preserve any evidence that is still accessible, then instruct
-the developer to:
-
-1. Power off the device.
-2. Press and hold the **Boot** button to the left of the USB-C port.
-3. Power on the device while continuing to hold **Boot**.
-4. Release **Boot** after the device enters ROM download mode, then tell the
-   agent that the physical sequence is complete.
-
-After the developer completes those physical steps, the agent must detect and
-verify the recovery connection, continue `python mosaico.py recover`, verify
-the intended firmware and product behavior, and return subsequent device
-operations to the ESP-Iris Gateway as soon as ESP-Iris is reachable.
-
-Manual ROM entry is the last recovery option, not the normal development
-workflow. Never erase the whole flash merely to recover connectivity, and do
-not overwrite credentials, identity, recovery data, or partitions without
-explicit user authorization.
+- Run `python mosaico.py recover` before first install on blank/unverified devices,
+  or when neither normal nor Recovery Iris is reachable; follow the guides' state checks.
+- Manual ROM entry is the last resort. Follow the [physical recovery steps](docs/mosaico-cli_CN.md#调试与恢复入口):
+  the developer handles physical actions; the agent resumes detection, recovery and
+  firmware/behavior verification, returning to the Iris Gateway when reachable.
+- Never erase the whole flash merely to restore connectivity, or overwrite credentials,
+  identity, Recovery data or partitions without explicit user authorization.

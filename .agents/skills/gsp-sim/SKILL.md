@@ -26,5 +26,4 @@ callbacks. Validate clicks, held input, counters and timers using the native
 backend before device work. Tool resolution and preview orchestration are owned
 by mosaico-tools; do not copy them into the workspace or an application.
 
-For device installation follow AGENTS.md: first install or changed resources
-uses recover/system-update; code-only app-update requires a matching full layout.
+Report the inspected flows, simulator evidence and remaining hardware-validation gaps.

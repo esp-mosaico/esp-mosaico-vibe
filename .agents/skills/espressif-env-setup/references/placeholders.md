@@ -128,7 +128,7 @@ YOUR_*_INSTALL_PATH = <父目录> + 分隔符 + <按版本命名的文件夹>
 
 ## 环境搭建与串口
 
-**环境搭建不需要串口。** Phase 0 及后续步骤都不得询问 `PORT` 或执行 flash / monitor；相关请求应退出本 Skill 并重新 triage。
+**环境搭建不需要串口。** Phase 0 及后续步骤都不得询问 `PORT` 或执行 flash / monitor；串口操作不属于环境安装流程。
 
 ---
 

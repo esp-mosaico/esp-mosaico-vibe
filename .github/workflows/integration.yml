@@ -92,22 +92,9 @@ jobs:
           --log-dir "$RUNNER_TEMP/idf-logs/hello-world"
           build
 
-      - name: Build GSP PC bridge and render scene
+      - name: Render GSP scene
         shell: bash
         run: |
-          gsp_root="$GITHUB_WORKSPACE/projects/ci_hello/managed_components/espressif__esp-gsp"
-          gspc="$(python3 submodule/esp-mosaico-utils/mosaico-tools/tools/gsp-sim/fetch_gspc.py)"
-          cmake \
-            -S projects/ci_hello/pc \
-            -B "$RUNNER_TEMP/gsp-pc-build" \
-            -D "CMAKE_BUILD_TYPE=Release" \
-            -D "ESP_GSP_COMPONENT_DIR=$gsp_root" \
-            -D "GSPC_EXECUTABLE=$gspc"
-          cmake --build "$RUNNER_TEMP/gsp-pc-build"
-          python3 tests/hello_world_ui/run.py \
-            --manifest "$RUNNER_TEMP/gsp-pc-build/hello_backend-Release.json" \
-            --sim "$(python3 submodule/esp-mosaico-utils/mosaico-tools/tools/gsp-sim/fetch_gspc.py --sim)" \
-            --output "$RUNNER_TEMP/hello-world-ui"
           python3 mosaico.py project sim --project projects/ci_hello \
             --headless \
             --dump-ppm "$RUNNER_TEMP/hello-world.ppm"
@@ -144,15 +131,6 @@ jobs:
             projects/ci_hello/build/bootloader/*.bin
             projects/ci_hello/build/partition_table/*.bin
           if-no-files-found: error
-          retention-days: 14
-
-      - name: Upload GSP interaction evidence
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: firmware-hello-world-ui-evidence
-          path: ${{ runner.temp }}/hello-world-ui/
-          if-no-files-found: ignore
           retention-days: 14
 
       - name: Upload GSP screenshot

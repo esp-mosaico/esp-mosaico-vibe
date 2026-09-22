@@ -5,8 +5,8 @@ description: Run low-noise ESP-IDF builds while preserving complete logs and ext
 
 # IDF Low-Noise Build
 
-Use the runner pinned in `submodule/esp-mosaico-utils/mosaico-tools`. Resolve the utilities submodule from the
-workspace root; do not depend on a globally installed `esp-idf-debug` skill.
+Use the runner pinned in `submodule/esp-mosaico-utils/mosaico-tools`. Resolve the
+utilities submodule from the workspace root and invoke the pinned runner directly.
 
 ```text
 python3 <workspace>/submodule/esp-mosaico-utils/mosaico-tools/skills/idf-low-noise-build/scripts/idf_low_noise_build.py
@@ -24,8 +24,8 @@ python3 <runner> --project <project-dir> doctor
 ```
 
 Resolve the ESP-IDF installation in this order: explicit `--idf-path`, `IDF_PATH`, active
-`idf.py`, then `build/project_description.json`. If resolution is missing or conflicting, stop
-and use the repository's environment-setup guidance; do not guess a release or install path.
+`idf.py`, then `build/project_description.json`. If resolution is missing or conflicting,
+record the unresolved environment as a build prerequisite; do not guess a release or install path.
 Treat `build/project_description.json` as a generated, potentially stale hint and verify the
 resolved checkout before use.
 
@@ -78,5 +78,5 @@ path. Preserve the complete run directory under `.codex-runs/idf-low-noise-build
 inspection.
 Keep logs outside `build/` so an approved `fullclean` cannot delete the evidence it is producing.
 
-Keep this skill build-only. Route board configuration, flashing, monitoring, OTA, crash capture,
-and recovery through the repository's device-operation workflow.
+The build workflow ends with artifacts or failure diagnostics. Board configuration,
+flashing, monitoring, OTA, crash capture and device recovery are outside its scope.
