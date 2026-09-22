@@ -155,3 +155,20 @@ Recovery 构建日志为 Recovery 工程下
 - USB 普通 OTA：`0675470e-e691-4830-a45e-38c5ff97c416`
 
 本记录中保留的截图已随文档纳入版本控制；原始设备与浏览器会话证据留在本地。
+
+
+## 控制请求与应用擦除优化（2026-09-22 16:18）
+
+Recovery ELF `da24c5ce9a8ef8357fff7bf68cdeeef6d706efedd9df3a8a9e4302dafe29bce4`
+已通过 Recovery 自更新及随后的云端更新，正常应用 ELF 匹配、健康且无崩溃。
+完整证据和旧/新耗时对比见 [OTA 性能记录](recovery-ota-performance.zh-CN.md)。
+主机验证：306 项 Recovery 测试及 60 个子测试、12 项原生 UI 测试、3 项
+Bridge ASan/UBSan 检查通过。第一次全量测试因未设置 GSP 工具环境而有 12 项
+UI fixture 初始化错误，使用固定 GSPC 0.5.0 / Simulator 1.4.0 重跑后全部通过。
+独立 Bridge 服务端 `go test -race ./...` 通过；协议 2 仍需线上部署后联调。
+
+预置包已原子更新为同一实机镜像，大小 1,815,248 字节，Recovery 分区余量
+19,760 字节。source 为干净提交 `b520c09`；bootloader、初始分区表和 OTA
+初始化数据逐字节保留。产品 `load_bundle`、8 项包/契约检查及 3 个子测试、
+标准 reviewed `mosaico-recover-prepare` 校验通过，暂存的四镜像及 manifest
+与预置包一致。服务端配套提交为 `513dfc2`（独立 Bridge worktree），尚未部署。
