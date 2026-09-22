@@ -67,9 +67,10 @@ class BootSplashContractTest(unittest.TestCase):
         )
         self.assertIn("(void)mosaico_boot_splash_show();", boot_entry)
 
-    def test_bootloader_uses_size_constrained_logging(self) -> None:
+    def test_bootloader_keeps_info_logging_enabled(self) -> None:
         defaults = (RECOVERY / "sdkconfig.defaults").read_text(encoding="utf-8")
-        self.assertIn("CONFIG_BOOTLOADER_LOG_LEVEL_NONE=y", defaults)
+        self.assertIn("CONFIG_BOOTLOADER_LOG_LEVEL_INFO=y", defaults)
+        self.assertNotIn("CONFIG_BOOTLOADER_LOG_LEVEL_NONE=y", defaults)
 
     def test_partition_table_offset_stays_at_retained_contract(self) -> None:
         defaults = (RECOVERY / "sdkconfig.defaults").read_text(encoding="utf-8")
