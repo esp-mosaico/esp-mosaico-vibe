@@ -9,11 +9,10 @@
 /.tools/
 /artifacts/
 **/assets/generated/
-/projects/sky_hop/assets_src/*.wav
-/projects/sky_hop/assets_src/sky_hop_atlas.png
-/projects/raylib_shooter/assets_src/shooter_atlas.png
 /.mosaico-state/
-/tools/gsp-sim/.cache/
 
 # Local agent experiments; shared skills and tools remain versioned.
 /.agents/analysis/
+
+# Applications are created on demand in this get-started workspace.
+/projects/

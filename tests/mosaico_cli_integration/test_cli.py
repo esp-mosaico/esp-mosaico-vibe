@@ -1,191 +1,147 @@
+"""Consumer checks: empty workspace, real public commands and portable projects."""
 from __future__ import annotations
 
-from contextlib import contextmanager
 import json
+import os
 from pathlib import Path
-import re
 import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
 
-
 REPOSITORY = Path(__file__).resolve().parents[2]
-UTILS_ROOT = REPOSITORY / "submodule" / "esp-mosaico-utils"
-TOOL_ROOT = UTILS_ROOT / "esp-mosaico-recovery"
-sys.path.insert(0, str(TOOL_ROOT / "tools"))
-
+UTILS_ROOT = REPOSITORY / "submodule/esp-mosaico-utils"
+TOOLS_ROOT = UTILS_ROOT / "mosaico-tools"
+sys.path.insert(0, str(TOOLS_ROOT / "tools"))
+from mosaico_cli.errors import SelectionError
 from mosaico_cli.project import resolve_project
-from mosaico_cli.scaffold import initialize_project
 from mosaico_cli.workspace import load_workspace
 
 
 class ToolSubmoduleIntegrationTests(unittest.TestCase):
-    def test_nested_help_does_not_dispatch_game_option_values(self) -> None:
-        result = subprocess.run(
-            [sys.executable, str(REPOSITORY / "mosaico.py"),
-             "iris", "rpc", "1", "2", "--payload", "game", "--help"],
-            cwd=REPOSITORY, text=True, capture_output=True, check=False,
-        )
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("mosaico.py iris rpc", result.stdout)
-        self.assertNotIn("Game development:", result.stdout)
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory(prefix="mosaico workspace ")
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name) / "initial workspace"
+        self.root.mkdir()
+        shutil.copyfile(REPOSITORY / "mosaico.py", self.root / "mosaico.py")
+        shutil.copyfile(REPOSITORY / ".mosaico.json", self.root / ".mosaico.json")
+        # Only utils is present: application creation must not need the board,
+        # engine, ESP-IDF, hardware, or a previous generated application.
+        self.tools = self.root / "submodule/esp-mosaico-utils/mosaico-tools"
+        shutil.copytree(TOOLS_ROOT, self.tools, ignore=shutil.ignore_patterns(
+            "__pycache__", "build", "build-*", "managed_components", ".cache", ".codex-runs"))
+        recovery = self.root / "submodule/esp-mosaico-utils/esp-mosaico-recovery"
+        recovery.mkdir()
+        shutil.copyfile(UTILS_ROOT / "esp-mosaico-recovery/product_contract.json", recovery / "product_contract.json")
+        self.config = json.loads((self.root / ".mosaico.json").read_text())
 
-    def test_workspace_configuration_resolves_main_repository_resources(self) -> None:
-        workspace = load_workspace(TOOL_ROOT, explicit=str(REPOSITORY))
+    def cli(self, *args, cwd=None, success=True):
+        env = os.environ.copy()
+        for name in ("IDF_PATH", "MOSAICO_WORKSPACE", "ESP_GSP_COMPONENT_DIR"):
+            env.pop(name, None)
+        result = subprocess.run([sys.executable, str(self.root / "mosaico.py"), *args],
+                                cwd=cwd or self.root, env=env, capture_output=True, text=True)
+        if success:
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        else:
+            self.assertNotEqual(result.returncode, 0, result.stdout)
+        return result
 
-        self.assertEqual(workspace.root, REPOSITORY)
-        self.assertEqual(
-            workspace.esp_iris_path,
-            UTILS_ROOT / "ESP-Iris",
-        )
-        self.assertEqual(
-            workspace.build_runner,
-            TOOL_ROOT
-            / "skills"
-            / "idf-low-noise-build"
-            / "scripts"
-            / "idf_low_noise_build.py",
-        )
-        self.assertEqual(
-            workspace.recovery_project, TOOL_ROOT / "firmware" / "recovery"
-        )
-        self.assertEqual(
-            workspace.recovery_dir,
-            TOOL_ROOT / "firmware" / "recovery" / "prebuilt" / "recovery",
-        )
+    def workspace(self):
+        return load_workspace(self.tools, explicit=str(self.root))
 
-    def test_default_application_is_selected_from_workspace_not_tool_checkout(self) -> None:
-        workspace = load_workspace(TOOL_ROOT, explicit=str(REPOSITORY))
-        selected = resolve_project(workspace, None, REPOSITORY)
-        self.assertEqual(selected, REPOSITORY / "projects" / "hello_world")
+    def create(self, name="my_app", **kwargs):
+        return json.loads(self.cli("project", "init", name, "--json", **kwargs).stdout)
 
-    def test_root_launcher_uses_pinned_tool_checkout(self) -> None:
-        result = subprocess.run(
-            [sys.executable, str(REPOSITORY / "mosaico.py"), "--version"],
-            cwd=REPOSITORY / "projects" / "hello_world",
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            check=False,
-        )
-        self.assertEqual(result.returncode, 0, result.stdout)
-        self.assertRegex(result.stdout.strip(), r"^mosaico\.py \d+\.\d+\.\d+$")
+    def test_launcher_and_command_tree(self):
+        self.assertRegex(self.cli("--version").stdout, r"mosaico.py \d+\.\d+\.\d+")
+        self.assertIn("game", self.cli("--help").stdout)
+        self.assertIn("sim", self.cli("project", "--help").stdout)
+        self.assertIn("mosaico.py iris rpc", self.cli("iris", "rpc", "1", "2", "--payload", "game", "--help").stdout)
 
-    def test_workspace_file_contains_a_supported_schema(self) -> None:
-        value = json.loads((REPOSITORY / ".mosaico.json").read_text(encoding="utf-8"))
-        self.assertEqual(value["schema_version"], 1)
-        self.assertTrue(value["devices"])
+    def test_empty_workspace_dry_run_does_not_write(self):
+        before = sorted(str(p.relative_to(self.root)) for p in self.root.rglob("*") if '__pycache__' not in p.parts)
+        payload = json.loads(self.cli("project", "init", "my_app", "--dry-run", "--json").stdout)
+        after = sorted(str(p.relative_to(self.root)) for p in self.root.rglob("*") if '__pycache__' not in p.parts and p.suffix != '.pyc')
+        self.assertEqual(payload["status"], "dry_run")
+        self.assertEqual(before, after)
+        self.assertFalse((self.root / "projects").exists())
+        with self.assertRaisesRegex(SelectionError, "project init"):
+            resolve_project(self.workspace(), None, self.root)
 
-    @contextmanager
-    def reference_workspace(self):
-        # Local component references must share a drive with the generated app;
-        # Windows CI puts the checkout on D: and the default temp directory on C:.
-        with tempfile.TemporaryDirectory(prefix="mosaico init ", dir=REPOSITORY) as temporary:
-            root = Path(temporary).resolve()
-            config = json.loads((REPOSITORY / ".mosaico.json").read_text(encoding="utf-8"))
-            config["workspace"]["init_template"] = str(REPOSITORY / "projects/hello_world/mosaico-template.json")
-            config["workspace"]["projects_dir"] = "apps/nested"
-            for key, value in config["dependencies"].items():
-                config["dependencies"][key] = str(REPOSITORY / value)
-            config_path = root / ".mosaico.json"
-            config_path.write_text(json.dumps(config), encoding="utf-8")
-            for filename in ("components/esp_mosaico_app_recovery/CMakeLists.txt",
-                             "components/esp_mosaico_app_recovery/sdkconfig.defaults",
-                             "cmake/mosaico_application.cmake",
-                             "cmake/system_update.cmake", "tools/prepare_system_update.py",
-                             "tools/gsp-sim/fetch_gspc.py", "tools/pack_gsp_partition.py"):
-                target = root / filename
-                target.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copyfile(REPOSITORY / filename, target)
-            yield root, config
+    def test_nested_creation_preserves_configuration_and_installs_resources(self):
+        nested = self.root / "nested directory"
+        nested.mkdir()
+        payload = self.create(cwd=nested)
+        project = Path(payload["project"])
+        self.assertEqual(project, self.root / "projects/my_app")
+        for filename in ("main/main.c", "main/hello_ui.c", "ui/main.json", "ui/fonts/LICENSE", "pc/CMakeLists.txt", "partitions.csv"):
+            self.assertTrue((project / filename).is_file(), filename)
+        self.assertIn("iris system-update", payload["install_command"])
+        self.assertEqual(json.loads((self.root / ".mosaico.json").read_text()), self.config)
+        self.assertFalse((project / "build").exists())
+        self.assertFalse(self.workspace().run_dir.exists())
+        self.assertEqual(resolve_project(self.workspace(), None, project / "main"), project)
+        self.assertEqual(resolve_project(self.workspace(), None, self.root), project)
 
-    def test_launcher_initializes_real_reference_from_nested_workspace_directory(self) -> None:
-        with self.reference_workspace() as (root, config):
-            config_path = root / ".mosaico.json"
-            nested = root / "apps"
-            nested.mkdir()
-            result = subprocess.run(
-                [sys.executable, str(REPOSITORY / "mosaico.py"), "project", "init", "my_app", "--json"],
-                cwd=nested, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False,
-            )
-            self.assertEqual(result.returncode, 0, result.stderr)
-            payload = json.loads(result.stdout)
-            project = root / "apps/nested/my_app"
-            self.assertEqual(Path(payload["project"]), project)
-            workspace = load_workspace(TOOL_ROOT, explicit=str(root))
-            self.assertEqual(resolve_project(workspace, None, project / "main"), project)
-            self.assertEqual(json.loads(config_path.read_text(encoding="utf-8")), config)
-            reference = REPOSITORY / "projects/hello_world"
-            for filename in ("partitions.csv", "sdkconfig.defaults", "main/hello_ui.c",
-                             "pc/CMakeLists.txt", "ui/main.json", "ui/fonts/DejaVuSans-Bold.ttf"):
-                self.assertEqual((project / filename).read_bytes(), (reference / filename).read_bytes())
-            application = (project / "sdkconfig.application.defaults").read_text(encoding="utf-8")
-            original = (reference / "sdkconfig.application.defaults").read_text(encoding="utf-8")
-            without_product = lambda text: re.sub(r'^CONFIG_ESP_IRIS_USB_PRODUCT=.*$', '', text, flags=re.MULTILINE)
-            self.assertEqual(without_product(application), without_product(original))
-            source = (project / "main/main.c").read_text(encoding="utf-8")
-            self.assertIn("iris_ota_support_start();", source)
-            self.assertIn("esp_iris_boot_probe()", source)
-            self.assertIn("hello_ui_init(ui, &s_hello)", source)
-            self.assertIn("Say hello", (project / "ui/main.json").read_text(encoding="utf-8"))
-            for filename, resource in (("CMakeLists.txt", "tools/gsp-sim/fetch_gspc.py"),
-                                       ("main/CMakeLists.txt", "tools/pack_gsp_partition.py")):
-                rendered = (project / filename).read_text(encoding="utf-8")
-                references = re.findall(r'\$\{CMAKE_CURRENT_LIST_DIR\}/([^"\n]+)', rendered)
-                self.assertIn((root / resource).resolve(),
-                              [(project / filename).parent.joinpath(ref).resolve() for ref in references])
-            self.assertIn('TAG = "my_app"', source)
-            self.assertFalse((project / "build").exists())
-            self.assertFalse(workspace.run_dir.exists())
+    def test_second_creation_is_rejected_without_overwriting(self):
+        project = Path(self.create()["project"])
+        marker = project / "main/main.c"
+        marker.write_text("user content\n")
+        self.cli("project", "init", "my_app", success=False)
+        self.assertEqual(marker.read_text(), "user content\n")
 
+    def test_multiple_projects_require_selection(self):
+        first = Path(self.create("one")["project"])
+        second = Path(self.create("two")["project"])
+        with self.assertRaisesRegex(SelectionError, "Multiple"):
+            resolve_project(self.workspace(), None, self.root)
+        self.assertEqual(resolve_project(self.workspace(), "projects/one", self.root), first)
+        self.config["workspace"]["default_project"] = "projects/two"
+        (self.root / ".mosaico.json").write_text(json.dumps(self.config))
+        self.assertEqual(resolve_project(self.workspace(), None, self.root), second)
+        self.assertEqual(resolve_project(self.workspace(), None, first / "main"), first)
 
-    def test_reference_can_evolve_using_only_workspace_owned_files(self) -> None:
-        with self.reference_workspace() as (root, config):
-            original = REPOSITORY / "projects/hello_world"
-            template = root / "templates/changed_reference"
-            descriptor = json.loads((original / "mosaico-template.json").read_text(encoding="utf-8"))
-            for entry in descriptor["files"]:
-                target = template / entry["source"]
-                target.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copyfile(original / entry["source"], target)
+    def test_internal_recovery_is_never_an_application(self):
+        rec = self.workspace().recovery_project
+        rec.mkdir(parents=True)
+        (rec / "CMakeLists.txt").write_text("project(recovery)\n")
+        with self.assertRaises(SelectionError):
+            resolve_project(self.workspace(), str(rec), self.root)
+        with self.assertRaises(SelectionError):
+            resolve_project(self.workspace(), None, rec)
 
-            # Rename the entry source and its TAG, and maintain its generation
-            # rule in the same workspace revision, with no tool changes.
-            source = template / "source/entry.c"
-            source.parent.mkdir()
-            (template / "main/main.c").rename(source)
-            source.write_text(source.read_text(encoding="utf-8").replace("TAG", "APP_TAG"), encoding="utf-8")
-            cmake = template / "main/CMakeLists.txt"
-            cmake.write_text(cmake.read_text(encoding="utf-8").replace('"main.c"', '"../source/entry.c"'), encoding="utf-8")
-            for entry in descriptor["files"]:
-                if entry["source"] == "main/main.c":
-                    entry["source"] = "source/entry.c"
-                    entry["replacements"][0]["pattern"] = entry["replacements"][0]["pattern"].replace("TAG", "APP_TAG")
-                    entry["replacements"][0]["replacement"] = entry["replacements"][0]["replacement"].replace("TAG", "APP_TAG")
-                if entry["source"] == "README.md":
-                    entry["replacements"][0]["pattern"] = "^# Reference Application$"
-            readme = template / "README.md"
-            readme.write_text(readme.read_text(encoding="utf-8").replace("# ESP-Mosaico Hello World", "# Reference Application"), encoding="utf-8")
-            (template / "assets").mkdir()
-            (template / "assets/extra.dat").write_bytes(b"\x00\xffextra")
-            descriptor["files"].append({"source": "assets/extra.dat"})
-            description_path = template / "mosaico-template.json"
-            description_path.write_text(json.dumps(descriptor), encoding="utf-8")
-            config["workspace"]["init_template"] = str(description_path)
-            (root / ".mosaico.json").write_text(json.dumps(config), encoding="utf-8")
+    def test_workspace_move_preserves_generated_relative_references(self):
+        self.create()
+        old = str(self.root)
+        moved = Path(self.temporary.name) / "relocated workspace"
+        self.root.rename(moved)
+        self.root = moved
+        self.tools = moved / "submodule/esp-mosaico-utils/mosaico-tools"
+        self.assertEqual(self.cli("--version").returncode, 0)
+        self.create("after_move")
+        for name in ("my_app", "after_move"):
+            project = moved / "projects" / name
+            for filename in ("CMakeLists.txt", "main/idf_component.yml", "README.md"):
+                text = (project / filename).read_text()
+                self.assertNotIn(old, text)
+                self.assertNotIn(str(REPOSITORY), text)
+            import re
+            cmake = (project / "CMakeLists.txt").read_text()
+            reference = re.search(r'set\(MOSAICO_UTILS_ROOT "\$\{CMAKE_CURRENT_LIST_DIR\}/([^"\n]+)"\)', cmake).group(1)
+            self.assertEqual((project / reference).resolve(), self.tools.parent)
 
-            workspace = load_workspace(TOOL_ROOT, explicit=str(root))
-            result = initialize_project(workspace, "evolved_app")
-            project = Path(result["project"])
-            self.assertEqual(len(result["files"]), len(descriptor["files"]))
-            self.assertFalse((project / "main/main.c").exists())
-            self.assertIn('APP_TAG = "evolved_app"', (project / "source/entry.c").read_text(encoding="utf-8"))
-            self.assertIn("iris_ota_support_start();", (project / "source/entry.c").read_text(encoding="utf-8"))
-            self.assertEqual((project / "assets/extra.dat").read_bytes(), b"\x00\xffextra")
-            self.assertTrue((project / "README.md").read_text(encoding="utf-8").startswith("# ESP-Mosaico evolved_app"))
-            self.assertEqual((project / "partitions.csv").read_bytes(), (original / "partitions.csv").read_bytes())
+    def test_custom_template_is_still_supported(self):
+        template = self.root / "custom"
+        template.mkdir()
+        (template / "message.txt").write_text("hello\n")
+        (template / "template.json").write_text(json.dumps({"schema_version":1,"files":[{"source":"message.txt"}]}))
+        self.config["workspace"]["init_template"] = "custom/template.json"
+        (self.root / ".mosaico.json").write_text(json.dumps(self.config))
+        project = Path(self.create("custom_app")["project"])
+        self.assertEqual((project / "message.txt").read_text(), "hello\n")
 
 
 if __name__ == "__main__":

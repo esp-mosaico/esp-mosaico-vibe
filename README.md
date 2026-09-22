@@ -1,90 +1,58 @@
 # ESP-Mosaico Vibe
 
-[English](README.md) | [中文](README_CN.md)
+[简体中文](README_CN.md)
 
-[![CI](https://github.com/esp-mosaico/esp-mosaico-vibe/actions/workflows/ci.yml/badge.svg)](https://github.com/esp-mosaico/esp-mosaico-vibe/actions/workflows/ci.yml)
+A get-started workspace for developing ESP-Mosaico applications with an AI coding
+agent. The repository supplies the CLI entry, workspace settings, pinned
+submodules, documentation and Agent guidance. Applications are created on demand;
+a fresh checkout has no `projects/` or `components/` directory.
 
-An Agent-led development workspace for ESP-Mosaico. Describe the application
-and its expected behavior; the Agent develops it using the reference projects,
-simulators, and ESP-Iris device tools. The user defines the goal, performs any
-required physical actions, and accepts the result on the device.
+## Create an application
 
-## Start a project
-
-Run these commands from the workspace root. Creating a project requires Python
-3.8 or newer and the tools submodule, but no ESP-IDF installation or device:
+Python 3.8 or newer is sufficient for creation; ESP-IDF, a board, BSP and the game
+engine are not required yet.
 
 ```sh
 git submodule update --init submodule/esp-mosaico-utils
 python mosaico.py project init my_app
 ```
 
-The command creates `projects/my_app` from the shared PC/device
-[GSP Hello World](projects/hello_world/README.md) reference.
-It preserves Recovery integration, refuses existing destinations, and leaves
-the default project unchanged. Use `--dry-run` to preview the generated files.
+This creates `projects/my_app` from the utils-owned Hello World template without
+changing the default project. `--dry-run` writes nothing; existing targets are
+never overwritten. See [project creation](docs/project-init.zh-CN.md).
 
-Before building, initialize the required dependencies and resolve an ESP-IDF
-installation that satisfies the application's `main/idf_component.yml` and
-supports `esp32s31`:
+## Preview and install
 
 ```sh
-git submodule update --init --recursive submodule/esp-mosaico-bsp submodule/esp-mosaico-utils
-python mosaico.py doctor
+git submodule update --init submodule/esp-mosaico-bsp
+# Prepare a compatible ESP-IDF environment and build the generated application.
+python submodule/esp-mosaico-utils/mosaico-tools/skills/idf-low-noise-build/scripts/idf_low_noise_build.py --project projects/my_app doctor
+python submodule/esp-mosaico-utils/mosaico-tools/skills/idf-low-noise-build/scripts/idf_low_noise_build.py --project projects/my_app build
+python mosaico.py project sim --project projects/my_app --interactive
 ```
 
-On a blank or unverified device, run `python mosaico.py recover` first and verify
-Recovery is ready. Then install the new application and inspect its logs:
+GSP preview uses the same portable C UI and GSP 1.4.0 scene as the device.
+For the first installation on a blank or unverified board, run `python mosaico.py recover`,
+then `python mosaico.py iris system-update --project projects/my_app`.
+Use `iris app-update` only for code changes with the same complete partition table
+and resources. Device operations always go through the product CLI.
 
-```sh
-python mosaico.py iris system-update --project projects/my_app
-python mosaico.py iris logs --project projects/my_app --timeout 20
-```
+## Workspace ownership
 
-For subsequent code-only changes with an identical full partition table, use
-`iris app-update`. New applications, changed layouts, and external resources
-use `iris system-update`. See the [project guide](docs/project-init.zh-CN.md)
-and [CLI reference](docs/mosaico-cli.zh-CN.md) for details.
-
-## Develop and observe
-
-- For device UI, start with [GSP Hello World](projects/hello_world/README.md) when
-  GSP fits the application. [GSP simulation](tools/gsp-sim/README.md) uses
-  `espressif/esp-gsp` 1.4.0 and supports shared PC/device UI logic.
-- For Raylib-compatible games, follow the [game development guide](docs/game-development.zh-CN.md)
-  for reference projects, shared C rendering, and deterministic Host replay.
-- For ongoing device observation, run `python mosaico.py iris run --project projects/my_app`
-  and open the printed Gateway Web workbench URL. See the
-  [Gateway guide](docs/project-gateway.zh-CN.md) for sessions and device ownership.
-
-Use `mosaico.py` for device operations. Keep the retained Recovery path and
-verify device identity, the intended firmware, and application health after
-an update. Recovery procedures are linked from the CLI reference.
-
-## Repository layout
-
-| Location | Purpose |
+| Repository | Maintains |
 | --- | --- |
-| `projects/` | Reference applications and independent user applications |
-| `components/`, `cmake/` | Workspace integration and normal-application Recovery contract |
-| `tools/gsp-sim/` | GSP compiler and PC simulator integration |
-| `tests/` | Host checks and flashable acceptance fixtures under `tests/firmware/` |
-| `submodule/esp-mosaico-bsp/` | Board support and board examples |
-| `submodule/esp-mosaico-utils/` | Product CLI in `mosaico-tools`, Recovery firmware, and ESP-Iris |
-| `submodule/raylib-lite-engine/` | Game runtime, Host simulator, and asset tools |
-| `.mosaico.json` | Workspace paths and supported-device configuration |
-| `.agents/skills/`, `.agents/tools/` | Versioned Agent skills and auxiliary tools |
-| `.agents/analysis/` | Ignored local analysis artifacts |
-| `docs/` | Developer-facing guides and references |
+| This workspace | Entry, configuration, Agent workflows, consumer integration checks |
+| [utils](submodule/esp-mosaico-utils) | CLI, Recovery, shared application components and Hello World template |
+| [BSP](submodule/esp-mosaico-bsp) | Board support and complete examples, including games |
+| [Raylib Lite Engine](submodule/raylib-lite-engine) | Game runtime, renderer, assets and Host simulator |
 
-Initialize only the submodules needed for the task. Agents follow
-[AGENTS.md](AGENTS.md) and select workflows from the
-[skill index](.agents/skills/README.md).
+Games are created from BSP `examples/`; see the [game entry](docs/game-development.zh-CN.md).
+Initialize the engine only when developing games. Generated applications use
+relative references: move or clone the whole workspace, initialize its pinned
+dependencies and rebuild. Single-application export and old workspace path
+compatibility are outside this layout. See [migration notes](docs/workspace-migration.zh-CN.md).
 
-## Documentation
-
-The [documentation index](docs/README.md) links project creation, device
-operation, game development, and component references. Detailed guides are
-currently in Chinese. Automatic CI checks only the workspace entry points;
-Hello World builds and simulation run manually. See the
-[validation guide](docs/ci.zh-CN.md).
+Start with the [documentation index](docs/README.md). Agents follow [AGENTS.md](AGENTS.md)
+and the [skill index](.agents/skills/README.md). For ongoing observation,
+`python mosaico.py iris run --project projects/my_app` prints the Gateway Web
+workbench URL; see the [Gateway guide](docs/project-gateway.zh-CN.md).

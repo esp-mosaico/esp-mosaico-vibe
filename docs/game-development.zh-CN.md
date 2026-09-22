@@ -1,106 +1,28 @@
-# 游戏开发：从 Host 仿真到真机
+# 游戏创建与仿真
 
-[返回文档索引](README.md)
+[返回索引](README.md)
 
-本工作区通过固定版本的 [Raylib Lite Engine](../submodule/raylib-lite-engine/README.md)
-提供 RGB565 游戏运行时、资源管线和 Host 仿真。Host 与设备编译同一份玩法和
-绘制代码，PC 预览适合验证状态、输入和像素结果；LCD 时序、触摸手感与音频仍需
-真机验收。GSP UI 应用使用独立的 [GSP 仿真工具](../tools/gsp-sim/README.md)。
-
-## 选择参考项目
-
-| 项目 | 适合参考的内容 |
-| --- | --- |
-| [Raylib Shooter](../projects/raylib_shooter/README.md) | 小型射击玩法与共享绘制 |
-| [Tower Defense](../projects/tower_defense/README.md) | Atlas、Tiled 地图、音频和 Host 回放 |
-| [Sky Hop](../projects/sky_hop/README.md) | 平台物理、滚动视图、关卡与性能对比 |
-
-新游戏放在 `projects/<name>/`。保留参考应用的 Recovery 契约及共享 CMake 集成，
-使用 [Hello World](../projects/hello_world/README.md)核对普通应用约束。
-实现新能力前，查看引擎的[组件职责与生命周期](../submodule/raylib-lite-engine/components/README.md)。
-
-## 组织同源代码
-
-- 玩法模型使用可由主机 C 编译器编译的 C 源码，避免依赖 ESP-IDF、BSP 或 FreeRTOS。
-- `<game>_view.c` 同时进入设备构建和 Host 清单，以相同的 Raylib 兼容调用绘制。
-- `game_module.c` 只负责 Host 生命周期与输入映射。
-- 设备 `main.c` 调用 `mosaico_game_app_run()`；资源、触区、音频和玩法回调放在
-  项目自己的设备适配文件中。
-
-项目根目录通过 `game.sim.json` 声明 Host 源码，例如：
-
-```json
-{
-  "schema": "mosaico-game-sim/v1",
-  "sources": ["main/game_module.c", "main/game.c", "main/game_view.c"]
-}
-```
-
-文件名按实际项目调整。CMake 能力选择参考现有工程及
-[工作区引擎集成](../cmake/raylib_lite_engine.cmake)。
-兼容 API 以引擎的 [mosaico_raylib_fast.h](../submodule/raylib-lite-engine/components/mosaico_raylib_fast/include/mosaico_raylib_fast.h)
-为准，不把完整桌面 Raylib 的能力视为设备已支持的能力。
-
-## 运行仿真
-
-在工作区根目录初始化游戏引擎，使用提供 `cc`、`gcc` 或 `clang` 的主机环境；
-Host runner 还需要 Pillow：
+三个完整游戏由 BSP `examples/` 维护；通用运行时、绘制、资源工具与 Host 仿真
+由 Raylib Lite Engine 维护。BSP 示例可单独克隆构建，所需固定依赖由示例声明并自动获取；
+本工作区生成的应用显式复用已固定的子模块，不依赖隐式相邻目录。工作区保留统一命令入口：
 
 ```sh
-git submodule update --init submodule/raylib-lite-engine
-python -m pip install Pillow
-python mosaico.py game sim projects/raylib_shooter
+git submodule update --init submodule/esp-mosaico-utils submodule/esp-mosaico-bsp submodule/raylib-lite-engine
+python mosaico.py game create my_game --template sky-hop
+python mosaico.py game sim --project projects/my_game --headless --frames 120
+python mosaico.py game build --project projects/my_game
+python mosaico.py iris system-update --project projects/my_game
 ```
 
-模拟器默认打开 `http://127.0.0.1:8460/`，支持输入、暂停、单步、变速、重置、
-截图和录制。渲染由原生 C 代码完成，浏览器显示其 RGB565 帧。
-`game sim` 不启动 ESP-GSP，也不需要设备连接。
+可选模板为 `sky-hop`、`tower-defense`、`shooter`。`game new` 等同于 `game create`；
+创建支持 `--dry-run`，拒绝覆盖。Host 需要 C 编译器与 Pillow；固件使用满足项目
+约束并支持 ESP32-S31 的 ESP-IDF。交互仿真省略 `--headless`。
 
-无界面检查示例：
+- [Sky Hop](../submodule/esp-mosaico-bsp/examples/sky_hop/README.md)
+- [Tower Defense](../submodule/esp-mosaico-bsp/examples/tower_defense/README.md)
+- [Raylib Shooter](../submodule/esp-mosaico-bsp/examples/raylib_shooter/README.md)
+- [游戏开发细节](../submodule/esp-mosaico-bsp/docs/game-development.zh-CN.md)
+- [引擎接口与 Host](../submodule/raylib-lite-engine/README.md)
 
-```sh
-python mosaico.py game sim projects/sky_hop --headless --frames 300
-python mosaico.py game sim projects/tower_defense --headless --frames 300
-python mosaico.py game sim projects/raylib_shooter --headless --scenario my_replay.json --state-output artifacts/state.json
-```
-
-`--scenario` 指向已有回放文件，可从浏览器录制后下载；仓库不预置
-`my_replay.json`。Host ABI 以引擎的
-[公开头文件](../submodule/raylib-lite-engine/host/include/mosaico_host_game.h)为准；
-HTTP 接口和事件格式参见 [Host runner](../submodule/raylib-lite-engine/host/run_game.py)
-中的 `Handler` 与 `load_replay()`。回放事件使用非负、递增或相同的 `frame` 序号。
-
-例如，将下列内容保存为 `my_replay.json` 后执行上述回放命令：
-
-```json
-{
-  "events": [
-    {"frame": 0, "type": "action", "code": "restart", "pressed": true},
-    {"frame": 1, "type": "action", "code": "restart", "pressed": false},
-    {"frame": 2, "type": "action", "code": "right", "pressed": true},
-    {"frame": 20, "type": "action", "code": "right", "pressed": false}
-  ]
-}
-```
-
-## 构建与真机验证
-
-构建前按[工程初始化指南](project-init.zh-CN.md#构建与设备安装)准备应用依赖与
-兼容 ESP-IDF。以 Sky Hop 为例：
-
-```sh
-python mosaico.py game build projects/sky_hop
-python mosaico.py recover
-python mosaico.py iris system-update --project projects/sky_hop
-python mosaico.py iris logs --project projects/sky_hop --timeout 20
-```
-
-其中 `recover` 用于空白或未经验证的设备。首次安装，或分区布局、外部资源变化，
-使用 `system-update`；后续代码更新且完整分区表一致时使用 `app-update`。
-更新前保存有效 core dump，更新后核对同一 Device ID、新 Boot ID、目标固件及
-healthy 状态。完整规则见 [CLI 命令参考](mosaico-cli.zh-CN.md#选择更新方式)。
-
-先在 Host 验证输入、状态和绘制，再通过 ESP-Iris 日志、屏幕截图和实际操作验证
-LCD 显示、双触点、IMU 与音频。需要持续观察时打开
-[Gateway Web 工作台](project-gateway.zh-CN.md#开始和结束调试)。
-Sky Hop 的固定场景和性能矩阵见 [Sky Hop 性能测试](sky-hop-performance.zh-CN.md)。
+保留 Recovery 分区和 ESP-Iris 操作流程；首次安装在空白/未验证设备上先执行
+`python mosaico.py recover`。不直接照搬其他 BSP 示例的 IDF 刷写步骤。

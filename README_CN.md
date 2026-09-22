@@ -1,83 +1,55 @@
 # ESP-Mosaico Vibe
 
-[English](README.md) | [中文](README_CN.md)
+[English](README.md)
 
-[![CI](https://github.com/esp-mosaico/esp-mosaico-vibe/actions/workflows/ci.yml/badge.svg)](https://github.com/esp-mosaico/esp-mosaico-vibe/actions/workflows/ci.yml)
+使用 AI 编程 Agent 开发 ESP-Mosaico 应用的入门工作区。仓库提供 CLI 入口、
+工作区配置、固定版本子模块、文档和 Agent 指引。应用按需创建；全新克隆时没有
+`projects/` 或 `components/` 目录。
 
-面向 ESP-Mosaico 的 Agent 主导开发工作区。描述应用目标和预期行为，Agent 使用
-参考工程、模拟器和 ESP-Iris 设备工具完成开发。用户负责定义目标、执行必要的
-物理操作，并验收真机结果。
+## 创建应用
 
-## 创建工程
-
-以下命令均在工作区根目录执行。创建工程只需要 Python 3.8 或更新版本和工具
-子模块，无需先安装 ESP-IDF 或连接设备：
+创建只需要 Python 3.8 或更新版本，无需提前安装 ESP-IDF、连接设备或初始化
+BSP、游戏引擎。
 
 ```sh
 git submodule update --init submodule/esp-mosaico-utils
 python mosaico.py project init my_app
 ```
 
-命令以 PC/设备共用的 [GSP Hello World](projects/hello_world/README.md) 为模板
-创建 `projects/my_app`，
-保留 Recovery 接入，拒绝覆盖已有目录，不更改默认工程。使用 `--dry-run` 预览
-将生成的文件。
+命令从 utils 维护的 Hello World 模板生成 `projects/my_app`，不修改默认工程。
+`--dry-run` 不写文件，已有目标不会被覆盖。详见[工程创建](docs/project-init.zh-CN.md)。
 
-构建前初始化所需依赖，并解析满足应用 `main/idf_component.yml` 约束、支持
-`esp32s31` 的 ESP-IDF 环境：
+## 预览和安装
 
 ```sh
-git submodule update --init --recursive submodule/esp-mosaico-bsp submodule/esp-mosaico-utils
-python mosaico.py doctor
+git submodule update --init submodule/esp-mosaico-bsp
+# 准备兼容的 ESP-IDF 环境，构建刚创建的应用。
+python submodule/esp-mosaico-utils/mosaico-tools/skills/idf-low-noise-build/scripts/idf_low_noise_build.py --project projects/my_app doctor
+python submodule/esp-mosaico-utils/mosaico-tools/skills/idf-low-noise-build/scripts/idf_low_noise_build.py --project projects/my_app build
+python mosaico.py project sim --project projects/my_app --interactive
 ```
 
-空白或未经验证的设备须先运行 `python mosaico.py recover`，确认 Recovery 就绪。
-然后安装新应用并查看日志：
+GSP 预览与设备使用相同的可移植 C UI 和 GSP 1.4.0 场景。
+空白或未验证设备首次安装时，先执行 `python mosaico.py recover`，再执行
+`python mosaico.py iris system-update --project projects/my_app`。
+只有完整分区表和资源一致的代码更新才使用 `iris app-update`。
+设备操作统一经过产品 CLI。
 
-```sh
-python mosaico.py iris system-update --project projects/my_app
-python mosaico.py iris logs --project projects/my_app --timeout 20
-```
+## 工作区职责
 
-后续仅修改代码且完整分区表一致时使用 `iris app-update`；新应用、分区布局或
-外部资源变化使用 `iris system-update`。详见[工程初始化指南](docs/project-init.zh-CN.md)
-与 [CLI 命令参考](docs/mosaico-cli.zh-CN.md)。
-
-## 开发与观察
-
-- 设备 UI：适合使用 GSP 时，从 [GSP Hello World](projects/hello_world/README.md)
-  开始。[GSP 仿真工具](tools/gsp-sim/README.md) 使用 `espressif/esp-gsp` 1.4.0，
-  支持 PC 与设备共享 UI 逻辑。
-- Raylib 兼容游戏：按[游戏开发指南](docs/game-development.zh-CN.md)选择参考项目，
-  使用同源 C 绘制和确定性 Host 回放。
-- 持续观察设备：执行 `python mosaico.py iris run --project projects/my_app`，
-  打开输出中的 Gateway Web 工作台地址。会话和设备归属见
-  [Gateway 指南](docs/project-gateway.zh-CN.md)。
-
-设备操作统一通过 `mosaico.py`。保留 Recovery 路径，更新后验证设备身份、目标
-固件和应用健康状态。恢复流程从 CLI 命令参考进入。
-
-## 仓库结构
-
-| 位置 | 职责 |
+| 仓库 | 维护内容 |
 | --- | --- |
-| `projects/` | 参考应用和独立的用户应用 |
-| `components/`、`cmake/` | 工作区集成及普通应用 Recovery 契约 |
-| `tools/gsp-sim/` | GSP 编译器与 PC 模拟器集成 |
-| `tests/` | 主机检查；可烧录验收固件放在 `tests/firmware/` |
-| `submodule/esp-mosaico-bsp/` | 板级支持与板级示例 |
-| `submodule/esp-mosaico-utils/` | `mosaico-tools` 产品 CLI、Recovery 固件和 ESP-Iris |
-| `submodule/raylib-lite-engine/` | 游戏运行时、Host 模拟器和资源工具 |
-| `.mosaico.json` | 工作区路径和设备配置 |
-| `.agents/skills/`、`.agents/tools/` | 纳入版本控制的 Agent 技能和辅助工具 |
-| `.agents/analysis/` | 忽略的本地分析产物 |
-| `docs/` | 面向开发者的指南和参考文档 |
+| 本工作区 | 入口、配置、Agent 工作流、消费者集成验证 |
+| [utils](submodule/esp-mosaico-utils) | CLI、Recovery、公共应用组件、Hello World 模板 |
+| [BSP](submodule/esp-mosaico-bsp) | 板级支持和包含游戏在内的完整示例 |
+| [Raylib Lite Engine](submodule/raylib-lite-engine) | 游戏运行时、渲染器、资源工具、Host 模拟器 |
 
-只初始化当前任务所需的子模块。Agent 遵循 [AGENTS.md](AGENTS.md)，从
-[技能索引](.agents/skills/README.md)选择工作流。
+游戏从 BSP `examples/` 创建，见[游戏入口](docs/game-development.zh-CN.md)；
+仅开发游戏时初始化引擎。生成工程使用相对引用：移动或重新克隆整个工作区，
+初始化固定依赖后重新构建。此布局不提供单应用独立导出或旧工作区路径兼容，
+见[迁移说明](docs/workspace-migration.zh-CN.md)。
 
-## 文档入口
-
-[文档索引](docs/README.md)汇总工程创建、设备操作、游戏开发和组件参考。
-详细指南目前以中文维护。自动 CI 只检查工作区入口；Hello World 构建与仿真按需手动运行。
-参见[验证指南](docs/ci.zh-CN.md)。
+从[文档索引](docs/README.md)开始。Agent 遵循 [AGENTS.md](AGENTS.md) 和
+[技能索引](.agents/skills/README.md)。持续观察时，运行
+`python mosaico.py iris run --project projects/my_app`，打开输出的 Gateway Web
+工作台地址；详见 [Gateway 指南](docs/project-gateway.zh-CN.md)。

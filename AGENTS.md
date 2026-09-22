@@ -26,7 +26,9 @@ Before running ESP-IDF tools, resolve the PC environment as follows:
    recorded `idf_path` is not proof that the checkout is compatible.
 2. Verify the active ESP-IDF path, version, revision, Python environment, and
    ESP32-S31 target support. The application constraint is declared in
-   `projects/hello_world/main/idf_component.yml`, and the Recovery constraint
+   the selected application manifest (or
+   `submodule/esp-mosaico-utils/mosaico-tools/templates/hello_world/main/idf_component.yml`
+   before creation), and the Recovery constraint
    in `submodule/esp-mosaico-utils/esp-mosaico-recovery/firmware/recovery/main/idf_component.yml`;
    do not rely only on build metadata.
    The `mosaico.py` and ESP-Iris host tools support Python 3.8 or newer. ESP-IDF
@@ -49,13 +51,16 @@ install.
 
 1. Translate the user's request into a project-level goal and identify the
    required board capabilities.
-2. Use `projects/hello_world` as the reference application and create the new
-   application under `projects/<project-name>`. This single GSP Hello World
-   reference runs on both the PC simulator and the device.
-   Keep flashable test-only firmware under `tests/firmware/<fixture-name>`;
-   do not place test fixtures in `projects/`.
-   The utilities-owned Recovery project is an internal `mosaico.py recover`
-   resource and is never a user application template.
+2. Create applications with `python mosaico.py project init <project-name>`.
+   The reference template lives in
+   `submodule/esp-mosaico-utils/mosaico-tools/templates/hello_world` and supports
+   PC and device execution. The main repository contains no pre-created
+   `projects/` or `components/`; user projects appear only after creation.
+   Game templates live in `submodule/esp-mosaico-bsp/examples/` and are copied
+   with `python mosaico.py game create <name> --template ...`.
+   Keep product test firmware in utils' `esp-mosaico-recovery/tests/firmware/`;
+   never mix fixtures into user projects. Recovery itself is an internal
+   `mosaico.py recover` resource, never an application template.
 3. Read `.agents/skills/README.md`, then load only the `SKILL.md` files relevant to the
    requested capabilities. For new or existing device UI work, load
    [`mosaico-ui`](.agents/skills/mosaico-ui/SKILL.md). Its three feedback loops are
@@ -69,11 +74,14 @@ install.
    when it fits the product, use its simulator to produce rendering evidence,
    and follow the constraints of the selected UI framework. For GSP UI work,
    load `.agents/skills/gsp-sim/SKILL.md` and preview with
-   `python3 tools/gsp-sim/run.py` (sim_bridge by default) using
+   `python mosaico.py project sim --project projects/<name>` (sim_bridge by default) using
    **espressif/esp-gsp 1.4.0** from the ESP Component Registry.
    Do not import Mosaic claw hub/runtime into this repository.
 4. Component repositories and supporting project material are Git submodules.
    Initialize and inspect only the submodules needed for the current task.
+   Validate owning-repository examples from a standalone clone. Dependencies must
+   be declared and resolvable there; workspace sibling paths are not an example
+   dependency contract. Use explicit configured paths in generated applications.
 5. Follow component source, examples, and upstream documentation. Do not
    invent board or component APIs.
 6. Keep user-facing documentation in `docs/`, public product tooling in
@@ -86,6 +94,11 @@ install.
    and protocol details with the owning submodule, and link to them from workspace
    guides instead of duplicating them. Keep the English and Chinese root READMEs
    aligned as short entry points.
+   Shared Recovery integration belongs to utils, complete games to BSP examples,
+   and generic game implementation/tests to the engine. Dependencies must not
+   read vibe internal files. Use explicit dependency roots and relocatable source
+   paths. Rebuild after moving/cloning the workspace; no legacy-path adapters
+   or standalone application export are required.
 
 ### Preserve the retained recovery path
 
@@ -93,9 +106,9 @@ Unless the developer approves another architecture, every application must:
 
 1. Retain the immutable prefix partition contract from
    `submodule/esp-mosaico-utils/esp-mosaico-recovery/firmware/recovery` and the compatible
-   normal-application workflow from `projects/hello_world`.
+   normal-application workflow from the utils-owned Hello World template.
 2. Set `CONFIG_ESP_IRIS_OTA_DEFAULT_VIA_RECOVERY=y` in normal builds, use the
-   `components/esp_mosaico_app_recovery` component, keep the OTA writer only
+   utils-owned `esp-mosaico-recovery/components/esp_mosaico_app_recovery` component, keep the OTA writer only
    in Recovery, and call `iris_ota_support_start()` to expose the
    enter-recovery RPC.
 3. Run `python mosaico.py recover` before the first application install on a
@@ -105,7 +118,8 @@ Unless the developer approves another architecture, every application must:
    `python mosaico.py iris app-update --project ...` for code-only updates when
    the full partition table matches the device. Do not reshape an application's
    intended layout merely to make app-update pass.
-5. Include `cmake/mosaico_application.cmake` before ESP-IDF project.cmake;
+5. Include utils-owned `esp-mosaico-recovery/cmake/mosaico_idf_project.cmake` before `project()`; it includes
+   the sibling `mosaico_application.cmake` and ESP-IDF project.cmake.
    `esp_mosaico_app_recovery` validates the effective normal role, product/board/
    layout/ABI contract, Recovery routing, and disabled application OTA writer.
 
