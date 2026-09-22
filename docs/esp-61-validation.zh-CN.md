@@ -82,7 +82,9 @@ USB 测试目标 Hello World ELF SHA-256：
 - TCP 与 NAND 的真机传输、受控网络中断重试尚未验证；主机已覆盖对应数据和状态
   边界，不替代硬件证据。本次 Gateway 的文件卷/目录接口返回 HTTP 501，未通过
   此路径传入 NAND 测试包。未执行真机断电测试。
-- 预置 Recovery 包保持原评审版本，待剩余设备验收完成后整体更新。
+- 15:19 的云端重试在应用读回校验通过后，以 `ESP_ERR_INVALID_STATE` 中止。
+  位置落在组件完成后的进度/取消检查，日志未记录具体 HTTP 响应或取消来源；
+  该问题仍待定位。其后同版本云端更新成功，不能据此宣称间歇失败已修复。
 
 ## Rebase 与二级 bootloader 日志恢复
 
@@ -121,7 +123,23 @@ Logo 字模只有 49 字节。主要优化是用固定 TX-only SPI LL 配置替�
 `4aa7a6c5-94b0-44fa-96d5-7f3a0a686b90`，系统更新
 `db631ff4-713a-433c-b420-1107c4ca4fd6`，普通 OTA
 `7eedc933-f015-40a0-aa26-bd73745a4082`。设备最终保留在健康的 Hello World；
-仓库预置包仍保持原评审版本。
+当时仓库预置包仍保持原评审版本；后续刷新见下节。
+
+## 预置 Recovery 包刷新
+
+2026-09-22 已整体更新四镜像包及 manifest，源码来源为 `151a631`，
+`source.dirty=false`。Recovery 镜像与最终真机验收版本逐字节一致，
+`factory.bin` 为 1,812,880 字节，固定槽余量 22,128 字节。
+bootloader 保留实际写入验收的 24,432 字节镜像，INFO 日志与 Logo 生效；
+其可执行内容与当前源码构建一致，仅构建时间戳及校验字段不同。
+基础分区表和初始 OTA 数据与原包逐字节一致。
+
+使用现有 `prepare_recovery.py` 制包器一次性生成四镜像及 manifest，随后通过
+默认 reviewed 源的 `mosaico-recover-prepare` 和产品加载器验证。包相关 17 项
+主机测试及 3 个 subtest 通过。本次刷新没有重复 ROM 烧录，也不覆盖上节尚待
+完成的异常/TCP/NAND 场景。完整来源、哈希和已知限制由
+[预置包 README](../submodule/esp-mosaico-utils/esp-mosaico-recovery/firmware/recovery/prebuilt/recovery/README.md)
+维护。本地制包证据位于 `.agents/analysis/esp-61-prebuilt-refresh/`。
 
 ## 证据位置
 
