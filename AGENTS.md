@@ -1,7 +1,6 @@
 # ESP-Mosaico Agent Rules
 
 Select task-relevant [skills](.agents/skills/README.md) at the task level.
-Skills must not discover, name or load other skills; reference docs, source and tools directly.
 User guides start at [docs](docs/README.md).
 
 ## Repository boundaries
