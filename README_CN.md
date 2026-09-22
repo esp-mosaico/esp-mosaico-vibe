@@ -79,4 +79,5 @@ python mosaico.py iris logs --project projects/my_app --timeout 20
 ## 文档入口
 
 [文档索引](docs/README.md)汇总工程创建、设备操作、游戏开发和组件参考。
-详细指南目前以中文维护。主机检查和固件 CI 见[持续集成指南](docs/ci.zh-CN.md)。
+详细指南目前以中文维护。自动 CI 只检查工作区入口；Hello World 构建与仿真按需手动运行。
+参见[验证指南](docs/ci.zh-CN.md)。

@@ -13,7 +13,7 @@
 | 打开工作台、理解会话、选择或转让设备、排查占用 | [Gateway 与设备归属](project-gateway.zh-CN.md) |
 | 开发游戏、运行同源仿真与回放、验证真机 | [游戏开发](game-development.zh-CN.md) |
 | 对 Sky Hop 做可重复的真机性能对比 | [Sky Hop 性能测试](sky-hop-performance.zh-CN.md) |
-| 运行主机检查、了解固件构建矩阵 | [持续集成](ci.zh-CN.md) |
+| 运行轻量入口检查、手动验证 Hello World 构建与仿真 | [入口检查与集成验证](ci.zh-CN.md) |
 
 ## 专项与组件资料
 
