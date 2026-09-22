@@ -171,4 +171,8 @@ UI fixture 初始化错误，使用固定 GSPC 0.5.0 / Simulator 1.4.0 重跑后
 19,760 字节。source 为干净提交 `b520c09`；bootloader、初始分区表和 OTA
 初始化数据逐字节保留。产品 `load_bundle`、8 项包/契约检查及 3 个子测试、
 标准 reviewed `mosaico-recover-prepare` 校验通过，暂存的四镜像及 manifest
-与预置包一致。服务端配套提交为 `513dfc2`（独立 Bridge worktree），尚未部署。
+与预置包一致。服务端配套提交为 `153101f`（独立 Bridge worktree），尚未部署。
+
+创建 PR 前，Bridge 改动已 rebase 到远端 `master` 的 `a62431f`，保留最新
+8 字符配对码及平台集成接口；`go test -race ./...`、`go vet ./...` 和服务端
+二进制构建再次通过。固件和预置镜像未变。
