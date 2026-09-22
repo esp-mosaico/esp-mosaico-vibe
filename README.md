@@ -85,5 +85,6 @@ Initialize only the submodules needed for the task. Agents follow
 
 The [documentation index](docs/README.md) links project creation, device
 operation, game development, and component references. Detailed guides are
-currently in Chinese. Host checks and firmware CI are described in the
-[CI guide](docs/ci.zh-CN.md).
+currently in Chinese. Automatic CI checks only the workspace entry points;
+Hello World builds and simulation run manually. See the
+[validation guide](docs/ci.zh-CN.md).
