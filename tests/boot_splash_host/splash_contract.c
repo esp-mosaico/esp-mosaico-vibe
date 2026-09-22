@@ -48,6 +48,7 @@ static void mosaico_boot_handoff_publish(void) {
 }
 
 #define ESP_LOGW(...) ((void)0)
+#define ESP_LOGI(...) ((void)0)
 #include "splash_entry.inc"
 
 int main(void) {
