@@ -7,8 +7,9 @@ Recovery 自更新与 USB 两类更新回路已通过。Bridge 网站人机验�
 
 需求：[ESP-61 — Recovery 固件添加二维码并修改链接](https://linear.app/loop233/issue/ESP-61/recovery-固件添加二维码并修改链接)。
 工作分支：`feat/ESP-61`，已同步到 `upstream/main` 的 `e038e59`；
-Utilities 功能实现为 `08f5f1b`，包含数组拆分优化的基线为 `552f956`，
-容量分析原始基线为 `ec2213b`。
+Utilities 已 rebase 到 `origin/main` 的 `7d37e97`，当前提交为 `8bebd4b`；
+功能实现为 `e60cb66`，数组拆分优化为 `d01374a`，容量分析原始基线仍为
+`ec2213b`。二级 bootloader INFO 日志已恢复，并通过 Logo 路径缩减保证固定槽容量。
 
 ## 目标与现状
 

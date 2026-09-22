@@ -1,6 +1,6 @@
 # ESP-61 实现与验证记录
 
-验证日期：2026-09-22，Utilities 实现提交 `08f5f1b`。
+验证日期：2026-09-22，Utilities 功能实现提交 `e60cb66`（rebase 前为 `08f5f1b`）。
 实现包括 Download Ideas 二维码、完整网址、长配对码适配，
 以及 OTA 当前状态、传输速率、整包和分组件进度。
 
@@ -72,12 +72,51 @@ USB 测试目标 Hello World ELF SHA-256：
 ## 尚待完成
 
 - 网站可正常打开并进入 Hello World 在线烧录页，配对前出现 Cloudflare 人机验证。
-  已请求操作者完成验证并触发下载；正在保留设备配对页和连续采集。Bridge 的实际
+  仍需操作者完成验证并触发下载。Bridge 的实际
   HTTPS 下载、提交及应用重启尚不能标记通过。
 - TCP 与 NAND 的真机传输、受控网络中断重试尚未验证；主机已覆盖对应数据和状态
   边界，不替代硬件证据。本次 Gateway 的文件卷/目录接口返回 HTTP 501，未通过
   此路径传入 NAND 测试包。未执行真机断电测试。
 - 预置 Recovery 包保持原评审版本，待剩余设备验收完成后整体更新。
+
+## Rebase 与二级 bootloader 日志恢复
+
+主仓库基于本次 fetch 的 `upstream/main` `e038e59`；Utilities 已 rebase 到
+`origin/main` `7d37e97`，原有功能及 BSS 优化保留，日志与 Logo 优化提交为
+`8bebd4b`。ROM 恢复中发现的枚举字段问题另由 `79878af` 修复：执行器现在读取
+实际的 `device_path`，避免 `recover` 在探测阶段抛出 `KeyError: device`。
+
+此前 `CONFIG_BOOTLOADER_LOG_LEVEL_NONE=y` 确实关闭了二级 bootloader 日志。
+现已改为 INFO，保留 UART0 / 115200 文本输出，包括启动、分区选择和 Logo 信息。
+早期日志发生在 ESP-Iris 启动前，不会出现在 `iris logs` 的日志环中；本次未采集
+独立 UART 的启动日志，已核对生效配置、镜像日志字符串及真机镜像哈希。
+
+Logo 字模只有 49 字节。主要优化是用固定 TX-only SPI LL 配置替换通用 SPI HAL、
+直接读取 ESP32-S31 USER_DATA 的板型字段（保留虚拟 eFuse API），以及压缩单字节
+初始化指令表。INFO bootloader 从 **26,720 → 24,432 字节**，节省 **2,288 字节**，
+在 24,576 字节固定窗口内剩余 **144 字节**。Recovery 主镜像仍为 **1,812,688 字节**。
+
+- Logo 主机测试：3 组 ASan/UBSan 测试通过，优化前后完整 SPI 线模式、CS、命令和
+  RGB565 数据流哈希一致；覆盖 TE 开关、虚拟 eFuse、v1.0/v1.1/v1.2、未知板型、
+  USER_DATA 高位不影响板型、不同绘制阶段超时、马达关闭与交接标记清理。
+- ROM 执行器：22 项测试通过，包括真实枚举格式、重枚举端口及身份不匹配不写入。
+  测试保留一条异步 mock 未等待警告。
+- 增量构建和 `recover --source current` 独立源码构建均通过容量与镜像检查。
+- 操作者进入 ROM 后，经产品命令核验 MAC `30:ed:a0:f4:51:8e` 并写入完整源码包。
+  Recovery 成功返回同一 Device ID，Boot ID `4039641124994983801`。
+  操作者确认“Logo 和切换均正常”。
+- Hello World 系统更新及后续普通 OTA 均成功。后者验证完整
+  normal `13744842544974170329` → Recovery `11642428198902441303` →
+  normal `7430216119305011171`，目标 ELF 匹配且 HEALTHY；最终截图正常。
+  Gateway Web 设备信息面板的 Device ID、Boot ID 与 CLI 验证结果一致。
+
+设备读回的完整 bootloader 槽 SHA-256 与安装镜像补齐至 24 KiB 后一致：
+`d46d0987d7c39faa035ac78537e93d8b0d37ad3f3455cc428fe70d97a217a054`。
+本轮原始证据在 `.agents/analysis/esp-61-bootloader-logs/`；完整恢复操作
+`4aa7a6c5-94b0-44fa-96d5-7f3a0a686b90`，系统更新
+`db631ff4-713a-433c-b420-1107c4ca4fd6`，普通 OTA
+`7eedc933-f015-40a0-aa26-bd73745a4082`。设备最终保留在健康的 Hello World；
+仓库预置包仍保持原评审版本。
 
 ## 证据位置
 
