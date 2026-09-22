@@ -51,6 +51,9 @@ and [CLI reference](docs/mosaico-cli.zh-CN.md) for details.
 - For device UI, start with [GSP Hello World](projects/hello_world/README.md) when
   GSP fits the application. [GSP simulation](tools/gsp-sim/README.md) uses
   `espressif/esp-gsp` 1.4.0 and supports shared PC/device UI logic.
+- For Raylib-compatible games, start from the [game entry](docs/game-development.zh-CN.md)
+  and follow [Raylib Lite Engine](submodule/raylib-lite-engine/README.md). This
+  workspace does not keep in-tree game examples.
 - For ongoing device observation, run `python mosaico.py iris run --project projects/my_app`
   and open the printed Gateway Web workbench URL. See the
   [Gateway guide](docs/project-gateway.zh-CN.md) for sessions and device ownership.
@@ -82,5 +85,6 @@ Initialize only the submodules needed for the task. Agents follow
 ## Documentation
 
 The [documentation index](docs/README.md) links project creation, device
-operation, and component references. Detailed guides are currently in Chinese.
+operation, the [game entry](docs/game-development.zh-CN.md), and component
+references. Detailed guides are currently in Chinese.
 Host checks and firmware CI are described in the [CI guide](docs/ci.zh-CN.md).

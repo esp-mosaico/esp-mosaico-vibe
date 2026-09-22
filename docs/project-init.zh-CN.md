@@ -20,7 +20,9 @@ python mosaico.py project init my_app
 
 `project init` 默认使用工作区配置的
 [GSP Hello World](../projects/hello_world/README.md) 模板，同时生成设备应用和 PC 后端。
-先运行[PC 仿真](../tools/gsp-sim/README.md)再验证设备。
+先运行[PC 仿真](../tools/gsp-sim/README.md)再验证设备。游戏参考
+[Raylib Lite Engine](../submodule/raylib-lite-engine/README.md)，入口见
+[游戏开发](game-development.zh-CN.md)；`project init` 不会选择游戏模板。
 
 ## 预览与自动化
 
