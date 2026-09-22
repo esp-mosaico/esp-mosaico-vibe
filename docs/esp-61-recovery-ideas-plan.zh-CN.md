@@ -1,13 +1,13 @@
 # ESP-61：Recovery 二维码、Download Ideas 页面与 OTA 进度实现计划
 
 状态：二维码、配对码布局及 OTA 状态/速率/进度已实现，原生模拟器、固件构建、
-Recovery 自更新与 USB 两类更新回路已通过。Bridge 网站人机验证及其他剩余场景
+Recovery 自更新、USB 两类更新回路及操作者触发的云端 Bridge 更新已通过。其他剩余场景
 见[实现与验证记录](esp-61-validation.zh-CN.md)。
 此前的[固件大小分析及数组拆分优化](recovery-size-analysis.zh-CN.md)已完成。
 
 需求：[ESP-61 — Recovery 固件添加二维码并修改链接](https://linear.app/loop233/issue/ESP-61/recovery-固件添加二维码并修改链接)。
 工作分支：`feat/ESP-61`，已同步到 `upstream/main` 的 `e038e59`；
-Utilities 已 rebase 到 `origin/main` 的 `7d37e97`，当前提交为 `8bebd4b`；
+Utilities 已 rebase 到 `origin/main` 的 `7d37e97`，日志与 Logo 优化提交为 `8bebd4b`；
 功能实现为 `e60cb66`，数组拆分优化为 `d01374a`，容量分析原始基线仍为
 `ec2213b`。二级 bootloader INFO 日志已恢复，并通过 Logo 路径缩减保证固定槽容量。
 
@@ -185,6 +185,7 @@ Flash 操作；重试的重复字节不能重复计入已完成的有效负载�
   来源的标签正确，模拟器与真机证据覆盖上述场景。
 - 原生截图、固件容量、设备健康与转换证据齐全，预置包和工作区子模块指针对应已验收版本。
 
-已验证目标网站加载、原生及真机截图二维码解码；完整固件余量为 22,320 字节。
-网站在线烧录需要操作者完成 Cloudflare 人机验证。剩余设备验收与预置包状态以
+已验证目标网站加载、原生及真机截图二维码解码和云端完整更新；后续下载优化的
+完整固件余量为 22,128 字节，下载及写入平均 130.7 KiB/s，详见
+[OTA 速率与 PSRAM 优化实测](recovery-ota-performance.zh-CN.md)。剩余设备验收与预置包状态以
 [验证记录](esp-61-validation.zh-CN.md)为准，不能将主机模拟结果视作全部端到端通过。
