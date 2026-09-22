@@ -1,0 +1,3 @@
+interface:
+  display_name: "Mosaico Device Operations"
+  short_description: "Inspect, update, and recover ESP-Mosaico devices"

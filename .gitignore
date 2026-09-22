@@ -13,6 +13,3 @@
 
 # Local agent experiments; shared skills and tools remain versioned.
 /.agents/analysis/
-
-# Applications are created on demand in this get-started workspace.
-/projects/

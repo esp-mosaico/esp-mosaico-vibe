@@ -1,6 +1,6 @@
 # 项目 Gateway、使用者与设备归属
 
-[返回文档索引](README.md)
+[English](project-gateway.md) | [返回文档索引](README_CN.md)
 
 同一系统用户、同一工作区、同一应用路径共享一个 Gateway。不同项目有独立的
 地址、日志和操作记录，通过用户级公共注册表与操作系统锁协调设备归属。
@@ -144,7 +144,7 @@ Gateway 重启不会自动重放设备写操作。
 | 设备被其他项目占用 | 用 `iris status --all` 找到当前归属，在接收项目执行 `iris takeover start`，不终止其他客户端 |
 | 明确指定的设备离线 | 等待该身份重连，核对连接；失败后不改选另一块设备 |
 | 崩溃后留下普通归属 | 核实原会话已失效后执行 `iris reconcile`；接管记录使用 `iris takeover` 查询与恢复 |
-| 更新后的应用无响应 | 保存日志与有效 core dump，按 [CLI 恢复入口](mosaico-cli.zh-CN.md#调试与恢复入口)处理 |
+| 更新后的应用无响应 | 保存日志与有效 core dump，按 [CLI 恢复入口](mosaico-cli_CN.md#调试与恢复入口)处理 |
 
 ## 旧实例与外部 Gateway
 
@@ -175,6 +175,38 @@ CLI 通过 ESP-Iris 公开主机接口查询本机状态，不读取其 SQLite �
 设备对外显示五种状态：离线、连接中、空闲、忙碌、需恢复。项目归属与固件模式
 （Normal / Recovery / ROM / 未知）单独显示。日志页面、客户端保活不构成设备忙碌；
 镜像、后台 Job 和正在执行的操作会给出具体忙碌原因。
+
+### 实时证据与下一步
+
+设备操作前先查看主机归属和被动发现结果：
+
+```sh
+python mosaico.py iris status --all --json
+python mosaico.py iris list --details --json
+```
+
+协调归属后，通过 `iris run --project <project>` 或 `iris claim` 建立实时握手。
+打开命令输出中的 Gateway Web 工作台，检查
+`GET /v1/devices/<device-id>` 返回 `stale=false`，并与 CLI 证据核对
+Device ID、Boot ID。离线或握手失败时，不能把旧查询结果当成当前状态。
+
+下表按现场情况说明决策；固件模式、连接状态和活动操作分别核对，
+这些情形并不是同一个状态枚举：
+
+| 现场情况 | 必需证据与下一步 |
+| --- | --- |
+| 正常应用 | 实时 `firmware_mode=normal`、Device ID、Boot ID，以及预期工程和版本；安装验收还须确认 healthy 和目标产品行为。 |
+| Recovery | 实时 `firmware_mode=recovery` 且为同一 Device ID；更新前确认预期 Recovery 版本及 `capability_names` 中的 `ota`，USB 重连本身不够。 |
+| 更新、重启或交接中 | 检查活动 operation 或 takeover 记录，跟随原记录与已选 Device ID 等待完成，不重复写入或改选其他板。 |
+| ROM 下载 | 由 `mosaico.py recover` 流程确认实时 ROM 端点；此时没有 ESP-Iris 握手或 Boot ID，初始化前须核对硬件身份。 |
+| 离线或未知 | 尚无成功实时握手，或仅有缓存发现与归属；先检查拥有者、活动切换和连接，不能据此认定 ROM 模式、空白 Flash 或设备损坏。 |
+
+Gateway 的 `running` / `reachable` 描述主机进程，不证明设备健康；归属可以在断线后保留。
+实际重启后必须确认同一 Device ID 和新的 Boot ID，不能仅凭端口名称或屏幕判断固件模式。
+可能破坏证据的恢复操作前，先通过产品工具保存原始日志、结构化证据和有效 core dump。
+完整更新验收条件见 [CLI 更新方式](mosaico-cli_CN.md#选择更新方式)。
+
+### ROM 恢复操作
 
 `python mosaico.py recover` 在准备好固件后，通过 Gateway 提交一次 ROM 恢复操作。
 操作覆盖端口排他、证据保存、ROM 烧录及重连验证，沿用普通操作记录和查询接口。

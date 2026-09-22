@@ -1,6 +1,6 @@
 # mosaico.py 命令参考
 
-[返回文档索引](README.md)
+[English](mosaico-cli.md) | [返回文档索引](README_CN.md)
 
 在工作区根目录执行 `python mosaico.py --help` 查看顶层入口。使用
 `python mosaico.py iris --help`、`python mosaico.py iris takeover --help`
@@ -40,7 +40,7 @@ mosaico.py
 | `iris app-update` | 仅更新正常应用代码，要求完整分区表与设备一致 |
 | `iris system-update` | 新应用、分区布局或资源变化的推荐入口，按更新包清单写入 |
 | `recover` | 初始化或恢复设备基础固件，包括 ESP-Iris 不可达时的恢复 |
-| `game` | 从 BSP 示例创建游戏，调用引擎 Host 仿真或构建，见[游戏开发入口](game-development.zh-CN.md) |
+| `game` | 从 BSP 示例创建游戏，调用引擎 Host 仿真或构建，见[游戏开发入口](game-development_CN.md) |
 
 `iris test` 下的命令用于分别测试 Recovery 流程：
 
@@ -67,7 +67,7 @@ python mosaico.py iris crash --project projects/my_app --archive
 
 只有一块可用 USB 设备时可省略设备选择器；多设备时使用 `--device-id` 或
 `--endpoint`。使用实时确认的 Device ID。自动选择顺序、等待重连和归属限制见
-[Gateway 设备选择](project-gateway.zh-CN.md#设备发现与选择)。
+[Gateway 设备选择](project-gateway_CN.md#设备发现与选择)。
 
 ## 选择更新方式
 
@@ -100,7 +100,7 @@ SHA-256 及 `system-update` 建议，不会自动扩大写入范围或修改工�
 
 运行 `python mosaico.py iris run --project projects/my_app` 并打开输出中的 URL，
 可持续观察 Gateway Web 工作台。生命周期、设备占用与接管的完整规则见
-[Gateway 指南](project-gateway.zh-CN.md)。CLI 和工作台应显示同一设备的 Device ID、
+[Gateway 指南](project-gateway_CN.md)。CLI 和工作台应显示同一设备的 Device ID、
 Boot ID 和操作记录。
 
 normal 与 Recovery 都不可达时继续使用 `recover`。仅当命令要求手动进入 ROM

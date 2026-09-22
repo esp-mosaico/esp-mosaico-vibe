@@ -2,7 +2,8 @@
 name: mosaico-ui
 description: >
   Design, implement, and improve ESP-Mosaico device UI pages and applications
-  through design confirmation, simulator validation, and device validation.
+  through design confirmation, prioritizing simulator validation before
+  device validation.
   Use for new UI, visual or interaction changes, and UI performance issues.
   Not for browser applications or Gateway Web workbench UI.
 ---
@@ -10,8 +11,10 @@ description: >
 # Mosaico UI
 
 Use three feedback loops to resolve user intent, executable behavior, and
-hardware experience. Choose the entry point from what remains uncertain;
-new and existing applications share the same workflow.
+hardware experience. After design confirmation, prioritize the simulator to
+expose and fix problems before device validation. New and existing applications
+share this workflow; start on hardware for issues that require real hardware
+evidence or cannot be exercised in the simulator, and explain that limitation.
 
 ## Choose the entry point
 
@@ -23,7 +26,8 @@ framework, and conventions unless the requested change requires otherwise.
 - **Design confirmation:** the overall appearance or intended interaction is
   unsettled, as in a new UI or a substantial redesign.
 - **Simulator validation:** the design is already confirmed, the requested
-  visual change is specific, or a UI logic defect needs correction.
+  visual change is specific, or a UI logic defect needs correction. This is
+  the default starting point for implementation and debugging.
 - **Device validation:** real input, data, display, or performance behavior
   must be observed on the target hardware to understand the problem.
 
@@ -74,6 +78,9 @@ This loop implements **interaction behavior**: event handling, state
 transitions, data bindings, and screen updates. Exercise relevant complete
 flows with simulated input and data, including meaningful failure cases.
 Compare the running result with the confirmed design or requested change.
+Use this loop to expose layout and clipping errors, missing assets, input
+feedback, navigation, timers and state-transition defects. Fix and re-run
+affected flows before moving to device validation.
 
 Match evidence to the issue: comparable captures for visual changes, input
 and state sequences for interaction, and running updates for timers or
@@ -122,23 +129,16 @@ image counts, or approval for decorative details.
 
 ## Repository execution support
 
-- Follow [AGENTS.md](../../../AGENTS.md) and the [skill index](../README.md).
-  Preserve the Recovery contract and use `mosaico.py` for device operations,
-  including live identity and evidence checks. Resolve the ESP-IDF environment
-  before running its tools.
+- Follow [AGENTS.md](../../../AGENTS.md) for repository-wide constraints.
+  Preserve the Recovery contract and resolve ESP-IDF before running its tools.
+- For device validation, follow the [CLI guide](../../../docs/mosaico-cli.md)
+  and [Gateway evidence checks](../../../docs/project-gateway.md#live-evidence-and-next-steps).
 - For new apps, prefer GSP when it fits and start from
   [hello_world](../../../submodule/esp-mosaico-utils/mosaico-tools/templates/hello_world/README.md). New apps belong in `projects/`;
   a new page within an existing app inherits its framework and conventions.
-- Load [gsp-sim](../gsp-sim/SKILL.md) for GSP runtime constraints, simulator
-  commands, and the portable UI boundary. Run the target app's backend for
+- Use the [product preview guide](../../../submodule/esp-mosaico-utils/mosaico-tools/tools/gsp-sim/README.md)
+  for GSP runtime constraints and the portable UI boundary. Run the target app's backend for
   logic, not scene-only rendering. Keep controls and dynamic text native
   rather than substituting the concept image for the working UI.
-- For LVGL, preserve the Recovery contract from
-  [hello_world](../../../submodule/esp-mosaico-utils/mosaico-tools/templates/hello_world/README.md), replace its GSP-specific
-  UI integration, and use a matching native preview where available. GSP_SIM
-  does not run LVGL. If host execution is unavailable, exercise those behaviors
-  on-device and disclose the simulator gap; do not migrate frameworks just to
-  obtain a preview or treat a browser recreation as native evidence.
-- Use [idf-low-noise-build](../idf-low-noise-build/SKILL.md) for firmware builds.
-  Consult the selected project's update documentation for separately packaged
+- Use the project's pinned build environment and update documentation for separately packaged
   scenes, fonts, and images so device checks cannot silently use stale assets.

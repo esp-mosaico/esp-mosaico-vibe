@@ -1,6 +1,6 @@
 # 工作区布局迁移
 
-[返回索引](README.md)
+[English](workspace-migration.md) | [返回索引](README_CN.md)
 
 本次直接切换公共接口，不保留旧路径兼容层，也不自动修改已有用户应用。
 
