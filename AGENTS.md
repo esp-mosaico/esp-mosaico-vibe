@@ -16,12 +16,20 @@ User guides start at [docs](docs/README.md).
   English/Chinese READMEs aligned and short. Component API/protocol docs stay with owners.
 - Agent guidance/tools belong in `.agents/`, shared skills in version-controlled
   `.agents/skills/`, local analysis in `.agents/analysis/`; this is not a secrecy boundary.
-- Dependencies must not read vibe internals. Validate owning-repository examples from
-  standalone clones with declared, resolvable dependencies, not workspace sibling paths.
-  Generated apps use explicit dependency roots and relocatable paths; follow the
-  [migration guide](docs/workspace-migration_CN.md) when moving or migrating a workspace.
 - Inspect component source, examples and upstream docs; do not invent APIs.
-  Do not import Mosaic claw hub/runtime.
+
+## Engineering rules
+
+- Keep modules focused, with explicit responsibilities, ownership and data flow.
+  Keep public interfaces small and implementation details private; avoid circular dependencies.
+- Keep functions reviewable and source files under 1500 lines where practical.
+  Split by responsibility rather than adding deeply nested branches or meeting a line limit.
+- Use named constants, enums or shared configuration for domain values and resource limits.
+- Check fallible operations, handle allocation failures and roll back partial initialization.
+  Give mutable state and resources explicit owners and lifetimes; synchronize cross-task
+  access or document a single-owner design. Document shared services and singletons.
+- Follow owning-component conventions; do not rewrite upstream code solely for style.
+  ESP-IDF application conventions are scoped to [projects/AGENTS.md](projects/AGENTS.md).
 
 ## Environment and builds
 
