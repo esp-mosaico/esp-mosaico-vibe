@@ -19,7 +19,7 @@ mosaico.py
 │   ├── system-update
 │   └── test enter-recovery / recovery-wifi / bridge-code
 ├── recover
-└── game（入口见游戏开发，实现在 raylib-lite-engine）
+└── game（旧包装，不要用于新工作；仿真用引擎 tools/game_cli.py）
 ```
 
 ## 命令职责
@@ -40,7 +40,7 @@ mosaico.py
 | `iris app-update` | 仅更新正常应用代码，要求完整分区表与设备一致 |
 | `iris system-update` | 新应用、分区布局或资源变化的推荐入口，按更新包清单写入 |
 | `recover` | 初始化或恢复设备基础固件，包括 ESP-Iris 不可达时的恢复 |
-| `game` | 游戏创建、Host 仿真和构建；参考与实现见[游戏开发入口](game-development.zh-CN.md) |
+| `game` | 遗留入口，仍调用子模块里过期的 CLI。Host 仿真请在引擎根目录执行 `python3 tools/game_cli.py sim examples/<name>`，见[游戏开发入口](game-development.zh-CN.md) |
 
 `iris test` 下的命令用于分别测试 Recovery 流程：
 
