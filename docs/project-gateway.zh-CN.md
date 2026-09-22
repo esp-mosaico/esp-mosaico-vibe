@@ -19,7 +19,7 @@ python mosaico.py iris run --project projects/hello_world
 
 Ctrl+C 结束当前 `iris run` 的客户端，不关闭其他人使用的 Gateway。
 普通命令结束同样只释放自身客户端。所有客户端离开且活动请求、更新、设备 Job、
-维护或流任务都已结束后，Gateway 空闲 **10 秒**自动退出。新使用者或工作加入会
+主机操作或流任务都已结束后，Gateway 空闲 **10 秒**自动退出。新使用者或工作加入会
 取消倒计时。没有单独的停止命令，设备被认领本身不构成永久保活。
 
 CLI 每 5 秒续期一次，20 秒未续期后客户端失效，再进入 10 秒空闲等待。
@@ -70,15 +70,15 @@ python mosaico.py iris logs --project projects/hello_world --device-id '<Device-
 3. 没有已连接设备时，跟随当前项目唯一的已有归属，包括等待离线设备重连。
 4. 没有已有归属时，实时枚举本机 USB 并认领唯一可用候选。缓存、未连接的
    TCP/mDNS 端点、ROM 和 USB Serial/JTAG 接口不参与这个自动选择。
-5. 多个候选时直接列出候选并要求指定目标。其他会话占用、维护、转让以及孤立
+5. 多个候选时直接列出候选并要求指定目标。其他会话占用、接管预约以及孤立
    归属不会被自动抢占或清理。握手确认 Device ID 后，本次操作始终跟随该身份。
 
 `iris run` 只在首次创建会话时尝试一次自动连接。无设备或有歧义时仍保持 Gateway
 运行，后续设备操作或 `iris claim` 再发起连接；主动释放后不会被后台重新认领。
 共享会话中的 `iris claim` 可以省略设备参数；`iris release` 自动释放唯一拥有的
-设备，即使其暂时离线。同一设备的 USB/TCP 归属合并计数。`iris transfer start`
-也可省略 `--device-id`，但仍必须指定 `--to-session`；重试沿用同一 `--transfer-id`。
-`reconcile` 和转让记录相关命令仍要求明确目标或记录 ID。
+设备，即使其暂时离线。同一设备的 USB/TCP 归属合并计数。`iris takeover start`
+要求显式指定 `--device-id` 或 `--endpoint`；重试沿用同一 `--takeover-id`。
+`reconcile` 和接管记录相关命令仍要求明确目标或记录 ID。
 
 `recover` 先尝试连接唯一的 ESP-Iris 设备，只有未发现可用目标时才继续原有 ROM
 接口检测；存在占用、歧义或已有目标连接失败时，实际恢复不会改选另一块板。
@@ -102,28 +102,48 @@ Application Support；Windows 使用 LOCALAPPDATA。不同用户、不同主机�
 一个设备同一时刻归属于一个项目会话。其他项目不能自动抢占，HTTP 超时也不能
 证明拥有者死亡。项目锁防止重复实例，会话锁判断存活，端点锁保护实际连接。
 
-先在接收项目运行 `iris run`，通过 `iris status --all` 获取其 Session ID，然后在
-发送项目执行：
+接收项目可以主动请求接管，命令会启动或复用接收方 Gateway：
 
 ```sh
-python mosaico.py iris transfer start --device-id '<Device-ID>' --to-session '<接收会话-ID>'
+python mosaico.py iris takeover start --project projects/my_app --endpoint /dev/ttyACM0
+python mosaico.py iris takeover start --project projects/my_app --device-id '<Device-ID>' --force --timeout 120
 ```
 
-活动转让持有接收方客户端直到身份验证结束；归属预约保护断开到重连的间隔。
-转让中断时，使用原 `transfer_id` 查询、接受、中止或核对，不重复创建转让。
-没有正在执行的转让请求时，待核对记录本身不永久保活，但仍保留资源预约。
+默认只交接空闲设备；忙碌时返回具体操作、镜像或 Job。`--force` 拒绝旧 Gateway
+对该设备的新操作，取消尚未开始的操作，等待当前写入安全结束，再停止屏幕、图像、
+音频镜像并请求后台 Job 取消。只有收到终止确认后才交接。其他设备和旧 Gateway
+的客户端继续运行；仅打开 Web 日志或保留 `iris run` 不阻止交接。
 
-正常空闲退出释放普通设备归属。崩溃留下的普通归属需要显式 `iris reconcile`；
-维护和转让预约必须使用各自的恢复流程。Gateway 重启不会自动重放设备写操作。
+超时保留原归属并恢复接收新请求；已经停止的镜像、取消的任务不会自动恢复，仍在
+执行的写入不会被中断。命令输出 takeover ID，通信中断后先查询：
+
+```sh
+python mosaico.py iris takeover status --project projects/my_app --takeover-id '<ID>'
+python mosaico.py iris takeover resume --project projects/my_app --takeover-id '<ID>'
+```
+
+`status` 被动查询，不启动 Gateway。`resume` 在原接收会话继续身份验证；若尚未
+生成预约记录，沿用原 ID 重新执行 `start`。活动请求保活接收方直到验证结束，
+预约保护断开到重连的间隔；没有活动请求时，记录本身不会永久保活 Gateway。
+
+需要撤回未完成的交接时，在**原持有项目**执行
+`iris takeover abort --takeover-id ...`；已完成的接管不能回滚，正在接收的会话
+仍存活时也不能强制撤销。双方原会话均已退出时，任一参与项目可以执行
+`iris takeover reconcile --takeover-id ...`，核验端口锁后收回预约归属。
+普通崩溃遗留的归属仍使用 `iris reconcile`。
+
+接管只协调同用户、本机、使用新版工具的项目会话。CLI 的 `iris transfer` 命令组、
+旧别名、旧 HTTP 转让入口均已移除；工作台只提供接管入口。
+Gateway 重启不会自动重放设备写操作。
 
 ## 常见问题
 
 | 现象 | 处理方式 |
 | --- | --- |
 | 工作台旧地址打不开 | 用 `iris run --project ...` 重新持有会话，打开新输出的 URL |
-| 设备被其他项目占用 | 用 `iris status --all` 找到当前归属，按转让流程交接，不终止其他客户端 |
+| 设备被其他项目占用 | 用 `iris status --all` 找到当前归属，在接收项目执行 `iris takeover start`，不终止其他客户端 |
 | 明确指定的设备离线 | 等待该身份重连，核对连接；失败后不改选另一块设备 |
-| 崩溃后留下普通归属 | 核实原会话已失效后执行 `iris reconcile`；维护或转让记录使用各自恢复流程 |
+| 崩溃后留下普通归属 | 核实原会话已失效后执行 `iris reconcile`；接管记录使用 `iris takeover` 查询与恢复 |
 | 更新后的应用无响应 | 保存日志与有效 core dump，按 [CLI 恢复入口](mosaico-cli.zh-CN.md#调试与恢复入口)处理 |
 
 ## 旧实例与外部 Gateway
@@ -149,3 +169,18 @@ CLI 通过 ESP-Iris 公开主机接口查询本机状态，不读取其 SQLite �
 安装所需的 Recovery 版本和分区哈希由产品 CLI 提交给 Gateway。Gateway 在同一个
 操作中完成切换、重新连接、校验、写入和健康验证；校验不通过不会开始写入。
 详细职责与接口见[组件边界说明](../submodule/esp-mosaico-utils/docs/component-boundaries.md)。
+
+## 设备状态与 ROM 恢复
+
+设备对外显示五种状态：离线、连接中、空闲、忙碌、需恢复。项目归属与固件模式
+（Normal / Recovery / ROM / 未知）单独显示。日志页面、客户端保活不构成设备忙碌；
+镜像、后台 Job 和正在执行的操作会给出具体忙碌原因。
+
+`python mosaico.py recover` 在准备好固件后，通过 Gateway 提交一次 ROM 恢复操作。
+操作覆盖端口排他、证据保存、ROM 烧录及重连验证，沿用普通操作记录和查询接口。
+执行进程持有物理端口锁；关闭 CLI 或 Gateway 异常退出不会提前释放仍在烧录的端口。
+等待超时应按输出的 operation ID 检查进度，不自动重试写入。
+
+不再存在独立 maintenance 状态、维护租约或续期接口。操作结束后保留结果与日志，
+释放临时占用；烧录过程中的预期断连仍显示忙碌。只有实时设备证据才能判定需恢复，
+普通通信超时不能直接推断固件损坏。旧版租约流程不再兼容，需要统一使用新版主机工具。
