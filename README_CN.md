@@ -29,7 +29,7 @@ python submodule/esp-mosaico-utils/mosaico-tools/skills/idf-low-noise-build/scri
 python mosaico.py project sim --project projects/my_app --interactive
 ```
 
-GSP 预览与设备使用相同的可移植 C UI 和 GSP 1.4.0 场景。
+GSP 预览与设备使用相同的可移植 C UI 和 GSP 1.5.1 场景。
 设计确认后，先在仿真器中发现并修复 UI 显示和交互问题，再做真机验证，
 详见[开发流程](docs/project-init_CN.md)。
 空白或未验证设备首次安装时，先执行 `python mosaico.py recover`，再执行

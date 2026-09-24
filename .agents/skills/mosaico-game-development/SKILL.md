@@ -8,8 +8,11 @@ description: Develop Mosaico games with Raylib Lite Engine as the preferred engi
 Read the [workspace entry](../../../docs/game-development_CN.md) and
 [BSP game guide](../../../submodule/esp-mosaico-bsp/docs/game-development.zh-CN.md).
 Prefer the workspace's pinned Raylib Lite Engine for game applications.
-Initialize utils, BSP and Raylib Lite Engine. Create with
-`python mosaico.py game create <name> --template sky-hop|tower-defense|shooter`.
+Initialize utils, BSP and Raylib Lite Engine. Start a new game with
+`python mosaico.py game create <name>` (the tools-owned `blank` template).
+It provides shared C state/update/rendering and Host/device adapters without
+example gameplay or assets. To extend a complete reference game, explicitly
+select `--template sky-hop`, `--template tower-defense` or `--template shooter`.
 User applications go under projects/; complete reference games and behavior
 replays belong to BSP examples/tests. Engine runtime, renderers and implementation
 tests stay in Raylib Lite Engine.

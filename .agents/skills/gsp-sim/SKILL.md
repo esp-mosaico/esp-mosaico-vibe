@@ -1,6 +1,6 @@
 ---
 name: gsp-sim
-description: Preview generated GSP applications with the pinned GSP 1.4.0 sim_bridge and shared native C backend.
+description: Preview generated GSP applications with the pinned GSP 1.5.1 sim_bridge and shared native C backend.
 ---
 
 # GSP application preview
@@ -9,7 +9,7 @@ Read the [product preview guide](../../../submodule/esp-mosaico-utils/mosaico-to
 Create an application with `python mosaico.py project init <name>`; the template
 is owned by utils, and there is no pre-created Hello World in this workspace.
 
-After the first application build/reconfigure resolves ESP-GSP 1.4.0:
+After the first application build/reconfigure resolves ESP-GSP 1.5.1:
 
 ```sh
 python mosaico.py project sim --project projects/<name> --interactive

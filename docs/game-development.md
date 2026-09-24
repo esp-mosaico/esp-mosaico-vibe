@@ -11,18 +11,33 @@ and fetches them automatically.
 
 ```sh
 git submodule update --init submodule/esp-mosaico-utils submodule/esp-mosaico-bsp submodule/raylib-lite-engine
-python mosaico.py game create my_game --template sky-hop
+python mosaico.py game create my_game
 python mosaico.py game sim --project projects/my_game
 python mosaico.py game sim --project projects/my_game --headless --frames 120
 python mosaico.py game build --project projects/my_game
 python mosaico.py iris system-update --project projects/my_game
 ```
 
-Available templates are `sky-hop`, `tower-defense` and `shooter`. `game new` is
+The default template is `blank` (also selectable with `--template blank`). It
+starts with an empty black canvas and shared C update, drawing and pointer-input
+functions in `main/game.c`. Project identity is generated from your chosen name.
+It includes the device/Host entry points and Recovery integration, with no
+example gameplay, atlas, sounds or external game resource partition to remove.
+The small embedded GSP canvas placeholder is generated during firmware configuration.
+
+For a complete example, select `--template sky-hop`, `--template tower-defense`
+or `--template shooter`. These retain their example gameplay and resources.
+`game new` is
 equivalent to `game create`. Creation supports `--dry-run` and refuses to overwrite
 existing targets. The Host requires a C compiler and Pillow; firmware requires an
 ESP-IDF version that satisfies the project's constraints and supports ESP32-S31.
 Omit `--headless` for interactive simulation.
+
+The blank template exposes `phase`, `tick`, pointer coordinates/pressed state and
+`state_hash` through Host JSON state; pause, resume and reset work before you add
+gameplay. Use `--state-output state.json` with a headless run to save it. Add your
+game's behavior to the shared C model and map new inputs in both the Host and
+device adapters. The generated README describes each file.
 
 Interactive simulation uses the C gameplay model and rendering code shared with
 the device. Check visuals, animation, input feedback and complete gameplay flows,
