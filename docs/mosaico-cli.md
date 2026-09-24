@@ -19,7 +19,7 @@ mosaico.py
 │   ├── system-update
 │   └── test enter-recovery / recovery-wifi / bridge-code
 ├── recover
-└── game create/new/sim/run/build (BSP examples and engine Host)
+└── game create/new/sim/run/build (blank template, BSP examples and engine Host)
 ```
 
 ## Command responsibilities
@@ -49,6 +49,37 @@ Commands under `iris test` exercise individual Recovery workflows:
 | `enter-recovery` | A normal application responds through ESP-Iris and reboots into retained Recovery; wait for the same Device ID to reconnect with a new Boot ID. If already in Recovery, return its current status |
 | `recovery-wifi` | Requires Recovery with ESP-Iris USB available; submit the Wi-Fi network name and password, then wait for connectivity |
 | `bridge-code` | Requires Recovery, available USB, a configured Bridge service and network connectivity; open the device download page and return the pairing code, validity period and Bridge website URL |
+
+## Build tool compatibility and diagnostics
+
+`doctor` checks ESP-IDF constraints against `tools/cmake/version.cmake` first.
+Its JSON identifies that version as `idf.version` and the source as
+`idf.version_source`, while `idf.reported_version` keeps the Git description
+from `idf.py --version`. The latter is a fallback when the source version is
+unavailable or cannot be parsed. No local `v6.2-dev` tag is needed. The low-noise
+build doctor uses the same rule; Python and target checks still run.
+
+The `.mosaico.json` `build` object accepts `"configdep": "auto"` (default),
+`"on"` or `"off"`. The pinned configdep 0.2.3 maps `CONFIG_*` references in
+source files to paths that can contain Windows reserved names such as `AUX`.
+Auto therefore disables this optimizer on Windows and retains IDF's default on
+other hosts. Auto honors an existing `IDF_CONFIGDEP_ENABLE`; explicit on/off
+overrides it. This applies to application, Recovery and system-update builds.
+The standalone low-noise runner uses the same platform default and accepts that
+environment variable for explicit overrides. Disabling configdep retains Ninja
+incremental builds, but configuration changes may recompile more source files.
+
+Both the application template and Recovery bootstrap the pinned standalone GSPC
+compiler without requiring the Python `gsp` module. An uncached first run needs
+a download; offline builds can set `GSPC_EXECUTABLE` to an absolute path to a
+compatible compiler. Applications use GSPC 0.6.1 and ESP-GSP 1.5.1;
+Recovery independently retains GSPC 0.5.0 and ESP-GSP 1.4.0. An explicit compiler
+override must match the project being built.
+
+Build error summaries include configdep `touch_file` failures and their following
+path details, falling back to `FAILED:` context when the cause is unrecognized.
+Text errors go to stderr; JSON errors include `details.diagnostic`. Complete
+output remains in the log named by the error.
 
 ## Select a project and device
 

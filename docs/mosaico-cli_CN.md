@@ -19,7 +19,7 @@ mosaico.py
 │   ├── system-update
 │   └── test enter-recovery / recovery-wifi / bridge-code
 ├── recover
-└── game create/new/sim/run/build（BSP 示例与引擎 Host）
+└── game create/new/sim/run/build（空白模板、BSP 示例与引擎 Host）
 ```
 
 ## 命令职责
@@ -49,6 +49,38 @@ mosaico.py
 | `enter-recovery` | 正常应用通过 ESP-Iris 响应，重启进入已有 Recovery；等待同一 Device ID 以新的 Boot ID 重连。已经在 Recovery 时返回当前状态 |
 | `recovery-wifi` | 已进入 Recovery 且 ESP-Iris USB 可用；下发 Wi-Fi 名称和密码并等待联网成功 |
 | `bridge-code` | 已进入 Recovery、USB 可用、已配置 Bridge 服务且能够联网；打开设备下载页面，返回配对码、有效期和 Bridge 网站地址 |
+
+## 构建工具兼容性与诊断
+
+`doctor` 优先读取 ESP-IDF 的 `tools/cmake/version.cmake` 判定版本约束。
+JSON 中 `idf.version` 是用于判定的版本，`idf.version_source` 标明来源，
+`idf.reported_version` 保留 `idf.py --version` 的 Git 描述。版本文件缺失或
+无法解析时才回退到后者，无需人为创建 `v6.2-dev` 标签。低噪声构建 doctor
+采用同一规则，Python 和目标支持检查仍然执行。
+
+在 `.mosaico.json` 的 `build` 对象中可配置 configdep：
+
+```json
+{"runner": "builtin", "configdep": "auto"}
+```
+
+`configdep` 支持 `auto`（默认）、`on`、`off`。锁定的 configdep 0.2.3 会把
+源文件中的 `CONFIG_*` 宏名转成路径，可能产生 Windows 保留名 `AUX` 等。
+因此 `auto` 在 Windows 上默认关闭此优化，其他平台沿用 ESP-IDF 默认值。
+`auto` 尊重已有的 `IDF_CONFIGDEP_ENABLE` 环境变量；显式 `on` / `off`
+优先于环境变量。该设置覆盖应用构建、Recovery 构建及 system-update 打包。
+独立低噪声脚本采用相同的平台默认值，可通过该环境变量显式覆盖。
+关闭 configdep 仍保留 Ninja 增量构建，但修改配置可能重新编译更多源文件。
+
+应用模板和 Recovery 均使用固定版本的独立 GSPC 编译器引导，无需为此安装
+Python `gsp` 模块。首次无缓存时需要下载；离线环境可用 `GSPC_EXECUTABLE`
+指定兼容编译器的绝对路径。应用使用 GSPC 0.6.1 和 ESP-GSP 1.5.1；
+Recovery 独立保持 GSPC 0.5.0 和 ESP-GSP 1.4.0。显式指定的编译器必须与
+当前构建工程的组件版本匹配。
+
+构建错误摘要会包含 configdep 的 `touch_file` 失败原因及后续路径信息；
+无法识别具体原因时回退到 `FAILED:` 上下文。文本错误写入 stderr，JSON 错误
+位于 `details.diagnostic`。完整输出保存在报错所列日志中。
 
 ## 选择工程与设备
 

@@ -32,7 +32,7 @@ python submodule/esp-mosaico-utils/mosaico-tools/skills/idf-low-noise-build/scri
 python mosaico.py project sim --project projects/my_app --interactive
 ```
 
-GSP preview uses the same portable C UI and GSP 1.4.0 scene as the device.
+GSP preview uses the same portable C UI and GSP 1.5.1 scene as the device.
 After design confirmation, find and fix UI rendering and interaction problems
 in the simulator first, then validate on hardware; see [the workflow](docs/project-init.md).
 For the first installation on a blank or unverified board, run `python mosaico.py recover`,
