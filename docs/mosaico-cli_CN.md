@@ -41,6 +41,7 @@ mosaico.py
 | `iris memory` | 读取内存状态；`--follow` 持续采样 |
 | `iris crash` | 查看崩溃信息；`--archive` 归档并解码 Core Dump |
 | `iris rpc` | 调用指定的应用 RPC |
+| `iris restart` | 软件重启所选设备并核对新 Boot ID；应用行为需另行验证 |
 | `iris device-status` | 读取实时设备身份、Boot ID 和固件状态；拒绝缓存或身份不匹配的响应 |
 | `iris screenshot <output>` | 直接保存设备图像并返回图像及操作信息；核对截图前后 Device ID 和 Boot ID 一致 |
 | `iris operation-status <operation-id>` | 查询已有操作并保留其实际状态；不认领设备、不重放操作 |
@@ -158,13 +159,15 @@ python mosaico.py iris operation-status <operation-id> --project projects/my_app
 随后由 Agent 核实 ROM 连接、继续 `recover` 并验证设备和目标应用。
 不得仅为恢复连接擦除整片 Flash，或未经授权覆盖凭据、身份及 Vibe Mode 数据。
 
-应用烧录和监控避免 USB Serial/JTAG；Gateway 拥有接口时不得并发打开它。
-High-Speed USB 默认交给 ESP-Iris；产品功能需要占用它的 normal 应用应记录例外，
-并通过其他可用传输保留 ESP-Iris 运维和恢复路径。
+0.2 实现恢复原版 `idf.py flash monitor` 和 OpenOCD/JTAG。原生监控或烧录前，
+先释放 Gateway 对控制台接口的占用。Mosaico 应用需要匹配的 0.2 基础固件和保留
+test 分区契约；第三方 ESP-IDF 工程可以直接使用其原有分区表，完整烧录后通过
+`recover` 重新安装 Mosaico 基础固件。默认仍使用 Mosaico 更新流程。
+High-Speed USB 提供独立控制台和数据接口；UART 与 USB Serial/JTAG 仅提供控制链路。
 
-## 旧命令兼容
+## 迁移到 0.2 命令路径
 
-旧入口暂时作为兼容别名保留，新文档和自动化应使用上面的正式入口：
+旧命令别名已移除，现有脚本需要改为正式入口：
 
 | 旧入口 | 新入口 |
 | --- | --- |
@@ -177,8 +180,13 @@ High-Speed USB 默认交给 ESP-Iris；产品功能需要占用它的 normal 应
 | `system-update` | `iris system-update` |
 | `enter-recovery/recovery-wifi/bridge-code` | `iris test enter-recovery/recovery-wifi/bridge-code` |
 
-`recover`、`doctor` 和工作区的 `game` 入口保留。操作记录中的内部操作标识、
-JSON 业务结果及取证目录格式继续沿用；`iris status` 新增 `running` 字段。
+`recover`、`doctor` 和工作区的 `game` 入口保留。`.mosaico.json` 需要 schema 2，
+0.2 状态与凭据和旧版本隔离，详见
+[迁移指南](../submodule/esp-mosaico-utils/mosaico-tools/docs/migration-0.2.md)。
+评审基础包已更新为通过实机验收的 0.2.0，已测范围和剩余缺口见
+[验证记录](../submodule/esp-mosaico-utils/esp-mosaico-recovery/docs/validation-0.2.md)：
+S31 High-Speed USB 的组合 `flash monitor` 仍有首次枚举时序问题，
+OpenOCD/JTAG 实机验证仍未完成。0.2 工具不接受 0.1 基础包。
 
 GSP 预览使用 `python mosaico.py project sim --project projects/my_app`；
 工作区不预置应用，先执行 `project init`。公共实现位于 utils。

@@ -42,6 +42,7 @@ For mode definitions and the AI/Boot button distinction, see
 | `iris memory` | Read memory status; `--follow` samples continuously |
 | `iris crash` | Inspect crash information; `--archive` archives and decodes the Core Dump |
 | `iris rpc` | Call the specified application RPC |
+| `iris restart` | Restart the selected device and verify a new Boot ID; application behavior requires separate checks. |
 | `iris device-status` | Read live device identity, Boot ID and firmware state; reject stale or mismatched responses |
 | `iris screenshot <output>` | Save the device image directly and return image/operation metadata; verify the same Device ID and Boot ID before and after capture |
 | `iris operation-status <operation-id>` | Query an existing operation, preserving its actual status; does not acquire a device or replay the operation |
@@ -173,16 +174,17 @@ the [physical entry steps](device-modes.md#physical-entry); the agent verifies
 the ROM connection, resumes `recover`, and checks the device and target application. Never erase the whole flash merely to restore
 connectivity, or overwrite credentials, identity or Vibe Mode data without authorization.
 
-Avoid USB Serial/JTAG for application flashing and monitoring. Do not open the
-interface concurrently while the Gateway owns it. High-Speed USB belongs to ESP-Iris
-by default. A normal application whose product function requires that interface
-must document the exception and preserve ESP-Iris device operations and recovery
-through another available transport.
+The 0.2 implementation restores stock `idf.py flash monitor` and OpenOCD/JTAG.
+Release Gateway's console endpoint before native monitoring or flashing. Mosaico
+applications require a matching 0.2 base and the retained test-partition contract;
+third-party ESP-IDF projects may use their own unchanged partition tables. Return
+through `recover` to reinstall the Mosaico base after a third-party full flash.
+Mosaico updates remain the default workflow. High-Speed USB provides separate
+console and data interfaces; UART and USB Serial/JTAG provide control only.
 
-## Legacy command compatibility
+## Migrate command paths to 0.2
 
-Legacy entry points temporarily remain as compatibility aliases. Use the formal
-entry points above in new documentation and automation:
+The old command aliases are removed. Update existing scripts to the formal paths:
 
 | Legacy entry | Current entry |
 | --- | --- |
@@ -195,9 +197,14 @@ entry points above in new documentation and automation:
 | `system-update` | `iris system-update` |
 | `enter-recovery/recovery-wifi/bridge-code` | `iris test enter-recovery/recovery-wifi/bridge-code` |
 
-`recover`, `doctor` and the workspace's `game` entry remain. Internal operation
-identifiers in operation records, JSON result formats and evidence directory formats
-remain unchanged. `iris status` adds the `running` field.
+`recover`, `doctor` and the workspace's `game` entry remain. `.mosaico.json` now
+requires schema 2; 0.2 state and credentials are isolated from earlier versions.
+See the [migration guide](../submodule/esp-mosaico-utils/mosaico-tools/docs/migration-0.2.md).
+The reviewed 0.2.0 base bundle has passed device acceptance. See the
+[validation record](../submodule/esp-mosaico-utils/esp-mosaico-recovery/docs/validation-0.2.md)
+for tested coverage and remaining gaps: S31 High-Speed USB combined
+`flash monitor` still has an initial enumeration race, and OpenOCD/JTAG hardware
+validation remains pending. The 0.1 base is not accepted by 0.2 tools.
 
 For GSP previews, use `python mosaico.py project sim --project projects/my_app`.
 The workspace has no pre-created application, so run `project init` first. The
