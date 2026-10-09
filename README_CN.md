@@ -7,9 +7,6 @@
 
 ## 创建应用
 
-新建工程前，先[检查工作区发布版本和子模块提交](docs/workspace-versions_CN.md)。
-使用官方最新稳定 tag，或当前任务明确选定的版本。
-
 本工作区最低要求 **Python 3.10**。固件构建固定使用 ESP-IDF `master` 的
 **`7b9cc1ac79f865983f59bb8ff3ff43eb74ff1dbe`** 提交，目标为 `esp32s31`。
 系统没有 `python` 命令时，下文使用 `python3`。

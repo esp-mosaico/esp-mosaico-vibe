@@ -9,34 +9,6 @@ for the chip’s download program. See [device modes](docs/device-modes.md).
 `iris test enter-recovery` enters Vibe Mode; `recover` writes base firmware.
 AI (GPIO7) selects Vibe Mode; Boot (GPIO61) selects ROM Download Mode.
 
-## Workspace version confirmation
-
-- Before starting any new application or game project, follow the
-  [workspace version guide](docs/workspace-versions.md): query the official
-  `esp-mosaico/esp-mosaico-vibe` tags, identify the highest stable `vN.N.N`
-  version, and compare its commit with the current main repository `HEAD`.
-  Local tags, a fork's default branch and the nearest ancestor tag do not prove
-  that the checkout is the latest release. If discovery fails or no stable tag
-  exists, report that the latest release could not be verified.
-- Compare submodule commits with the gitlinks recorded by the selected main
-  repository commit, including initialized nested submodules; inspect staged
-  gitlink changes and dirty files.
-  Report uninitialized dependencies separately and initialize only those needed
-  by the task at their pinned commits before using them.
-- On an older tag, recommend updating to the latest stable tag. If `HEAD` is not
-  exactly an official stable tag (even when ahead of it), recommend switching to
-  the latest stable tag. Report mismatched or dirty submodules and the proposed
-  alignment. Resolve the user's version choice before creating the project;
-  reuse an explicit choice already made in the task, including a requested
-  development commit, and do not repeatedly ask to change it.
-- When updating, fetch the chosen tag explicitly, check out its exact commit,
-  synchronize submodule URLs, and update initialized/required submodules to that
-  tag's recorded SHAs recursively. Never use `git pull` or
-  `git submodule update --remote` to assemble a release. Preserve local work,
-  never force a checkout or overwrite a conflicting tag, and verify the resulting
-  commits and status.
-  Re-read the selected release's Agent rules and environment pins before work.
-
 ## Repository boundaries
 
 - User applications belong in `projects/`; settings in `.mosaico.json`.
@@ -91,6 +63,11 @@ AI (GPIO7) selects Vibe Mode; Boot (GPIO61) selects ROM Download Mode.
 
 ## Application development
 
+- Before starting a new project, use Git to query the official remote for the latest
+  tag and verify that the main repository's `HEAD` matches that tag and submodules
+  match its recorded commits; if the checkout is on an older tag, an untagged
+  commit or mismatched submodules, recommend updating and, after user confirmation,
+  use Git to fetch and check out the selected tag and its pinned submodule commits.
 - Create apps with `python mosaico.py project init <name>` using utils' Hello World
   template; create games with `python mosaico.py game create <name> --template ...`.
 - For device UI, prefer GSP and load [mosaico-ui](.agents/skills/mosaico-ui/SKILL.md);

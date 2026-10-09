@@ -8,9 +8,6 @@ submodules, documentation and Agent guidance. Applications are created on demand
 
 ## Create an application
 
-Before starting a new project, [check the workspace release and submodule pins](docs/workspace-versions.md).
-Use the latest official stable tag, or the version explicitly selected for your task.
-
 This workspace requires **Python 3.10+**. Firmware builds use ESP-IDF `master`
 at **`7b9cc1ac79f865983f59bb8ff3ff43eb74ff1dbe`** for `esp32s31`.
 Creation does not require ESP-IDF, a board, BSP or the game engine.

@@ -2,7 +2,6 @@
 
 [简体中文](README_CN.md)
 
-- [Workspace versions and updates](workspace-versions.md)
 - [Device modes: Vibe Mode and ROM Download Mode](device-modes.md)
 - [Project creation and selection](project-init.md)
 - [Espressif MCP services for coding agents](mcp-servers.md)

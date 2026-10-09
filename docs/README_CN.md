@@ -2,7 +2,6 @@
 
 [English](README.md)
 
-- [工作区版本与更新](workspace-versions_CN.md)
 - [设备模式：Vibe Mode 与 ROM 下载模式](device-modes_CN.md)
 - [工程创建与选择](project-init_CN.md)
 - [编程 Agent 的 Espressif MCP 服务](mcp-servers_CN.md)

@@ -2,9 +2,6 @@
 
 [English](project-init.md) | [返回索引](README_CN.md)
 
-先[确认工作区 tag 与子模块是否配套](workspace-versions_CN.md)，
-如需提示更新或切换版本，在明确版本选择后再创建工程。
-
 全新工作区没有预置应用。使用 Python 3.10+，只初始化 utils 即可创建：
 
 ```sh
