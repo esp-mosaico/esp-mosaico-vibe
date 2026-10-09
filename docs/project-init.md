@@ -2,6 +2,9 @@
 
 [简体中文](project-init_CN.md) | [Documentation index](README.md)
 
+First [confirm the workspace tag and matching submodules](workspace-versions.md).
+Resolve any recommendation to update or switch versions before creating a project.
+
 A fresh workspace has no pre-created applications. Use Python 3.10+ and initialize
 only utils to create one:
 

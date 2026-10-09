@@ -2,6 +2,9 @@
 
 [简体中文](game-development_CN.md) | [Documentation index](README.md)
 
+Before creating a game, [confirm the workspace tag and matching submodules](workspace-versions.md)
+and resolve the version choice.
+
 Prefer **Raylib Lite Engine** (`submodule/raylib-lite-engine`) for game applications.
 Validate visuals and gameplay in the simulator, fix problems, then install on the
 device. BSP `examples/` maintains the three complete games; the engine maintains

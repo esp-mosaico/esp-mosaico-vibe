@@ -2,6 +2,9 @@
 
 [English](game-development.md) | [返回索引](README_CN.md)
 
+创建游戏前，先[确认工作区 tag 与子模块是否配套](workspace-versions_CN.md)，
+并明确版本选择。
+
 游戏类应用优先使用 **Raylib Lite Engine**（`submodule/raylib-lite-engine`）开发，
 先在仿真器中验证画面和玩法，修复问题后再安装到设备。
 三个完整游戏由 BSP `examples/` 维护；通用运行时、绘制、资源工具与 Host 仿真
