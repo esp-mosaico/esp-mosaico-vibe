@@ -74,4 +74,4 @@ def test_generated_blank_game_renders_and_handles_input(game):
     game.action(4, True)  # Host keyboard restart action
     assert game.metadata()["state_hash"] == initial_hash
     short = ctypes.create_string_buffer(8)
-    assert game.api.mosaico_host_game_state_json_v1(game.context, short, len(short)) < 0
+    assert game.api.raylib_lite_host_game_state_json_v1(game.context, short, len(short)) < 0
