@@ -63,6 +63,11 @@ AI (GPIO7) selects Vibe Mode; Boot (GPIO61) selects ROM Download Mode.
 
 ## Application development
 
+- Before starting a new project, use Git to query the official remote for the latest
+  tag and verify that the main repository's `HEAD` matches that tag and submodules
+  match its recorded commits; if the checkout is on an older tag, an untagged
+  commit or mismatched submodules, recommend updating and, after user confirmation,
+  use Git to fetch and check out the selected tag and its pinned submodule commits.
 - Create apps with `python mosaico.py project init <name>` using utils' Hello World
   template; create games with `python mosaico.py game create <name> --template ...`.
 - For device UI, prefer GSP and load [mosaico-ui](.agents/skills/mosaico-ui/SKILL.md);
