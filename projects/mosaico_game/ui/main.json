@@ -1,0 +1,6927 @@
+{
+  "screen": "main",
+  "w": 480,
+  "h": 480,
+  "screen_bg": "#110B08",
+  "font": "fonts/cjk.ttf",
+  "default_font_size": 18,
+  "swipe": false,
+  "objects": [
+    {
+      "type": "layer",
+      "parent": -1,
+      "name": "s00",
+      "bind": "s00",
+      "bind_target": "visible",
+      "x": 0,
+      "y": 0,
+      "w": 480,
+      "h": 480,
+      "bg_color": "#110B08"
+    },
+    {
+      "type": "image",
+      "parent_name": "s00",
+      "x": 0,
+      "y": 0,
+      "w": 480,
+      "h": 480,
+      "image": "pieces/heat_bg.png",
+      "codec": "lossless"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s00",
+      "x": 16,
+      "y": 16,
+      "w": 26,
+      "h": 3,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s00",
+      "x": 16,
+      "y": 16,
+      "w": 3,
+      "h": 26,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s00",
+      "x": 438,
+      "y": 461,
+      "w": 26,
+      "h": 3,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s00",
+      "x": 461,
+      "y": 438,
+      "w": 3,
+      "h": 26,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "container",
+      "parent_name": "s00",
+      "x": 156,
+      "y": 92,
+      "w": 168,
+      "h": 168,
+      "bg_color": "#1A0E0C",
+      "border_color": "#E2B84A",
+      "border_width": 3
+    },
+    {
+      "type": "image",
+      "parent_name": "s00",
+      "x": 200,
+      "y": 96,
+      "w": 80,
+      "h": 160,
+      "image": "pieces/anim_wk.gif",
+      "max_fps": 0
+    },
+    {
+      "type": "label",
+      "parent_name": "s00",
+      "x": 40,
+      "y": 272,
+      "w": 400,
+      "h": 56,
+      "text": "国际象棋",
+      "font_size": 40,
+      "text_align": "center",
+      "fg_color": "#FFF4DC"
+    },
+    {
+      "type": "container",
+      "parent_name": "s00",
+      "x": 40,
+      "y": 376,
+      "w": 408,
+      "h": 64,
+      "bg_color": "#E2B84A"
+    },
+    {
+      "type": "button",
+      "parent_name": "s00",
+      "name": "home_enter",
+      "callback": "enter_chess",
+      "x": 36,
+      "y": 372,
+      "w": 408,
+      "h": 64,
+      "text": "进入游戏",
+      "font_size": 22,
+      "bg_color": "#D41E3C",
+      "fg_color": "#FFF4DC",
+      "events": [
+        {
+          "event": "click",
+          "action": "hide",
+          "target_name": "s00"
+        },
+        {
+          "event": "click",
+          "action": "show",
+          "target_name": "s10"
+        }
+      ]
+    },
+    {
+      "type": "layer",
+      "parent": -1,
+      "name": "s10",
+      "bind": "s10",
+      "bind_target": "visible",
+      "x": 0,
+      "y": 0,
+      "w": 480,
+      "h": 480,
+      "bg_color": "#110B08",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "s10",
+      "x": 0,
+      "y": 0,
+      "w": 480,
+      "h": 480,
+      "image": "pieces/heat_bg.png",
+      "codec": "lossless"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s10",
+      "x": 16,
+      "y": 16,
+      "w": 26,
+      "h": 3,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s10",
+      "x": 16,
+      "y": 16,
+      "w": 3,
+      "h": 26,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s10",
+      "x": 438,
+      "y": 461,
+      "w": 26,
+      "h": 3,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s10",
+      "x": 461,
+      "y": 438,
+      "w": 3,
+      "h": 26,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "image",
+      "parent_name": "s10",
+      "x": 160,
+      "y": 64,
+      "w": 160,
+      "h": 160,
+      "image": "pieces/anim_war.gif",
+      "max_fps": 0
+    },
+    {
+      "type": "label",
+      "parent_name": "s10",
+      "x": 36,
+      "y": 36,
+      "w": 200,
+      "h": 24,
+      "text": "对决",
+      "font_size": 16,
+      "fg_color": "#D41E3C"
+    },
+    {
+      "type": "label",
+      "parent_name": "s10",
+      "x": 36,
+      "y": 68,
+      "w": 300,
+      "h": 24,
+      "text": "国际象棋",
+      "font_size": 16,
+      "fg_color": "#E2B84A"
+    },
+    {
+      "type": "container",
+      "parent_name": "s10",
+      "x": 41,
+      "y": 119,
+      "w": 408,
+      "h": 100,
+      "bg_color": "#E2B84A"
+    },
+    {
+      "type": "container",
+      "parent_name": "s10",
+      "name": "btn_pvp",
+      "callback": "pvp_developing",
+      "x": 36,
+      "y": 114,
+      "w": 408,
+      "h": 100,
+      "bg_color": "#1A0E0C",
+      "border_color": "#D41E3C",
+      "border_width": 3
+    },
+    {
+      "type": "label",
+      "parent_name": "s10",
+      "callback": "pvp_developing",
+      "x": 56,
+      "y": 128,
+      "w": 360,
+      "h": 44,
+      "text": "双人对决",
+      "font_size": 36,
+      "fg_color": "#FFF4DC"
+    },
+    {
+      "type": "label",
+      "parent_name": "s10",
+      "callback": "pvp_developing",
+      "x": 56,
+      "y": 176,
+      "w": 360,
+      "h": 24,
+      "text": "真机贴合与同步开发中",
+      "font_size": 16,
+      "fg_color": "#E2B84A"
+    },
+    {
+      "type": "button",
+      "parent_name": "s10",
+      "name": "hit_pvp",
+      "callback": "pvp_developing",
+      "x": 36,
+      "y": 114,
+      "w": 408,
+      "h": 100,
+      "text": "",
+      "bg_color": "#00000000",
+      "fg_color": "#E2B84A"
+    },
+    {
+      "type": "container",
+      "parent_name": "s10",
+      "x": 41,
+      "y": 235,
+      "w": 408,
+      "h": 100,
+      "bg_color": "#E2B84A"
+    },
+    {
+      "type": "container",
+      "parent_name": "s10",
+      "name": "btn_pve",
+      "callback": "go_pve",
+      "x": 36,
+      "y": 230,
+      "w": 408,
+      "h": 100,
+      "bg_color": "#1A0E0C",
+      "border_color": "#D41E3C",
+      "border_width": 3
+    },
+    {
+      "type": "label",
+      "parent_name": "s10",
+      "callback": "go_pve",
+      "x": 56,
+      "y": 244,
+      "w": 360,
+      "h": 44,
+      "text": "对战电脑",
+      "font_size": 36,
+      "fg_color": "#FFF4DC"
+    },
+    {
+      "type": "label",
+      "parent_name": "s10",
+      "callback": "go_pve",
+      "x": 56,
+      "y": 292,
+      "w": 360,
+      "h": 24,
+      "text": "你执白 单机",
+      "font_size": 16,
+      "fg_color": "#E2B84A"
+    },
+    {
+      "type": "button",
+      "parent_name": "s10",
+      "name": "hit_pve",
+      "callback": "go_pve",
+      "x": 36,
+      "y": 230,
+      "w": 408,
+      "h": 100,
+      "text": "",
+      "bg_color": "#00000000",
+      "fg_color": "#E2B84A"
+    },
+    {
+      "type": "button",
+      "parent_name": "s10",
+      "x": 36,
+      "y": 420,
+      "w": 120,
+      "h": 36,
+      "text": "回选游戏",
+      "font_size": 16,
+      "bg_color": "#00000000",
+      "fg_color": "#E2B84A",
+      "callback": "back_s00",
+      "events": [
+        {
+          "event": "click",
+          "action": "hide",
+          "target_name": "s10"
+        },
+        {
+          "event": "click",
+          "action": "show",
+          "target_name": "s00"
+        }
+      ]
+    },
+    {
+      "type": "layer",
+      "parent": -1,
+      "name": "s20",
+      "bind": "s20",
+      "bind_target": "visible",
+      "x": 0,
+      "y": 0,
+      "w": 480,
+      "h": 480,
+      "bg_color": "#110B08",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "s20",
+      "x": 0,
+      "y": 0,
+      "w": 480,
+      "h": 480,
+      "image": "pieces/heat_bg.png",
+      "codec": "lossless"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s20",
+      "x": 16,
+      "y": 16,
+      "w": 26,
+      "h": 3,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s20",
+      "x": 16,
+      "y": 16,
+      "w": 3,
+      "h": 26,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s20",
+      "x": 438,
+      "y": 461,
+      "w": 26,
+      "h": 3,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s20",
+      "x": 461,
+      "y": 438,
+      "w": 3,
+      "h": 26,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "label",
+      "parent_name": "s20",
+      "x": 24,
+      "y": 173,
+      "w": 440,
+      "h": 48,
+      "text": "等待连接中",
+      "font_size": 36,
+      "text_align": "center",
+      "fg_color": "#D41E3C"
+    },
+    {
+      "type": "label",
+      "parent_name": "s20",
+      "x": 20,
+      "y": 168,
+      "w": 440,
+      "h": 48,
+      "text": "等待连接中",
+      "font_size": 36,
+      "text_align": "center",
+      "fg_color": "#FFF4DC"
+    },
+    {
+      "type": "container",
+      "parent_name": "s20",
+      "x": 120,
+      "y": 230,
+      "w": 240,
+      "h": 8,
+      "bg_color": "#4A1418"
+    },
+    {
+      "type": "container",
+      "parent_name": "s20",
+      "name": "waitbar",
+      "bind": "waitbar",
+      "bind_target": "visible",
+      "x": {
+        "default": 120,
+        "min": 120,
+        "max": 280
+      },
+      "y": {
+        "default": 230,
+        "min": 0,
+        "max": 472
+      },
+      "w": 80,
+      "h": 8,
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "button",
+      "parent_name": "s20",
+      "x": 140,
+      "y": 254,
+      "w": 200,
+      "h": 34,
+      "text": "取消",
+      "font_size": 18,
+      "bg_color": "#00000000",
+      "fg_color": "#E2B84A",
+      "callback": "wait_cancel"
+    },
+    {
+      "type": "button",
+      "parent_name": "s20",
+      "name": "sim_ok",
+      "callback": "sim_pair_ok",
+      "x": 36,
+      "y": 418,
+      "w": 408,
+      "h": 34,
+      "text": "模拟贴合",
+      "font_size": 18,
+      "bg_color": "#00000000",
+      "fg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "layer",
+      "parent": -1,
+      "name": "s21",
+      "bind": "s21",
+      "bind_target": "visible",
+      "x": 0,
+      "y": 0,
+      "w": 480,
+      "h": 480,
+      "bg_color": "#110B08",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "s21",
+      "x": 0,
+      "y": 0,
+      "w": 480,
+      "h": 480,
+      "image": "pieces/heat_bg.png",
+      "codec": "lossless"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s21",
+      "x": 16,
+      "y": 16,
+      "w": 26,
+      "h": 3,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s21",
+      "x": 16,
+      "y": 16,
+      "w": 3,
+      "h": 26,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s21",
+      "x": 438,
+      "y": 461,
+      "w": 26,
+      "h": 3,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s21",
+      "x": 461,
+      "y": 438,
+      "w": 3,
+      "h": 26,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "label",
+      "parent_name": "s21",
+      "x": 24,
+      "y": 173,
+      "w": 440,
+      "h": 48,
+      "text": "对决成立",
+      "font_size": 36,
+      "text_align": "center",
+      "fg_color": "#D41E3C"
+    },
+    {
+      "type": "label",
+      "parent_name": "s21",
+      "x": 20,
+      "y": 168,
+      "w": 440,
+      "h": 48,
+      "text": "对决成立",
+      "font_size": 36,
+      "text_align": "center",
+      "fg_color": "#FFF4DC"
+    },
+    {
+      "type": "container",
+      "parent_name": "s21",
+      "x": 120,
+      "y": 230,
+      "w": 240,
+      "h": 8,
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "button",
+      "parent_name": "s21",
+      "x": 140,
+      "y": 254,
+      "w": 200,
+      "h": 34,
+      "text": "你执白",
+      "font_size": 18,
+      "bg_color": "#00000000",
+      "fg_color": "#E2B84A",
+      "events": [
+        {
+          "event": "click",
+          "action": "hide",
+          "target_name": "s21"
+        },
+        {
+          "event": "click",
+          "action": "show",
+          "target_name": "s24"
+        }
+      ],
+      "callback": "s21_continue",
+      "name": "s21_note"
+    },
+    {
+      "type": "layer",
+      "parent": -1,
+      "name": "s22",
+      "bind": "s22",
+      "bind_target": "visible",
+      "x": 0,
+      "y": 0,
+      "w": 480,
+      "h": 480,
+      "bg_color": "#110B08",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "s22",
+      "x": 0,
+      "y": 0,
+      "w": 480,
+      "h": 480,
+      "image": "pieces/heat_bg.png",
+      "codec": "lossless"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s22",
+      "x": 16,
+      "y": 16,
+      "w": 26,
+      "h": 3,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s22",
+      "x": 16,
+      "y": 16,
+      "w": 3,
+      "h": 26,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s22",
+      "x": 438,
+      "y": 461,
+      "w": 26,
+      "h": 3,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s22",
+      "x": 461,
+      "y": 438,
+      "w": 3,
+      "h": 26,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "label",
+      "parent_name": "s22",
+      "x": 24,
+      "y": 173,
+      "w": 440,
+      "h": 48,
+      "text": "未能对上",
+      "font_size": 36,
+      "text_align": "center",
+      "fg_color": "#D41E3C"
+    },
+    {
+      "type": "label",
+      "parent_name": "s22",
+      "x": 20,
+      "y": 168,
+      "w": 440,
+      "h": 48,
+      "text": "未能对上",
+      "font_size": 36,
+      "text_align": "center",
+      "fg_color": "#FFF4DC"
+    },
+    {
+      "type": "container",
+      "parent_name": "s22",
+      "x": 120,
+      "y": 230,
+      "w": 240,
+      "h": 8,
+      "bg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "s22",
+      "x": 140,
+      "y": 254,
+      "w": 200,
+      "h": 34,
+      "text": "再贴一次",
+      "font_size": 18,
+      "bg_color": "#00000000",
+      "fg_color": "#E2B84A",
+      "callback": "go_pvp"
+    },
+    {
+      "type": "button",
+      "parent_name": "s22",
+      "callback": "wait_cancel",
+      "x": 36,
+      "y": 418,
+      "w": 408,
+      "h": 34,
+      "text": "回菜单",
+      "font_size": 18,
+      "bg_color": "#00000000",
+      "fg_color": "#E2B84A"
+    },
+    {
+      "type": "layer",
+      "parent": -1,
+      "name": "s23",
+      "bind": "s23",
+      "bind_target": "visible",
+      "x": 0,
+      "y": 0,
+      "w": 480,
+      "h": 480,
+      "bg_color": "#110B08",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "s23",
+      "x": 0,
+      "y": 0,
+      "w": 480,
+      "h": 480,
+      "image": "pieces/heat_bg.png",
+      "codec": "lossless"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s23",
+      "x": 16,
+      "y": 16,
+      "w": 26,
+      "h": 3,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s23",
+      "x": 16,
+      "y": 16,
+      "w": 3,
+      "h": 26,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s23",
+      "x": 438,
+      "y": 461,
+      "w": 26,
+      "h": 3,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s23",
+      "x": 461,
+      "y": 438,
+      "w": 3,
+      "h": 26,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "label",
+      "parent_name": "s23",
+      "x": 24,
+      "y": 173,
+      "w": 440,
+      "h": 48,
+      "text": "双设备对决开发中",
+      "font_size": 36,
+      "text_align": "center",
+      "fg_color": "#D41E3C"
+    },
+    {
+      "type": "label",
+      "parent_name": "s23",
+      "x": 20,
+      "y": 168,
+      "w": 440,
+      "h": 48,
+      "text": "双设备对决开发中",
+      "font_size": 36,
+      "text_align": "center",
+      "fg_color": "#FFF4DC"
+    },
+    {
+      "type": "container",
+      "parent_name": "s23",
+      "x": 120,
+      "y": 230,
+      "w": 240,
+      "h": 8,
+      "bg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "s23",
+      "x": 140,
+      "y": 254,
+      "w": 200,
+      "h": 34,
+      "text": "返回",
+      "font_size": 18,
+      "bg_color": "#00000000",
+      "fg_color": "#E2B84A",
+      "callback": "wait_cancel"
+    },
+    {
+      "type": "layer",
+      "parent": -1,
+      "name": "s24",
+      "bind": "s24",
+      "bind_target": "visible",
+      "x": 0,
+      "y": 0,
+      "w": 480,
+      "h": 480,
+      "bg_color": "#110B08",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "s24",
+      "x": 0,
+      "y": 0,
+      "w": 480,
+      "h": 480,
+      "image": "pieces/heat_bg.png",
+      "codec": "lossless"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s24",
+      "x": 16,
+      "y": 16,
+      "w": 26,
+      "h": 3,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s24",
+      "x": 16,
+      "y": 16,
+      "w": 3,
+      "h": 26,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s24",
+      "x": 438,
+      "y": 461,
+      "w": 26,
+      "h": 3,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s24",
+      "x": 461,
+      "y": 438,
+      "w": 3,
+      "h": 26,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "container",
+      "parent_name": "s24",
+      "x": 380,
+      "y": 28,
+      "w": 72,
+      "h": 72,
+      "bg_color": "#00000000",
+      "border_color": "#D41E3C",
+      "border_width": 4
+    },
+    {
+      "type": "label",
+      "parent_name": "s24",
+      "x": 380,
+      "y": 36,
+      "w": 72,
+      "h": 56,
+      "text": "白",
+      "font_size": 36,
+      "text_align": "center",
+      "fg_color": "#D41E3C"
+    },
+    {
+      "type": "label",
+      "parent_name": "s24",
+      "x": 40,
+      "y": 128,
+      "w": 400,
+      "h": 24,
+      "text": "国际象棋",
+      "font_size": 16,
+      "text_align": "center",
+      "fg_color": "#D41E3C"
+    },
+    {
+      "type": "label",
+      "parent_name": "s24",
+      "x": 24,
+      "y": 173,
+      "w": 440,
+      "h": 80,
+      "text": "对局开始",
+      "font_size": 40,
+      "text_align": "center",
+      "fg_color": "#D41E3C"
+    },
+    {
+      "type": "label",
+      "parent_name": "s24",
+      "x": 20,
+      "y": 168,
+      "w": 440,
+      "h": 80,
+      "text": "对局开始",
+      "font_size": 40,
+      "text_align": "center",
+      "fg_color": "#FFF4DC"
+    },
+    {
+      "type": "container",
+      "parent_name": "s24",
+      "x": 112,
+      "y": 312,
+      "w": 280,
+      "h": 72,
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "container",
+      "parent_name": "s24",
+      "x": 107,
+      "y": 307,
+      "w": 280,
+      "h": 72,
+      "bg_color": "#E2B84A"
+    },
+    {
+      "type": "button",
+      "parent_name": "s24",
+      "name": "s24_go",
+      "callback": "s24_go",
+      "x": 100,
+      "y": 300,
+      "w": 280,
+      "h": 72,
+      "text": "你执白",
+      "font_size": 36,
+      "bg_color": "#FFF4DC",
+      "fg_color": "#110B08"
+    },
+    {
+      "type": "layer",
+      "parent": -1,
+      "name": "s50",
+      "bind": "s50",
+      "bind_target": "visible",
+      "x": 0,
+      "y": 0,
+      "w": 480,
+      "h": 480,
+      "bg_color": "#110B08",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "s50",
+      "x": 0,
+      "y": 0,
+      "w": 480,
+      "h": 480,
+      "image": "pieces/heat_bg.png",
+      "codec": "lossless"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s50",
+      "x": 16,
+      "y": 16,
+      "w": 26,
+      "h": 3,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s50",
+      "x": 16,
+      "y": 16,
+      "w": 3,
+      "h": 26,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s50",
+      "x": 438,
+      "y": 16,
+      "w": 26,
+      "h": 3,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s50",
+      "x": 461,
+      "y": 16,
+      "w": 3,
+      "h": 26,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "image",
+      "parent_name": "s50",
+      "x": 114,
+      "y": 29,
+      "w": 252,
+      "h": 252,
+      "image": "pieces/art_win.png",
+      "codec": "lossless"
+    },
+    {
+      "type": "image",
+      "parent_name": "s50",
+      "x": 112,
+      "y": 285,
+      "w": 256,
+      "h": 65,
+      "image": "pieces/result_ribbon_win.png",
+      "codec": "lossless"
+    },
+    {
+      "type": "label",
+      "parent_name": "s50",
+      "x": 137,
+      "y": 297,
+      "w": 206,
+      "h": 48,
+      "text": "胜 利",
+      "font_size": 42,
+      "text_align": "center",
+      "fg_color": "#FFF4DC"
+    },
+    {
+      "type": "label",
+      "parent_name": "s50",
+      "name": "s50_reason",
+      "bind": "s50_reason",
+      "bind_target": "text",
+      "x": 40,
+      "y": 360,
+      "w": 400,
+      "h": 28,
+      "text": "",
+      "font_size": 16,
+      "font_charset": "将死认输逼和双方同意棋三次重复局面五十回合规则子力不足",
+      "text_align": "center",
+      "fg_color": "#E2B84A"
+    },
+    {
+      "type": "button",
+      "parent_name": "s50",
+      "callback": "result_menu",
+      "x": 16,
+      "y": 408,
+      "w": 215,
+      "h": 48,
+      "text": "回菜单",
+      "font_size": 18,
+      "bg_color": "#1A0E0C",
+      "fg_color": "#E2B84A",
+      "border_color": "#E2B84A",
+      "border_width": 2
+    },
+    {
+      "type": "container",
+      "parent_name": "s50",
+      "x": 246,
+      "y": 413,
+      "w": 215,
+      "h": 48,
+      "bg_color": "#E2B84A"
+    },
+    {
+      "type": "button",
+      "parent_name": "s50",
+      "callback": "result_again",
+      "x": 241,
+      "y": 408,
+      "w": 215,
+      "h": 48,
+      "text": "再来一局",
+      "font_size": 18,
+      "bg_color": "#D41E3C",
+      "fg_color": "#FFF4DC"
+    },
+    {
+      "type": "layer",
+      "parent": -1,
+      "name": "s51",
+      "bind": "s51",
+      "bind_target": "visible",
+      "x": 0,
+      "y": 0,
+      "w": 480,
+      "h": 480,
+      "bg_color": "#110B08",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "s51",
+      "x": 0,
+      "y": 0,
+      "w": 480,
+      "h": 480,
+      "image": "pieces/heat_bg.png",
+      "codec": "lossless"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s51",
+      "x": 16,
+      "y": 16,
+      "w": 26,
+      "h": 3,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s51",
+      "x": 16,
+      "y": 16,
+      "w": 3,
+      "h": 26,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s51",
+      "x": 438,
+      "y": 16,
+      "w": 26,
+      "h": 3,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s51",
+      "x": 461,
+      "y": 16,
+      "w": 3,
+      "h": 26,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "image",
+      "parent_name": "s51",
+      "x": 114,
+      "y": 29,
+      "w": 252,
+      "h": 252,
+      "image": "pieces/art_loss.png",
+      "codec": "lossless"
+    },
+    {
+      "type": "image",
+      "parent_name": "s51",
+      "x": 112,
+      "y": 285,
+      "w": 256,
+      "h": 65,
+      "image": "pieces/result_ribbon_loss.png",
+      "codec": "lossless"
+    },
+    {
+      "type": "label",
+      "parent_name": "s51",
+      "x": 137,
+      "y": 297,
+      "w": 206,
+      "h": 48,
+      "text": "败 北",
+      "font_size": 42,
+      "text_align": "center",
+      "fg_color": "#E85A6C"
+    },
+    {
+      "type": "label",
+      "parent_name": "s51",
+      "name": "s51_reason",
+      "bind": "s51_reason",
+      "bind_target": "text",
+      "x": 40,
+      "y": 360,
+      "w": 400,
+      "h": 28,
+      "text": "",
+      "font_size": 16,
+      "font_charset": "将死认输逼和双方同意棋三次重复局面五十回合规则子力不足",
+      "text_align": "center",
+      "fg_color": "#E2B84A"
+    },
+    {
+      "type": "button",
+      "parent_name": "s51",
+      "callback": "result_menu",
+      "x": 16,
+      "y": 408,
+      "w": 215,
+      "h": 48,
+      "text": "回菜单",
+      "font_size": 18,
+      "bg_color": "#1A0E0C",
+      "fg_color": "#E2B84A",
+      "border_color": "#E2B84A",
+      "border_width": 2
+    },
+    {
+      "type": "container",
+      "parent_name": "s51",
+      "x": 246,
+      "y": 413,
+      "w": 215,
+      "h": 48,
+      "bg_color": "#E2B84A"
+    },
+    {
+      "type": "button",
+      "parent_name": "s51",
+      "callback": "result_again",
+      "x": 241,
+      "y": 408,
+      "w": 215,
+      "h": 48,
+      "text": "再来一局",
+      "font_size": 18,
+      "bg_color": "#D41E3C",
+      "fg_color": "#FFF4DC"
+    },
+    {
+      "type": "layer",
+      "parent": -1,
+      "name": "s52",
+      "bind": "s52",
+      "bind_target": "visible",
+      "x": 0,
+      "y": 0,
+      "w": 480,
+      "h": 480,
+      "bg_color": "#110B08",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "s52",
+      "x": 0,
+      "y": 0,
+      "w": 480,
+      "h": 480,
+      "image": "pieces/heat_bg.png",
+      "codec": "lossless"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s52",
+      "x": 16,
+      "y": 16,
+      "w": 26,
+      "h": 3,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s52",
+      "x": 16,
+      "y": 16,
+      "w": 3,
+      "h": 26,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s52",
+      "x": 438,
+      "y": 16,
+      "w": 26,
+      "h": 3,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "shape",
+      "parent_name": "s52",
+      "x": 461,
+      "y": 16,
+      "w": 3,
+      "h": 26,
+      "shape": "rect",
+      "bg_color": "#D41E3C"
+    },
+    {
+      "type": "image",
+      "parent_name": "s52",
+      "x": 80,
+      "y": 0,
+      "w": 320,
+      "h": 320,
+      "image": "pieces/art_draw.png",
+      "codec": "lossless"
+    },
+    {
+      "type": "image",
+      "parent_name": "s52",
+      "x": 112,
+      "y": 285,
+      "w": 256,
+      "h": 65,
+      "image": "pieces/result_ribbon_draw.png",
+      "codec": "lossless"
+    },
+    {
+      "type": "label",
+      "parent_name": "s52",
+      "x": 137,
+      "y": 297,
+      "w": 206,
+      "h": 48,
+      "text": "和 棋",
+      "font_size": 42,
+      "text_align": "center",
+      "fg_color": "#E2B84A"
+    },
+    {
+      "type": "label",
+      "parent_name": "s52",
+      "name": "s52_reason",
+      "bind": "s52_reason",
+      "bind_target": "text",
+      "x": 40,
+      "y": 360,
+      "w": 400,
+      "h": 28,
+      "text": "",
+      "font_size": 16,
+      "font_charset": "将死认输逼和双方同意棋三次重复局面五十回合规则子力不足",
+      "text_align": "center",
+      "fg_color": "#E2B84A"
+    },
+    {
+      "type": "button",
+      "parent_name": "s52",
+      "callback": "result_menu",
+      "x": 16,
+      "y": 408,
+      "w": 215,
+      "h": 48,
+      "text": "回菜单",
+      "font_size": 18,
+      "bg_color": "#1A0E0C",
+      "fg_color": "#E2B84A",
+      "border_color": "#E2B84A",
+      "border_width": 2
+    },
+    {
+      "type": "container",
+      "parent_name": "s52",
+      "x": 246,
+      "y": 413,
+      "w": 215,
+      "h": 48,
+      "bg_color": "#E2B84A"
+    },
+    {
+      "type": "button",
+      "parent_name": "s52",
+      "callback": "result_again",
+      "x": 241,
+      "y": 408,
+      "w": 215,
+      "h": 48,
+      "text": "再来一局",
+      "font_size": 18,
+      "bg_color": "#D41E3C",
+      "fg_color": "#FFF4DC"
+    },
+    {
+      "type": "layer",
+      "parent": -1,
+      "name": "play",
+      "bind": "play",
+      "bind_target": "visible",
+      "x": 0,
+      "y": 0,
+      "w": 480,
+      "h": 480,
+      "bg_color": "#110B08",
+      "hidden": true,
+      "block_scene_swipe": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "x": 0,
+      "y": 0,
+      "w": 480,
+      "h": 480,
+      "bg_color": "#3A1818",
+      "bg_gradient": "#110B08",
+      "gradient_dir": "vertical",
+      "border_color": "#E2B84A",
+      "border_width": 3
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "board",
+      "x": 20,
+      "y": 20,
+      "w": 440,
+      "h": 440,
+      "bg_color": "#2A1014",
+      "border_color": "#D41E3C",
+      "border_width": 2
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit56",
+      "callback": "hit56",
+      "x": 0,
+      "y": 0,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#E9D5AE",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit57",
+      "callback": "hit57",
+      "x": 55,
+      "y": 0,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#713743",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit58",
+      "callback": "hit58",
+      "x": 110,
+      "y": 0,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#E9D5AE",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit59",
+      "callback": "hit59",
+      "x": 165,
+      "y": 0,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#713743",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit60",
+      "callback": "hit60",
+      "x": 220,
+      "y": 0,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#E9D5AE",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit61",
+      "callback": "hit61",
+      "x": 275,
+      "y": 0,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#713743",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit62",
+      "callback": "hit62",
+      "x": 330,
+      "y": 0,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#E9D5AE",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit63",
+      "callback": "hit63",
+      "x": 385,
+      "y": 0,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#713743",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit48",
+      "callback": "hit48",
+      "x": 0,
+      "y": 55,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#713743",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit49",
+      "callback": "hit49",
+      "x": 55,
+      "y": 55,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#E9D5AE",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit50",
+      "callback": "hit50",
+      "x": 110,
+      "y": 55,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#713743",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit51",
+      "callback": "hit51",
+      "x": 165,
+      "y": 55,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#E9D5AE",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit52",
+      "callback": "hit52",
+      "x": 220,
+      "y": 55,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#713743",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit53",
+      "callback": "hit53",
+      "x": 275,
+      "y": 55,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#E9D5AE",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit54",
+      "callback": "hit54",
+      "x": 330,
+      "y": 55,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#713743",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit55",
+      "callback": "hit55",
+      "x": 385,
+      "y": 55,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#E9D5AE",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit40",
+      "callback": "hit40",
+      "x": 0,
+      "y": 110,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#E9D5AE",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit41",
+      "callback": "hit41",
+      "x": 55,
+      "y": 110,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#713743",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit42",
+      "callback": "hit42",
+      "x": 110,
+      "y": 110,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#E9D5AE",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit43",
+      "callback": "hit43",
+      "x": 165,
+      "y": 110,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#713743",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit44",
+      "callback": "hit44",
+      "x": 220,
+      "y": 110,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#E9D5AE",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit45",
+      "callback": "hit45",
+      "x": 275,
+      "y": 110,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#713743",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit46",
+      "callback": "hit46",
+      "x": 330,
+      "y": 110,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#E9D5AE",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit47",
+      "callback": "hit47",
+      "x": 385,
+      "y": 110,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#713743",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit32",
+      "callback": "hit32",
+      "x": 0,
+      "y": 165,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#713743",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit33",
+      "callback": "hit33",
+      "x": 55,
+      "y": 165,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#E9D5AE",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit34",
+      "callback": "hit34",
+      "x": 110,
+      "y": 165,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#713743",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit35",
+      "callback": "hit35",
+      "x": 165,
+      "y": 165,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#E9D5AE",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit36",
+      "callback": "hit36",
+      "x": 220,
+      "y": 165,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#713743",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit37",
+      "callback": "hit37",
+      "x": 275,
+      "y": 165,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#E9D5AE",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit38",
+      "callback": "hit38",
+      "x": 330,
+      "y": 165,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#713743",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit39",
+      "callback": "hit39",
+      "x": 385,
+      "y": 165,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#E9D5AE",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit24",
+      "callback": "hit24",
+      "x": 0,
+      "y": 220,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#E9D5AE",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit25",
+      "callback": "hit25",
+      "x": 55,
+      "y": 220,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#713743",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit26",
+      "callback": "hit26",
+      "x": 110,
+      "y": 220,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#E9D5AE",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit27",
+      "callback": "hit27",
+      "x": 165,
+      "y": 220,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#713743",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit28",
+      "callback": "hit28",
+      "x": 220,
+      "y": 220,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#E9D5AE",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit29",
+      "callback": "hit29",
+      "x": 275,
+      "y": 220,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#713743",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit30",
+      "callback": "hit30",
+      "x": 330,
+      "y": 220,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#E9D5AE",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit31",
+      "callback": "hit31",
+      "x": 385,
+      "y": 220,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#713743",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit16",
+      "callback": "hit16",
+      "x": 0,
+      "y": 275,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#713743",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit17",
+      "callback": "hit17",
+      "x": 55,
+      "y": 275,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#E9D5AE",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit18",
+      "callback": "hit18",
+      "x": 110,
+      "y": 275,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#713743",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit19",
+      "callback": "hit19",
+      "x": 165,
+      "y": 275,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#E9D5AE",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit20",
+      "callback": "hit20",
+      "x": 220,
+      "y": 275,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#713743",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit21",
+      "callback": "hit21",
+      "x": 275,
+      "y": 275,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#E9D5AE",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit22",
+      "callback": "hit22",
+      "x": 330,
+      "y": 275,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#713743",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit23",
+      "callback": "hit23",
+      "x": 385,
+      "y": 275,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#E9D5AE",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit08",
+      "callback": "hit08",
+      "x": 0,
+      "y": 330,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#E9D5AE",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit09",
+      "callback": "hit09",
+      "x": 55,
+      "y": 330,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#713743",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit10",
+      "callback": "hit10",
+      "x": 110,
+      "y": 330,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#E9D5AE",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit11",
+      "callback": "hit11",
+      "x": 165,
+      "y": 330,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#713743",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit12",
+      "callback": "hit12",
+      "x": 220,
+      "y": 330,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#E9D5AE",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit13",
+      "callback": "hit13",
+      "x": 275,
+      "y": 330,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#713743",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit14",
+      "callback": "hit14",
+      "x": 330,
+      "y": 330,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#E9D5AE",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit15",
+      "callback": "hit15",
+      "x": 385,
+      "y": 330,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#713743",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit00",
+      "callback": "hit00",
+      "x": 0,
+      "y": 385,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#713743",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit01",
+      "callback": "hit01",
+      "x": 55,
+      "y": 385,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#E9D5AE",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit02",
+      "callback": "hit02",
+      "x": 110,
+      "y": 385,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#713743",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit03",
+      "callback": "hit03",
+      "x": 165,
+      "y": 385,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#E9D5AE",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit04",
+      "callback": "hit04",
+      "x": 220,
+      "y": 385,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#713743",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit05",
+      "callback": "hit05",
+      "x": 275,
+      "y": 385,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#E9D5AE",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit06",
+      "callback": "hit06",
+      "x": 330,
+      "y": 385,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#713743",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "button",
+      "parent_name": "board",
+      "name": "hit07",
+      "callback": "hit07",
+      "x": 385,
+      "y": 385,
+      "w": 55,
+      "h": 55,
+      "text": "",
+      "bg_color": "#E9D5AE",
+      "fg_color": "#00000000"
+    },
+    {
+      "type": "container",
+      "parent_name": "board",
+      "name": "last_from",
+      "bind": "last_from",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 385
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 385
+      },
+      "w": 55,
+      "h": 55,
+      "bg_color": "#E8A04A66",
+      "border_color": "#E8A04A",
+      "border_width": 3,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "board",
+      "name": "last_to",
+      "bind": "last_to",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 385
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 385
+      },
+      "w": 55,
+      "h": 55,
+      "bg_color": "#E8A04A66",
+      "border_color": "#E8A04A",
+      "border_width": 3,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "board",
+      "name": "check",
+      "bind": "check",
+      "bind_target": "visible",
+      "x": {
+        "default": 220,
+        "min": 0,
+        "max": 385
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 385
+      },
+      "w": 55,
+      "h": 55,
+      "bg_color": "#FF3B5566",
+      "border_color": "#FF3B55",
+      "border_width": 5,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "board",
+      "name": "mate",
+      "bind": "mate",
+      "bind_target": "visible",
+      "x": {
+        "default": 220,
+        "min": 0,
+        "max": 385
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 385
+      },
+      "w": 55,
+      "h": 55,
+      "bg_color": "#FF3B55",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "p00",
+      "bind": "p00",
+      "bind_target": "visible",
+      "x": {
+        "default": 28,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 11,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bR.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "p01",
+      "bind": "p01",
+      "bind_target": "visible",
+      "x": {
+        "default": 83,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 11,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bN.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "p02",
+      "bind": "p02",
+      "bind_target": "visible",
+      "x": {
+        "default": 138,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 11,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bB.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "p03",
+      "bind": "p03",
+      "bind_target": "visible",
+      "x": {
+        "default": 193,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 11,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bQ.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "p04",
+      "bind": "p04",
+      "bind_target": "visible",
+      "x": {
+        "default": 248,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 11,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bK.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "p05",
+      "bind": "p05",
+      "bind_target": "visible",
+      "x": {
+        "default": 303,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 11,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bB.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "p06",
+      "bind": "p06",
+      "bind_target": "visible",
+      "x": {
+        "default": 358,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 11,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bN.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "p07",
+      "bind": "p07",
+      "bind_target": "visible",
+      "x": {
+        "default": 413,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 11,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bR.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "p08",
+      "bind": "p08",
+      "bind_target": "visible",
+      "x": {
+        "default": 22,
+        "min": 0,
+        "max": 429
+      },
+      "y": {
+        "default": 46,
+        "min": 0,
+        "max": 396
+      },
+      "w": 51,
+      "h": 84,
+      "image": "pieces/set-illustrate/bP.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "p09",
+      "bind": "p09",
+      "bind_target": "visible",
+      "x": {
+        "default": 77,
+        "min": 0,
+        "max": 429
+      },
+      "y": {
+        "default": 46,
+        "min": 0,
+        "max": 396
+      },
+      "w": 51,
+      "h": 84,
+      "image": "pieces/set-illustrate/bP.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "p10",
+      "bind": "p10",
+      "bind_target": "visible",
+      "x": {
+        "default": 132,
+        "min": 0,
+        "max": 429
+      },
+      "y": {
+        "default": 46,
+        "min": 0,
+        "max": 396
+      },
+      "w": 51,
+      "h": 84,
+      "image": "pieces/set-illustrate/bP.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "p11",
+      "bind": "p11",
+      "bind_target": "visible",
+      "x": {
+        "default": 187,
+        "min": 0,
+        "max": 429
+      },
+      "y": {
+        "default": 46,
+        "min": 0,
+        "max": 396
+      },
+      "w": 51,
+      "h": 84,
+      "image": "pieces/set-illustrate/bP.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "p12",
+      "bind": "p12",
+      "bind_target": "visible",
+      "x": {
+        "default": 242,
+        "min": 0,
+        "max": 429
+      },
+      "y": {
+        "default": 46,
+        "min": 0,
+        "max": 396
+      },
+      "w": 51,
+      "h": 84,
+      "image": "pieces/set-illustrate/bP.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "p13",
+      "bind": "p13",
+      "bind_target": "visible",
+      "x": {
+        "default": 297,
+        "min": 0,
+        "max": 429
+      },
+      "y": {
+        "default": 46,
+        "min": 0,
+        "max": 396
+      },
+      "w": 51,
+      "h": 84,
+      "image": "pieces/set-illustrate/bP.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "p14",
+      "bind": "p14",
+      "bind_target": "visible",
+      "x": {
+        "default": 352,
+        "min": 0,
+        "max": 429
+      },
+      "y": {
+        "default": 46,
+        "min": 0,
+        "max": 396
+      },
+      "w": 51,
+      "h": 84,
+      "image": "pieces/set-illustrate/bP.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "p15",
+      "bind": "p15",
+      "bind_target": "visible",
+      "x": {
+        "default": 407,
+        "min": 0,
+        "max": 429
+      },
+      "y": {
+        "default": 46,
+        "min": 0,
+        "max": 396
+      },
+      "w": 51,
+      "h": 84,
+      "image": "pieces/set-illustrate/bP.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "p16",
+      "bind": "p16",
+      "bind_target": "visible",
+      "x": {
+        "default": 22,
+        "min": 0,
+        "max": 429
+      },
+      "y": {
+        "default": 321,
+        "min": 0,
+        "max": 396
+      },
+      "w": 51,
+      "h": 84,
+      "image": "pieces/set-illustrate/wP.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "p17",
+      "bind": "p17",
+      "bind_target": "visible",
+      "x": {
+        "default": 77,
+        "min": 0,
+        "max": 429
+      },
+      "y": {
+        "default": 321,
+        "min": 0,
+        "max": 396
+      },
+      "w": 51,
+      "h": 84,
+      "image": "pieces/set-illustrate/wP.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "p18",
+      "bind": "p18",
+      "bind_target": "visible",
+      "x": {
+        "default": 132,
+        "min": 0,
+        "max": 429
+      },
+      "y": {
+        "default": 321,
+        "min": 0,
+        "max": 396
+      },
+      "w": 51,
+      "h": 84,
+      "image": "pieces/set-illustrate/wP.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "p19",
+      "bind": "p19",
+      "bind_target": "visible",
+      "x": {
+        "default": 187,
+        "min": 0,
+        "max": 429
+      },
+      "y": {
+        "default": 321,
+        "min": 0,
+        "max": 396
+      },
+      "w": 51,
+      "h": 84,
+      "image": "pieces/set-illustrate/wP.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "p20",
+      "bind": "p20",
+      "bind_target": "visible",
+      "x": {
+        "default": 242,
+        "min": 0,
+        "max": 429
+      },
+      "y": {
+        "default": 321,
+        "min": 0,
+        "max": 396
+      },
+      "w": 51,
+      "h": 84,
+      "image": "pieces/set-illustrate/wP.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "p21",
+      "bind": "p21",
+      "bind_target": "visible",
+      "x": {
+        "default": 297,
+        "min": 0,
+        "max": 429
+      },
+      "y": {
+        "default": 321,
+        "min": 0,
+        "max": 396
+      },
+      "w": 51,
+      "h": 84,
+      "image": "pieces/set-illustrate/wP.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "p22",
+      "bind": "p22",
+      "bind_target": "visible",
+      "x": {
+        "default": 352,
+        "min": 0,
+        "max": 429
+      },
+      "y": {
+        "default": 321,
+        "min": 0,
+        "max": 396
+      },
+      "w": 51,
+      "h": 84,
+      "image": "pieces/set-illustrate/wP.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "p23",
+      "bind": "p23",
+      "bind_target": "visible",
+      "x": {
+        "default": 407,
+        "min": 0,
+        "max": 429
+      },
+      "y": {
+        "default": 321,
+        "min": 0,
+        "max": 396
+      },
+      "w": 51,
+      "h": 84,
+      "image": "pieces/set-illustrate/wP.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "p24",
+      "bind": "p24",
+      "bind_target": "visible",
+      "x": {
+        "default": 28,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 396,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wR.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "p25",
+      "bind": "p25",
+      "bind_target": "visible",
+      "x": {
+        "default": 83,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 396,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wN.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "p26",
+      "bind": "p26",
+      "bind_target": "visible",
+      "x": {
+        "default": 138,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 396,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wB.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "p27",
+      "bind": "p27",
+      "bind_target": "visible",
+      "x": {
+        "default": 193,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 396,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wQ.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "p28",
+      "bind": "p28",
+      "bind_target": "visible",
+      "x": {
+        "default": 248,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 396,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wK.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "p29",
+      "bind": "p29",
+      "bind_target": "visible",
+      "x": {
+        "default": 303,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 396,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wB.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "p30",
+      "bind": "p30",
+      "bind_target": "visible",
+      "x": {
+        "default": 358,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 396,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wN.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "p31",
+      "bind": "p31",
+      "bind_target": "visible",
+      "x": {
+        "default": 413,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 396,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wR.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "extra_wq",
+      "bind": "extra_wq",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wQ.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "extra_bq",
+      "bind": "extra_bq",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bQ.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_wq0",
+      "bind": "prom_wq0",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wQ.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_wq1",
+      "bind": "prom_wq1",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wQ.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_wq2",
+      "bind": "prom_wq2",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wQ.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_wq3",
+      "bind": "prom_wq3",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wQ.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_wq4",
+      "bind": "prom_wq4",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wQ.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_wq5",
+      "bind": "prom_wq5",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wQ.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_wq6",
+      "bind": "prom_wq6",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wQ.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_wq7",
+      "bind": "prom_wq7",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wQ.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_wr0",
+      "bind": "prom_wr0",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wR.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_wr1",
+      "bind": "prom_wr1",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wR.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_wr2",
+      "bind": "prom_wr2",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wR.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_wr3",
+      "bind": "prom_wr3",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wR.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_wr4",
+      "bind": "prom_wr4",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wR.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_wr5",
+      "bind": "prom_wr5",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wR.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_wr6",
+      "bind": "prom_wr6",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wR.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_wr7",
+      "bind": "prom_wr7",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wR.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_wb0",
+      "bind": "prom_wb0",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wB.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_wb1",
+      "bind": "prom_wb1",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wB.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_wb2",
+      "bind": "prom_wb2",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wB.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_wb3",
+      "bind": "prom_wb3",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wB.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_wb4",
+      "bind": "prom_wb4",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wB.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_wb5",
+      "bind": "prom_wb5",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wB.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_wb6",
+      "bind": "prom_wb6",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wB.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_wb7",
+      "bind": "prom_wb7",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wB.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_wn0",
+      "bind": "prom_wn0",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wN.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_wn1",
+      "bind": "prom_wn1",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wN.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_wn2",
+      "bind": "prom_wn2",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wN.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_wn3",
+      "bind": "prom_wn3",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wN.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_wn4",
+      "bind": "prom_wn4",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wN.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_wn5",
+      "bind": "prom_wn5",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wN.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_wn6",
+      "bind": "prom_wn6",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wN.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_wn7",
+      "bind": "prom_wn7",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wN.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_bq0",
+      "bind": "prom_bq0",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bQ.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_bq1",
+      "bind": "prom_bq1",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bQ.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_bq2",
+      "bind": "prom_bq2",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bQ.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_bq3",
+      "bind": "prom_bq3",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bQ.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_bq4",
+      "bind": "prom_bq4",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bQ.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_bq5",
+      "bind": "prom_bq5",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bQ.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_bq6",
+      "bind": "prom_bq6",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bQ.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_bq7",
+      "bind": "prom_bq7",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bQ.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_br0",
+      "bind": "prom_br0",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bR.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_br1",
+      "bind": "prom_br1",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bR.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_br2",
+      "bind": "prom_br2",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bR.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_br3",
+      "bind": "prom_br3",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bR.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_br4",
+      "bind": "prom_br4",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bR.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_br5",
+      "bind": "prom_br5",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bR.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_br6",
+      "bind": "prom_br6",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bR.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_br7",
+      "bind": "prom_br7",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bR.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_bb0",
+      "bind": "prom_bb0",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bB.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_bb1",
+      "bind": "prom_bb1",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bB.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_bb2",
+      "bind": "prom_bb2",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bB.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_bb3",
+      "bind": "prom_bb3",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bB.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_bb4",
+      "bind": "prom_bb4",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bB.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_bb5",
+      "bind": "prom_bb5",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bB.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_bb6",
+      "bind": "prom_bb6",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bB.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_bb7",
+      "bind": "prom_bb7",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bB.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_bn0",
+      "bind": "prom_bn0",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bN.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_bn1",
+      "bind": "prom_bn1",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bN.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_bn2",
+      "bind": "prom_bn2",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bN.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_bn3",
+      "bind": "prom_bn3",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bN.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_bn4",
+      "bind": "prom_bn4",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bN.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_bn5",
+      "bind": "prom_bn5",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bN.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_bn6",
+      "bind": "prom_bn6",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bN.png",
+      "hidden": true
+    },
+    {
+      "type": "image",
+      "parent_name": "play",
+      "name": "prom_bn7",
+      "bind": "prom_bn7",
+      "bind_target": "visible",
+      "x": {
+        "default": 0,
+        "min": 0,
+        "max": 441
+      },
+      "y": {
+        "default": 0,
+        "min": 0,
+        "max": 416
+      },
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bN.png",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "sel",
+      "bind": "sel",
+      "bind_target": "visible",
+      "x": {
+        "default": 20,
+        "min": 0,
+        "max": 425
+      },
+      "y": {
+        "default": 405,
+        "min": 0,
+        "max": 425
+      },
+      "w": 55,
+      "h": 55,
+      "bg_color": "#00000000",
+      "border_color": "#D41E3C",
+      "border_width": 6,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot00",
+      "bind": "dot00",
+      "bind_target": "visible",
+      "x": 39,
+      "y": 424,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap00",
+      "bind": "cap00",
+      "bind_target": "visible",
+      "x": 24,
+      "y": 409,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot01",
+      "bind": "dot01",
+      "bind_target": "visible",
+      "x": 94,
+      "y": 424,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap01",
+      "bind": "cap01",
+      "bind_target": "visible",
+      "x": 79,
+      "y": 409,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot02",
+      "bind": "dot02",
+      "bind_target": "visible",
+      "x": 149,
+      "y": 424,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap02",
+      "bind": "cap02",
+      "bind_target": "visible",
+      "x": 134,
+      "y": 409,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot03",
+      "bind": "dot03",
+      "bind_target": "visible",
+      "x": 204,
+      "y": 424,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap03",
+      "bind": "cap03",
+      "bind_target": "visible",
+      "x": 189,
+      "y": 409,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot04",
+      "bind": "dot04",
+      "bind_target": "visible",
+      "x": 259,
+      "y": 424,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap04",
+      "bind": "cap04",
+      "bind_target": "visible",
+      "x": 244,
+      "y": 409,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot05",
+      "bind": "dot05",
+      "bind_target": "visible",
+      "x": 314,
+      "y": 424,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap05",
+      "bind": "cap05",
+      "bind_target": "visible",
+      "x": 299,
+      "y": 409,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot06",
+      "bind": "dot06",
+      "bind_target": "visible",
+      "x": 369,
+      "y": 424,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap06",
+      "bind": "cap06",
+      "bind_target": "visible",
+      "x": 354,
+      "y": 409,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot07",
+      "bind": "dot07",
+      "bind_target": "visible",
+      "x": 424,
+      "y": 424,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap07",
+      "bind": "cap07",
+      "bind_target": "visible",
+      "x": 409,
+      "y": 409,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot08",
+      "bind": "dot08",
+      "bind_target": "visible",
+      "x": 39,
+      "y": 369,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap08",
+      "bind": "cap08",
+      "bind_target": "visible",
+      "x": 24,
+      "y": 354,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot09",
+      "bind": "dot09",
+      "bind_target": "visible",
+      "x": 94,
+      "y": 369,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap09",
+      "bind": "cap09",
+      "bind_target": "visible",
+      "x": 79,
+      "y": 354,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot10",
+      "bind": "dot10",
+      "bind_target": "visible",
+      "x": 149,
+      "y": 369,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap10",
+      "bind": "cap10",
+      "bind_target": "visible",
+      "x": 134,
+      "y": 354,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot11",
+      "bind": "dot11",
+      "bind_target": "visible",
+      "x": 204,
+      "y": 369,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap11",
+      "bind": "cap11",
+      "bind_target": "visible",
+      "x": 189,
+      "y": 354,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot12",
+      "bind": "dot12",
+      "bind_target": "visible",
+      "x": 259,
+      "y": 369,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap12",
+      "bind": "cap12",
+      "bind_target": "visible",
+      "x": 244,
+      "y": 354,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot13",
+      "bind": "dot13",
+      "bind_target": "visible",
+      "x": 314,
+      "y": 369,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap13",
+      "bind": "cap13",
+      "bind_target": "visible",
+      "x": 299,
+      "y": 354,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot14",
+      "bind": "dot14",
+      "bind_target": "visible",
+      "x": 369,
+      "y": 369,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap14",
+      "bind": "cap14",
+      "bind_target": "visible",
+      "x": 354,
+      "y": 354,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot15",
+      "bind": "dot15",
+      "bind_target": "visible",
+      "x": 424,
+      "y": 369,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap15",
+      "bind": "cap15",
+      "bind_target": "visible",
+      "x": 409,
+      "y": 354,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot16",
+      "bind": "dot16",
+      "bind_target": "visible",
+      "x": 39,
+      "y": 314,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap16",
+      "bind": "cap16",
+      "bind_target": "visible",
+      "x": 24,
+      "y": 299,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot17",
+      "bind": "dot17",
+      "bind_target": "visible",
+      "x": 94,
+      "y": 314,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap17",
+      "bind": "cap17",
+      "bind_target": "visible",
+      "x": 79,
+      "y": 299,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot18",
+      "bind": "dot18",
+      "bind_target": "visible",
+      "x": 149,
+      "y": 314,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap18",
+      "bind": "cap18",
+      "bind_target": "visible",
+      "x": 134,
+      "y": 299,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot19",
+      "bind": "dot19",
+      "bind_target": "visible",
+      "x": 204,
+      "y": 314,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap19",
+      "bind": "cap19",
+      "bind_target": "visible",
+      "x": 189,
+      "y": 299,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot20",
+      "bind": "dot20",
+      "bind_target": "visible",
+      "x": 259,
+      "y": 314,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap20",
+      "bind": "cap20",
+      "bind_target": "visible",
+      "x": 244,
+      "y": 299,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot21",
+      "bind": "dot21",
+      "bind_target": "visible",
+      "x": 314,
+      "y": 314,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap21",
+      "bind": "cap21",
+      "bind_target": "visible",
+      "x": 299,
+      "y": 299,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot22",
+      "bind": "dot22",
+      "bind_target": "visible",
+      "x": 369,
+      "y": 314,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap22",
+      "bind": "cap22",
+      "bind_target": "visible",
+      "x": 354,
+      "y": 299,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot23",
+      "bind": "dot23",
+      "bind_target": "visible",
+      "x": 424,
+      "y": 314,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap23",
+      "bind": "cap23",
+      "bind_target": "visible",
+      "x": 409,
+      "y": 299,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot24",
+      "bind": "dot24",
+      "bind_target": "visible",
+      "x": 39,
+      "y": 259,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap24",
+      "bind": "cap24",
+      "bind_target": "visible",
+      "x": 24,
+      "y": 244,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot25",
+      "bind": "dot25",
+      "bind_target": "visible",
+      "x": 94,
+      "y": 259,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap25",
+      "bind": "cap25",
+      "bind_target": "visible",
+      "x": 79,
+      "y": 244,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot26",
+      "bind": "dot26",
+      "bind_target": "visible",
+      "x": 149,
+      "y": 259,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap26",
+      "bind": "cap26",
+      "bind_target": "visible",
+      "x": 134,
+      "y": 244,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot27",
+      "bind": "dot27",
+      "bind_target": "visible",
+      "x": 204,
+      "y": 259,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap27",
+      "bind": "cap27",
+      "bind_target": "visible",
+      "x": 189,
+      "y": 244,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot28",
+      "bind": "dot28",
+      "bind_target": "visible",
+      "x": 259,
+      "y": 259,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap28",
+      "bind": "cap28",
+      "bind_target": "visible",
+      "x": 244,
+      "y": 244,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot29",
+      "bind": "dot29",
+      "bind_target": "visible",
+      "x": 314,
+      "y": 259,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap29",
+      "bind": "cap29",
+      "bind_target": "visible",
+      "x": 299,
+      "y": 244,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot30",
+      "bind": "dot30",
+      "bind_target": "visible",
+      "x": 369,
+      "y": 259,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap30",
+      "bind": "cap30",
+      "bind_target": "visible",
+      "x": 354,
+      "y": 244,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot31",
+      "bind": "dot31",
+      "bind_target": "visible",
+      "x": 424,
+      "y": 259,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap31",
+      "bind": "cap31",
+      "bind_target": "visible",
+      "x": 409,
+      "y": 244,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot32",
+      "bind": "dot32",
+      "bind_target": "visible",
+      "x": 39,
+      "y": 204,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap32",
+      "bind": "cap32",
+      "bind_target": "visible",
+      "x": 24,
+      "y": 189,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot33",
+      "bind": "dot33",
+      "bind_target": "visible",
+      "x": 94,
+      "y": 204,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap33",
+      "bind": "cap33",
+      "bind_target": "visible",
+      "x": 79,
+      "y": 189,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot34",
+      "bind": "dot34",
+      "bind_target": "visible",
+      "x": 149,
+      "y": 204,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap34",
+      "bind": "cap34",
+      "bind_target": "visible",
+      "x": 134,
+      "y": 189,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot35",
+      "bind": "dot35",
+      "bind_target": "visible",
+      "x": 204,
+      "y": 204,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap35",
+      "bind": "cap35",
+      "bind_target": "visible",
+      "x": 189,
+      "y": 189,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot36",
+      "bind": "dot36",
+      "bind_target": "visible",
+      "x": 259,
+      "y": 204,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap36",
+      "bind": "cap36",
+      "bind_target": "visible",
+      "x": 244,
+      "y": 189,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot37",
+      "bind": "dot37",
+      "bind_target": "visible",
+      "x": 314,
+      "y": 204,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap37",
+      "bind": "cap37",
+      "bind_target": "visible",
+      "x": 299,
+      "y": 189,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot38",
+      "bind": "dot38",
+      "bind_target": "visible",
+      "x": 369,
+      "y": 204,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap38",
+      "bind": "cap38",
+      "bind_target": "visible",
+      "x": 354,
+      "y": 189,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot39",
+      "bind": "dot39",
+      "bind_target": "visible",
+      "x": 424,
+      "y": 204,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap39",
+      "bind": "cap39",
+      "bind_target": "visible",
+      "x": 409,
+      "y": 189,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot40",
+      "bind": "dot40",
+      "bind_target": "visible",
+      "x": 39,
+      "y": 149,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap40",
+      "bind": "cap40",
+      "bind_target": "visible",
+      "x": 24,
+      "y": 134,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot41",
+      "bind": "dot41",
+      "bind_target": "visible",
+      "x": 94,
+      "y": 149,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap41",
+      "bind": "cap41",
+      "bind_target": "visible",
+      "x": 79,
+      "y": 134,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot42",
+      "bind": "dot42",
+      "bind_target": "visible",
+      "x": 149,
+      "y": 149,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap42",
+      "bind": "cap42",
+      "bind_target": "visible",
+      "x": 134,
+      "y": 134,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot43",
+      "bind": "dot43",
+      "bind_target": "visible",
+      "x": 204,
+      "y": 149,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap43",
+      "bind": "cap43",
+      "bind_target": "visible",
+      "x": 189,
+      "y": 134,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot44",
+      "bind": "dot44",
+      "bind_target": "visible",
+      "x": 259,
+      "y": 149,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap44",
+      "bind": "cap44",
+      "bind_target": "visible",
+      "x": 244,
+      "y": 134,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot45",
+      "bind": "dot45",
+      "bind_target": "visible",
+      "x": 314,
+      "y": 149,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap45",
+      "bind": "cap45",
+      "bind_target": "visible",
+      "x": 299,
+      "y": 134,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot46",
+      "bind": "dot46",
+      "bind_target": "visible",
+      "x": 369,
+      "y": 149,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap46",
+      "bind": "cap46",
+      "bind_target": "visible",
+      "x": 354,
+      "y": 134,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot47",
+      "bind": "dot47",
+      "bind_target": "visible",
+      "x": 424,
+      "y": 149,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap47",
+      "bind": "cap47",
+      "bind_target": "visible",
+      "x": 409,
+      "y": 134,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot48",
+      "bind": "dot48",
+      "bind_target": "visible",
+      "x": 39,
+      "y": 94,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap48",
+      "bind": "cap48",
+      "bind_target": "visible",
+      "x": 24,
+      "y": 79,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot49",
+      "bind": "dot49",
+      "bind_target": "visible",
+      "x": 94,
+      "y": 94,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap49",
+      "bind": "cap49",
+      "bind_target": "visible",
+      "x": 79,
+      "y": 79,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot50",
+      "bind": "dot50",
+      "bind_target": "visible",
+      "x": 149,
+      "y": 94,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap50",
+      "bind": "cap50",
+      "bind_target": "visible",
+      "x": 134,
+      "y": 79,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot51",
+      "bind": "dot51",
+      "bind_target": "visible",
+      "x": 204,
+      "y": 94,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap51",
+      "bind": "cap51",
+      "bind_target": "visible",
+      "x": 189,
+      "y": 79,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot52",
+      "bind": "dot52",
+      "bind_target": "visible",
+      "x": 259,
+      "y": 94,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap52",
+      "bind": "cap52",
+      "bind_target": "visible",
+      "x": 244,
+      "y": 79,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot53",
+      "bind": "dot53",
+      "bind_target": "visible",
+      "x": 314,
+      "y": 94,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap53",
+      "bind": "cap53",
+      "bind_target": "visible",
+      "x": 299,
+      "y": 79,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot54",
+      "bind": "dot54",
+      "bind_target": "visible",
+      "x": 369,
+      "y": 94,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap54",
+      "bind": "cap54",
+      "bind_target": "visible",
+      "x": 354,
+      "y": 79,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot55",
+      "bind": "dot55",
+      "bind_target": "visible",
+      "x": 424,
+      "y": 94,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap55",
+      "bind": "cap55",
+      "bind_target": "visible",
+      "x": 409,
+      "y": 79,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot56",
+      "bind": "dot56",
+      "bind_target": "visible",
+      "x": 39,
+      "y": 39,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap56",
+      "bind": "cap56",
+      "bind_target": "visible",
+      "x": 24,
+      "y": 24,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot57",
+      "bind": "dot57",
+      "bind_target": "visible",
+      "x": 94,
+      "y": 39,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap57",
+      "bind": "cap57",
+      "bind_target": "visible",
+      "x": 79,
+      "y": 24,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot58",
+      "bind": "dot58",
+      "bind_target": "visible",
+      "x": 149,
+      "y": 39,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap58",
+      "bind": "cap58",
+      "bind_target": "visible",
+      "x": 134,
+      "y": 24,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot59",
+      "bind": "dot59",
+      "bind_target": "visible",
+      "x": 204,
+      "y": 39,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap59",
+      "bind": "cap59",
+      "bind_target": "visible",
+      "x": 189,
+      "y": 24,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot60",
+      "bind": "dot60",
+      "bind_target": "visible",
+      "x": 259,
+      "y": 39,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap60",
+      "bind": "cap60",
+      "bind_target": "visible",
+      "x": 244,
+      "y": 24,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot61",
+      "bind": "dot61",
+      "bind_target": "visible",
+      "x": 314,
+      "y": 39,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap61",
+      "bind": "cap61",
+      "bind_target": "visible",
+      "x": 299,
+      "y": 24,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot62",
+      "bind": "dot62",
+      "bind_target": "visible",
+      "x": 369,
+      "y": 39,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap62",
+      "bind": "cap62",
+      "bind_target": "visible",
+      "x": 354,
+      "y": 24,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "dot63",
+      "bind": "dot63",
+      "bind_target": "visible",
+      "x": 424,
+      "y": 39,
+      "w": 17,
+      "h": 17,
+      "radius": 8,
+      "bg_color": "#E2B84A",
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "cap63",
+      "bind": "cap63",
+      "bind_target": "visible",
+      "x": 409,
+      "y": 24,
+      "w": 47,
+      "h": 47,
+      "bg_color": "#00000000",
+      "border_color": "#E2B84A",
+      "border_width": 4,
+      "hidden": true
+    },
+    {
+      "type": "label",
+      "parent_name": "play",
+      "name": "notice_wait",
+      "x": 110,
+      "y": 214,
+      "w": 260,
+      "h": 52,
+      "text": "等待对手",
+      "font_size": 18,
+      "text_align": "center",
+      "bg_color": "#1A0E0CEE",
+      "fg_color": "#FFF4DC",
+      "border_color": "#E2B84A",
+      "border_width": 2,
+      "hidden": true
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "promotion",
+      "bind": "promotion",
+      "bind_target": "visible",
+      "x": 0,
+      "y": 210,
+      "w": 480,
+      "h": 270,
+      "bg_color": "#1A0E0C",
+      "border_color": "#E2B84A",
+      "border_width": 2,
+      "hidden": true
+    },
+    {
+      "type": "label",
+      "parent_name": "promotion",
+      "x": 28,
+      "y": 28,
+      "w": 300,
+      "h": 34,
+      "text": "选择升变棋子",
+      "font_size": 24,
+      "fg_color": "#FFF4DC"
+    },
+    {
+      "type": "button",
+      "parent_name": "promotion",
+      "name": "promote_q",
+      "callback": "promote_q",
+      "x": 38,
+      "y": 92,
+      "w": 92,
+      "h": 148,
+      "text": "",
+      "bg_color": "#2A1814",
+      "fg_color": "#FFF4DC",
+      "border_color": "#E2B84A",
+      "border_width": 2
+    },
+    {
+      "type": "image",
+      "parent_name": "promotion",
+      "name": "promotion_wq_image",
+      "bind": "promotion_wq_image",
+      "bind_target": "visible",
+      "x": 64,
+      "y": 104,
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wQ.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "promotion",
+      "name": "promotion_bq_image",
+      "bind": "promotion_bq_image",
+      "bind_target": "visible",
+      "x": 64,
+      "y": 104,
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bQ.png",
+      "hidden": true
+    },
+    {
+      "type": "label",
+      "parent_name": "promotion",
+      "x": 38,
+      "y": 198,
+      "w": 92,
+      "h": 28,
+      "text": "后",
+      "font_size": 18,
+      "text_align": "center",
+      "fg_color": "#FFF4DC"
+    },
+    {
+      "type": "button",
+      "parent_name": "promotion",
+      "name": "promote_r",
+      "callback": "promote_r",
+      "x": 142,
+      "y": 92,
+      "w": 92,
+      "h": 148,
+      "text": "",
+      "bg_color": "#2A1814",
+      "fg_color": "#FFF4DC",
+      "border_color": "#E2B84A",
+      "border_width": 2
+    },
+    {
+      "type": "image",
+      "parent_name": "promotion",
+      "name": "promotion_wr_image",
+      "bind": "promotion_wr_image",
+      "bind_target": "visible",
+      "x": 168,
+      "y": 104,
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wR.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "promotion",
+      "name": "promotion_br_image",
+      "bind": "promotion_br_image",
+      "bind_target": "visible",
+      "x": 168,
+      "y": 104,
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bR.png",
+      "hidden": true
+    },
+    {
+      "type": "label",
+      "parent_name": "promotion",
+      "x": 142,
+      "y": 198,
+      "w": 92,
+      "h": 28,
+      "text": "车",
+      "font_size": 18,
+      "text_align": "center",
+      "fg_color": "#FFF4DC"
+    },
+    {
+      "type": "button",
+      "parent_name": "promotion",
+      "name": "promote_b",
+      "callback": "promote_b",
+      "x": 246,
+      "y": 92,
+      "w": 92,
+      "h": 148,
+      "text": "",
+      "bg_color": "#2A1814",
+      "fg_color": "#FFF4DC",
+      "border_color": "#E2B84A",
+      "border_width": 2
+    },
+    {
+      "type": "image",
+      "parent_name": "promotion",
+      "name": "promotion_wb_image",
+      "bind": "promotion_wb_image",
+      "bind_target": "visible",
+      "x": 272,
+      "y": 104,
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wB.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "promotion",
+      "name": "promotion_bb_image",
+      "bind": "promotion_bb_image",
+      "bind_target": "visible",
+      "x": 272,
+      "y": 104,
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bB.png",
+      "hidden": true
+    },
+    {
+      "type": "label",
+      "parent_name": "promotion",
+      "x": 246,
+      "y": 198,
+      "w": 92,
+      "h": 28,
+      "text": "象",
+      "font_size": 18,
+      "text_align": "center",
+      "fg_color": "#FFF4DC"
+    },
+    {
+      "type": "button",
+      "parent_name": "promotion",
+      "name": "promote_n",
+      "callback": "promote_n",
+      "x": 350,
+      "y": 92,
+      "w": 92,
+      "h": 148,
+      "text": "",
+      "bg_color": "#2A1814",
+      "fg_color": "#FFF4DC",
+      "border_color": "#E2B84A",
+      "border_width": 2
+    },
+    {
+      "type": "image",
+      "parent_name": "promotion",
+      "name": "promotion_wn_image",
+      "bind": "promotion_wn_image",
+      "bind_target": "visible",
+      "x": 376,
+      "y": 104,
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/wN.png"
+    },
+    {
+      "type": "image",
+      "parent_name": "promotion",
+      "name": "promotion_bn_image",
+      "bind": "promotion_bn_image",
+      "bind_target": "visible",
+      "x": 376,
+      "y": 104,
+      "w": 39,
+      "h": 64,
+      "image": "pieces/set-illustrate/bN.png",
+      "hidden": true
+    },
+    {
+      "type": "label",
+      "parent_name": "promotion",
+      "x": 350,
+      "y": 198,
+      "w": 92,
+      "h": 28,
+      "text": "马",
+      "font_size": 18,
+      "text_align": "center",
+      "fg_color": "#FFF4DC"
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "resign_confirm",
+      "bind": "resign_confirm",
+      "bind_target": "visible",
+      "x": 0,
+      "y": 258,
+      "w": 480,
+      "h": 222,
+      "bg_color": "#1A0E0C",
+      "border_color": "#E2B84A",
+      "border_width": 2,
+      "hidden": true
+    },
+    {
+      "type": "label",
+      "parent_name": "resign_confirm",
+      "x": 28,
+      "y": 34,
+      "w": 424,
+      "h": 34,
+      "text": "确认认输？",
+      "font_size": 24,
+      "fg_color": "#FFF4DC"
+    },
+    {
+      "type": "button",
+      "parent_name": "resign_confirm",
+      "callback": "cancel_resign",
+      "x": 28,
+      "y": 110,
+      "w": 198,
+      "h": 62,
+      "text": "继续对局",
+      "font_size": 18,
+      "bg_color": "#F6E6C8",
+      "fg_color": "#110B08"
+    },
+    {
+      "type": "button",
+      "parent_name": "resign_confirm",
+      "callback": "confirm_resign",
+      "x": 254,
+      "y": 110,
+      "w": 198,
+      "h": 62,
+      "text": "确认认输",
+      "font_size": 18,
+      "bg_color": "#D41E3C",
+      "fg_color": "#FFF4DC"
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "draw_request",
+      "bind": "draw_request",
+      "bind_target": "visible",
+      "x": 0,
+      "y": 258,
+      "w": 480,
+      "h": 222,
+      "bg_color": "#1A0E0C",
+      "border_color": "#E2B84A",
+      "border_width": 2,
+      "hidden": true
+    },
+    {
+      "type": "label",
+      "parent_name": "draw_request",
+      "x": 28,
+      "y": 34,
+      "w": 424,
+      "h": 34,
+      "text": "对方请求和棋",
+      "font_size": 24,
+      "fg_color": "#FFF4DC"
+    },
+    {
+      "type": "button",
+      "parent_name": "draw_request",
+      "callback": "draw_reject",
+      "x": 28,
+      "y": 110,
+      "w": 198,
+      "h": 62,
+      "text": "拒绝",
+      "font_size": 18,
+      "bg_color": "#F6E6C8",
+      "fg_color": "#110B08"
+    },
+    {
+      "type": "button",
+      "parent_name": "draw_request",
+      "callback": "draw_accept",
+      "x": 254,
+      "y": 110,
+      "w": 198,
+      "h": 62,
+      "text": "接受",
+      "font_size": 18,
+      "bg_color": "#D41E3C",
+      "fg_color": "#FFF4DC"
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "connection_lost",
+      "bind": "connection_lost",
+      "bind_target": "visible",
+      "x": 0,
+      "y": 258,
+      "w": 480,
+      "h": 222,
+      "bg_color": "#1A0E0C",
+      "border_color": "#E2B84A",
+      "border_width": 2,
+      "hidden": true
+    },
+    {
+      "type": "label",
+      "parent_name": "connection_lost",
+      "x": 28,
+      "y": 34,
+      "w": 424,
+      "h": 34,
+      "text": "连接已断开",
+      "font_size": 24,
+      "fg_color": "#FFF4DC"
+    },
+    {
+      "type": "label",
+      "parent_name": "connection_lost",
+      "x": 28,
+      "y": 72,
+      "w": 424,
+      "h": 24,
+      "text": "正在等待对手重新连接",
+      "font_size": 16,
+      "fg_color": "#E2B84A"
+    },
+    {
+      "type": "button",
+      "parent_name": "connection_lost",
+      "callback": "dev_sync_error",
+      "x": 28,
+      "y": 120,
+      "w": 198,
+      "h": 62,
+      "text": "同步失败",
+      "font_size": 18,
+      "bg_color": "#F6E6C8",
+      "fg_color": "#110B08"
+    },
+    {
+      "type": "button",
+      "parent_name": "connection_lost",
+      "callback": "dev_reconnect",
+      "x": 254,
+      "y": 120,
+      "w": 198,
+      "h": 62,
+      "text": "模拟重连",
+      "font_size": 18,
+      "bg_color": "#D41E3C",
+      "fg_color": "#FFF4DC"
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "sync_error",
+      "bind": "sync_error",
+      "bind_target": "visible",
+      "x": 0,
+      "y": 258,
+      "w": 480,
+      "h": 222,
+      "bg_color": "#1A0E0C",
+      "border_color": "#E2B84A",
+      "border_width": 2,
+      "hidden": true
+    },
+    {
+      "type": "label",
+      "parent_name": "sync_error",
+      "x": 28,
+      "y": 34,
+      "w": 424,
+      "h": 34,
+      "text": "同步失败",
+      "font_size": 24,
+      "fg_color": "#FFF4DC"
+    },
+    {
+      "type": "label",
+      "parent_name": "sync_error",
+      "x": 28,
+      "y": 72,
+      "w": 424,
+      "h": 24,
+      "text": "对局状态无法确认",
+      "font_size": 16,
+      "fg_color": "#E2B84A"
+    },
+    {
+      "type": "button",
+      "parent_name": "sync_error",
+      "callback": "dev_retry_sync",
+      "x": 28,
+      "y": 120,
+      "w": 424,
+      "h": 62,
+      "text": "重新同步",
+      "font_size": 18,
+      "bg_color": "#D41E3C",
+      "fg_color": "#FFF4DC"
+    },
+    {
+      "type": "container",
+      "parent_name": "play",
+      "name": "menu",
+      "x": 0,
+      "y": 220,
+      "w": 480,
+      "h": 260,
+      "bg_color": "#F6E6C8",
+      "hidden": true
+    },
+    {
+      "type": "label",
+      "parent_name": "menu",
+      "x": 36,
+      "y": 20,
+      "w": 408,
+      "h": 32,
+      "text": "对局菜单",
+      "font_size": 18,
+      "fg_color": "#110B08"
+    },
+    {
+      "type": "button",
+      "parent_name": "menu",
+      "name": "resign",
+      "callback": "resign",
+      "x": 36,
+      "y": 64,
+      "w": 196,
+      "h": 52,
+      "text": "认输",
+      "font_size": 18,
+      "bg_color": "#D41E3C",
+      "fg_color": "#FFF4DC"
+    },
+    {
+      "type": "button",
+      "parent_name": "menu",
+      "name": "draw",
+      "callback": "offer_draw",
+      "x": 248,
+      "y": 64,
+      "w": 196,
+      "h": 52,
+      "text": "求和",
+      "font_size": 18,
+      "font_charset": "求和仅双人可",
+      "bg_color": "#E4D4B8",
+      "fg_color": "#110B08",
+      "hidden": true
+    },
+    {
+      "type": "button",
+      "parent_name": "menu",
+      "x": 36,
+      "y": 128,
+      "w": 196,
+      "h": 52,
+      "text": "继续下",
+      "font_size": 18,
+      "bg_color": "#E4D4B8",
+      "fg_color": "#110B08",
+      "events": [
+        {
+          "event": "click",
+          "action": "hide",
+          "target_name": "menu"
+        }
+      ]
+    },
+    {
+      "type": "button",
+      "parent_name": "menu",
+      "name": "dev_disconnect",
+      "callback": "dev_disconnect",
+      "x": 248,
+      "y": 128,
+      "w": 196,
+      "h": 52,
+      "text": "模拟断线",
+      "font_size": 18,
+      "bg_color": "#E4D4B8",
+      "fg_color": "#110B08",
+      "hidden": true
+    },
+    {
+      "type": "button",
+      "parent_name": "menu",
+      "callback": "leave_game",
+      "x": 36,
+      "y": 192,
+      "w": 408,
+      "h": 52,
+      "text": "返回主菜单",
+      "font_size": 18,
+      "bg_color": "#E4D4B8",
+      "fg_color": "#110B08"
+    },
+    {
+      "type": "button",
+      "parent_name": "play",
+      "name": "open_menu",
+      "callback": "open_menu",
+      "x": 0,
+      "y": 0,
+      "w": 48,
+      "h": 20,
+      "text": "",
+      "bg_color": "#00000000",
+      "fg_color": "#E2B84A",
+      "events": [
+        {
+          "event": "click",
+          "action": "show",
+          "target_name": "menu"
+        }
+      ]
+    }
+  ]
+}

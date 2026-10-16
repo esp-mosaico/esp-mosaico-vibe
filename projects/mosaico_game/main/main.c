@@ -1,0 +1,39 @@
+// SPDX-License-Identifier: Apache-2.0
+
+#include "board_display.h"
+#define GSP_BUNDLE_ENABLE_LEGACY_NAMES
+#include "bundle_gsp.h"
+#include "esp_gsp_esp_lcd.h"
+#include "esp_iris.h"
+#include "esp_log.h"
+#include "game_ui.h"
+#include "iris_ota_support.h"
+#include "nvs_flash.h"
+
+static const char *TAG = "mosaico_game";
+
+void app_main(void)
+{
+    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_iris_boot_probe());
+    ESP_ERROR_CHECK(nvs_flash_init());
+    /* Recovery must remain reachable even if display or UI startup fails. */
+    iris_ota_support_start();
+
+    esp_display_present_target_config_t display;
+    ESP_ERROR_CHECK(board_display_init(&display));
+
+    esp_lcd_touch_handle_t touch = NULL;
+    ESP_ERROR_CHECK(board_touch_init(&touch));
+
+    esp_gsp_config_t app_config = gsp_bundle_config();
+    app_config.disable_swipe = true;
+    esp_gsp_esp_lcd_config_t lcd = ESP_GSP_ESP_LCD_CONFIG_INIT();
+    lcd.display = display;
+    lcd.touch = touch;
+
+    esp_gsp_handle_t ui = NULL;
+    ESP_ERROR_CHECK(esp_gsp_esp_lcd_start(&app_config, &lcd, &ui));
+    ESP_ERROR_CHECK(game_ui_init(ui));
+
+    ESP_LOGI(TAG, "mosaico_game S00-S30 ready");
+}

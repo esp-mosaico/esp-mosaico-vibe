@@ -1,0 +1,11 @@
+menu "Mosaico Chess"
+
+config MOSAICO_GAME_DEV_PVP
+    bool "Enable simulated dual-device flow"
+    default n
+    help
+        Development-only entry for native simulator and protocol-flow tests.
+        Production builds keep simulated pairing hidden and label the real
+        dual-device feature as under development.
+
+endmenu
