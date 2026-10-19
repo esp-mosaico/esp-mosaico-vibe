@@ -202,7 +202,10 @@ def run(simulator: Simulator, output: Path) -> None:
     simulator.capture(output / "native_home.png")
 
     simulator.click(240, 404, settle=1.0)  # S00 enter
-    simulator.click(240, 280, settle=1.5)  # S10 PvE
+    simulator.capture(output / "native_mode_select.png")
+    simulator.click(137, 250, settle=1.0)  # S10 PvE -> S11
+    simulator.capture(output / "native_difficulty.png")
+    simulator.click(240, 250, settle=1.5)  # S11 normal
     simulator.capture(output / "native_pve_start.png")
     simulator.click(*square_center("e2"))
     simulator.capture(output / "native_pve_legal.png")
@@ -215,9 +218,10 @@ def run(simulator: Simulator, output: Path) -> None:
     simulator.click(353, 399, settle=0.5)
     simulator.capture(output / "native_pve_result.png")
 
-    simulator.click(120, 432, settle=1.0)  # result menu -> S00
+    simulator.click(120, 432, settle=1.0)  # result menu -> S10
+    simulator.click(240, 422, settle=1.0)  # S10 back -> S00
     simulator.click(240, 404, settle=1.0)  # S00 enter -> S10
-    simulator.click(240, 164, settle=1.0)  # development PvP -> S20
+    simulator.click(342, 250, settle=1.0)  # development PvP -> S20
     simulator.click(240, 435, settle=1.0)  # simulated pairing -> S21
     simulator.click(240, 271, settle=1.0)  # continue -> S24
     simulator.click(240, 336, settle=1.5)  # start as white

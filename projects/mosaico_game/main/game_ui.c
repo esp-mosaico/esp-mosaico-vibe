@@ -25,11 +25,13 @@
 #define WAIT_TICK_MS 50
 #define WAIT_TIMEOUT_TICKS (12000 / WAIT_TICK_MS)
 #define AI_DELAY_MS 450
+#define NAVIGATION_TICK_MS 10
 #define BASE_PIECE_SLOT_COUNT 32
 
 enum {
     SCR_S00 = 0,
     SCR_S10,
+    SCR_S11,
     SCR_S20,
     SCR_S21,
     SCR_S22,
@@ -72,11 +74,14 @@ typedef struct {
     bool has_last_move;
     chess_move_t last_move;
     void *ai_timer;
+    void *navigation_timer;
     bool notice_visible;
     void *wait_timer;
     int wait_ticks;
     int wait_x;
     int wait_direction;
+    bool pointer_pressed;
+    int pending_screen;
 } game_ui_state_t;
 
 /* GSP exposes one application backend per handle and no user-data getter.
@@ -84,7 +89,8 @@ typedef struct {
 static game_ui_state_t *s_state;
 
 static const gsp_component_key_t s_screens[] = {
-    GSP_OBJ_KEY_S00, GSP_OBJ_KEY_S10, GSP_OBJ_KEY_S20,
+    GSP_OBJ_KEY_S00, GSP_OBJ_KEY_S10, GSP_OBJ_KEY_S11,
+    GSP_OBJ_KEY_S20,
     GSP_OBJ_KEY_S21, GSP_OBJ_KEY_S22, GSP_OBJ_KEY_S23,
     GSP_OBJ_KEY_S24, GSP_OBJ_KEY_PLAY, GSP_OBJ_KEY_S50,
     GSP_OBJ_KEY_S51, GSP_OBJ_KEY_S52,
@@ -202,6 +208,28 @@ static void show_only(game_ui_state_t *state, int screen)
     (void)esp_gsp_set_press_feedback_enabled(
         state->ui, screen != SCR_PLAY);
     state->screen = screen;
+}
+
+static void track_pointer(esp_gsp_handle_t ui, int32_t x, int32_t y,
+                          bool pressed, void *context)
+{
+    (void)ui;
+    (void)x;
+    (void)y;
+    game_ui_state_t *state = context;
+    state->pointer_pressed = pressed;
+}
+
+static void finish_pending_navigation(esp_gsp_handle_t ui, void *context)
+{
+    (void)ui;
+    game_ui_state_t *state = context;
+    if (state->pending_screen < 0 || state->pointer_pressed) {
+        return;
+    }
+    const int screen = state->pending_screen;
+    state->pending_screen = -1;
+    show_only(state, screen);
 }
 
 static void hide_selection(game_ui_state_t *state)
@@ -765,6 +793,21 @@ static void on_ui_event(esp_gsp_handle_t ui,
         show_only(state, SCR_S10);
         break;
     case GSP_ACT_ID_GO_PVE:
+    case GSP_ACT_ID_SELECT_PVE:
+        /*
+         * The mode and difficulty hit areas overlap.  Do not reveal S11
+         * until this touch has been released, so its release cannot trigger
+         * a difficulty button.
+         */
+        if (state->pointer_pressed) {
+            state->pending_screen = SCR_S11;
+        } else {
+            show_only(state, SCR_S11);
+        }
+        break;
+    case GSP_ACT_ID_DIFFICULTY_EASY:
+    case GSP_ACT_ID_DIFFICULTY_NORMAL:
+    case GSP_ACT_ID_DIFFICULTY_HARD:
         start_game(state, GAME_MODE_PVE, CHESS_WHITE);
         break;
     case GSP_ACT_ID_GO_PVP:
@@ -784,6 +827,9 @@ static void on_ui_event(esp_gsp_handle_t ui,
         show_only(state, event->action_id == GSP_ACT_ID_BACK_S00
                              ? SCR_S00
                              : SCR_S10);
+        break;
+    case GSP_ACT_ID_BACK_S10:
+        show_only(state, SCR_S10);
         break;
     case GSP_ACT_ID_SIM_PAIR_OK:
         show_only(state, SCR_S21);
@@ -910,6 +956,7 @@ esp_gsp_err_t game_ui_init(esp_gsp_handle_t ui)
     state->ui = ui;
     state->screen = -1;
     state->selected = -1;
+    state->pending_screen = -1;
     if (game_session_create(&state->session) != GAME_SESSION_OK) {
         free(state);
         return ESP_GSP_ERR_NO_MEM;
@@ -920,9 +967,26 @@ esp_gsp_err_t game_ui_init(esp_gsp_handle_t ui)
         free(state);
         return error;
     }
+    error = esp_gsp_set_pointer_observer(ui, track_pointer, state);
+    if (error != ESP_GSP_OK) {
+        game_session_destroy(state->session);
+        free(state);
+        return error;
+    }
+    state->navigation_timer = esp_gsp_timer_create(
+        ui, NAVIGATION_TICK_MS, finish_pending_navigation, state);
+    if (state->navigation_timer == NULL) {
+        (void)esp_gsp_set_pointer_observer(ui, NULL, NULL);
+        game_session_destroy(state->session);
+        free(state);
+        return ESP_GSP_ERR_NO_MEM;
+    }
     state->wait_timer =
         esp_gsp_timer_create(ui, WAIT_TICK_MS, wait_tick, state);
     if (state->wait_timer == NULL) {
+        (void)esp_gsp_timer_delete(ui, state->navigation_timer);
+        state->navigation_timer = NULL;
+        (void)esp_gsp_set_pointer_observer(ui, NULL, NULL);
         game_session_destroy(state->session);
         free(state);
         return ESP_GSP_ERR_NO_MEM;
@@ -965,6 +1029,11 @@ void game_ui_deinit(esp_gsp_handle_t ui)
         (void)esp_gsp_timer_delete(ui, state->wait_timer);
         state->wait_timer = NULL;
     }
+    if (state->navigation_timer != NULL) {
+        (void)esp_gsp_timer_delete(ui, state->navigation_timer);
+        state->navigation_timer = NULL;
+    }
+    (void)esp_gsp_set_pointer_observer(ui, NULL, NULL);
     game_session_destroy(state->session);
     s_state = NULL;
     free(state);

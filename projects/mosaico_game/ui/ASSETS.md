@@ -8,6 +8,11 @@
 - `pieces/result_ribbon_{win,loss,draw}.png`：由 `render_assets.py` 生成的结算横幅。
 - `pieces/heat_bg.png`、`pieces/anim_war.gif`：由 `render_assets.py` 生成的背景与“战”字动画。
 - `pieces/anim_wk.gif`：原始首页动画。
+- `confirmed_designs/s00_home_480.png`、
+  `confirmed_designs/s10_mode_select_480.png`、
+  `confirmed_designs/s11_difficulty_480.png`、
+  `confirmed_designs/s20_wait_connect_480.png`：已确认的 S00、S10、S11、S20
+  480×480 全屏设计定稿。
 - `fonts/cjk.ttf`：Droid Sans Fallback（上游文件名
   `DroidSansFallbackFull.ttf`），Copyright © 2006–2010 Google Corp.，
   Apache License 2.0。
@@ -24,9 +29,8 @@ Arphic Technology，许可为 Arphic Public License；字体本体未随工程�
 ## 设计候选
 
 - `pieces/candidates/`
-- `pieces/set-v2/`
 
-这些目录不被 `main.json` 或 `generate_ui.py` 引用，仅作为候选稿归档，不进入 GSP
+该目录不被 `main.json` 或 `generate_ui.py` 引用，仅作为候选稿归档，不进入 GSP
 bundle。正式资源与候选稿不得混用。
 
 已删除不再引用的 `mark_*.png`、`war.png` 和旧 HUD mockup。
