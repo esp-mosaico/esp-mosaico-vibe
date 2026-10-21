@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate projects/mosaico_game/ui/main.json (S00-S30, one scene, layers)."""
+"""Generate projects/mosaico_chess/ui/main.json (S00-S30, one scene, layers)."""
 
 from __future__ import annotations
 

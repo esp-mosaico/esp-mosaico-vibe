@@ -1,4 +1,4 @@
-# mosaico_game
+# mosaico_chess
 
 面向固定 480×480 ESP-Mosaico 屏幕的国际象棋应用。界面使用 ESP-GSP
 1.5.1，原生模拟器和固件共用同一套 C 棋规、会话状态与 UI backend。
@@ -35,9 +35,9 @@ ply 与前后局面哈希，支持确认重发、重复包过滤、断线提示�
 从工作区根目录运行：
 
 ```sh
-cmake -S projects/mosaico_game/tests -B projects/mosaico_game/build-tests
-cmake --build projects/mosaico_game/build-tests
-ctest --test-dir projects/mosaico_game/build-tests --output-on-failure
+cmake -S projects/mosaico_chess/tests -B projects/mosaico_chess/build-tests
+cmake --build projects/mosaico_chess/build-tests
+ctest --test-dir projects/mosaico_chess/build-tests --output-on-failure
 ```
 
 测试包含棋规、会话状态、PvE/PvP 流程、GSP callback/bind 合同、双机协议编解码
@@ -47,15 +47,15 @@ ctest --test-dir projects/mosaico_game/build-tests --output-on-failure
 
 ```sh
 python mosaico.py project sim \
-  --project projects/mosaico_game --interactive --duration 120
+  --project projects/mosaico_chess --interactive --duration 120
 ```
 
 命令输出 Preview URL 后，可用真实 framebuffer 回放保存流程证据：
 
 ```sh
-python projects/mosaico_game/tests/run_sim_replay.py \
+python projects/mosaico_chess/tests/run_sim_replay.py \
   --url http://127.0.0.1:3224/ \
-  --output projects/mosaico_game/tests/evidence
+  --output projects/mosaico_chess/tests/evidence
 ```
 
 端口以本次 Preview 输出为准。回放通过官方 simulator RPC 驱动共享 C backend，
@@ -68,9 +68,9 @@ ESP-IDF 的低噪声构建器：
 
 ```sh
 python3 submodule/esp-mosaico-utils/mosaico-tools/skills/idf-low-noise-build/scripts/idf_low_noise_build.py \
-  --project projects/mosaico_game doctor
+  --project projects/mosaico_chess doctor
 python3 submodule/esp-mosaico-utils/mosaico-tools/skills/idf-low-noise-build/scripts/idf_low_noise_build.py \
-  --project projects/mosaico_game build
+  --project projects/mosaico_chess build
 ```
 
 发布前需要从零验证时，在第二条命令后加 `--fullclean`。
@@ -81,7 +81,7 @@ python3 submodule/esp-mosaico-utils/mosaico-tools/skills/idf-low-noise-build/scr
 `esp_mosaico_app_recovery` 启动 Iris OTA 支持。设备安装只能使用：
 
 ```sh
-python mosaico.py iris system-update --project projects/mosaico_game
+python mosaico.py iris system-update --project projects/mosaico_chess
 ```
 
 不得使用 `idf.py flash`、`esptool` 或直接写设备。本次源码验证未执行设备安装。

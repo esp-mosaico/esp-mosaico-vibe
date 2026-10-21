@@ -21,5 +21,5 @@ set(EXTRA_COMPONENT_DIRS
     "${MOSAICO_UTILS_ROOT}/esp-mosaico-vibe-mode/components/esp_mosaico_app_recovery")
 
 include("${MOSAICO_UTILS_ROOT}/esp-mosaico-vibe-mode/cmake/mosaico_idf_project.cmake")
-project(mosaico_game VERSION 1.0.0)
+project(mosaico_chess VERSION 1.0.0)
 include("${MOSAICO_UTILS_ROOT}/mosaico-tools/cmake/system_update.cmake")

@@ -15,7 +15,7 @@
 #define GAME_IMAGE_CACHE_SMALL_BYTES (4U * 1024U * 1024U)
 #define GAME_IMAGE_CACHE_LARGE_HEAP_THRESHOLD (16U * 1024U * 1024U)
 
-static const char *TAG = "mosaico_game";
+static const char *TAG = "mosaico_chess";
 
 void app_main(void)
 {
@@ -49,5 +49,5 @@ void app_main(void)
     ESP_ERROR_CHECK(esp_gsp_esp_lcd_start(&app_config, &lcd, &ui));
     ESP_ERROR_CHECK(game_ui_init(ui));
 
-    ESP_LOGI(TAG, "mosaico_game S00-S30 ready");
+    ESP_LOGI(TAG, "mosaico_chess S00-S30 ready");
 }
