@@ -1,0 +1,32 @@
+{
+  "schema": "mosaico-ideas/project-upload/v1",
+  "project": {
+    "title": "Mosaico Chess 国际象棋",
+    "categories": [
+      "display",
+      "communication",
+      "sensors"
+    ],
+    "boards": [],
+    "tags": [
+      "chess",
+      "国际象棋",
+      "ESP-NOW",
+      "ESP-GSP",
+      "双机对决"
+    ],
+    "license": "",
+    "external_links": []
+  },
+  "content": {
+    "readme": "README.md",
+    "covers": [
+      "ui/designs/mosaico_chess_promo_cover_1200x675.png"
+    ],
+    "resources": [],
+    "attachments": []
+  },
+  "release": {
+    "changelog": "1.0.0 初始版本：支持完整国际象棋规则（王车易位、吃过路兵、四选一升变、将死/逼和/三次重复/50步规则/子力不足判和）、三档电脑 AI 对战、双机磁吸贴合配对与分离后 ESP-NOW 无线对弈，以及中英文双语界面。"
+  }
+}

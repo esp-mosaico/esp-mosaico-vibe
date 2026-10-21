@@ -48,8 +48,10 @@ static game_session_status_t run_pve(void)
 {
     game_session_t *session = NULL;
     EXPECT(game_session_create(&session) == GAME_SESSION_OK);
-    EXPECT(game_session_start(session, GAME_MODE_PVE, CHESS_WHITE) ==
+    EXPECT(game_session_start_with_difficulty(
+               session, GAME_MODE_PVE, CHESS_WHITE, CHESS_AI_NORMAL) ==
            GAME_SESSION_OK);
+    EXPECT(game_session_status(session).ai_level == CHESS_AI_NORMAL);
 
     chess_move_t player = move("e2e4");
     EXPECT(game_session_apply_local(session, &player) == GAME_SESSION_OK);
@@ -113,12 +115,6 @@ static game_session_status_t run_pvp(void)
     EXPECT(game_session_status(session).phase ==
            GAME_PHASE_WAITING_OPPONENT);
 
-    EXPECT(game_session_offer_draw(session) == GAME_SESSION_OK);
-    EXPECT(game_session_resolve_draw_offer(session, false) ==
-           GAME_SESSION_OK);
-    EXPECT(game_session_receive_draw_offer(session) == GAME_SESSION_OK);
-    EXPECT(game_session_respond_draw(session, false) == GAME_SESSION_OK);
-
     game_session_set_connected(session, false);
     EXPECT(game_session_status(session).phase == GAME_PHASE_DISCONNECTED);
     game_session_set_connected(session, true);
@@ -129,11 +125,10 @@ static game_session_status_t run_pvp(void)
 
     EXPECT(game_session_start(session, GAME_MODE_PVP, CHESS_WHITE) ==
            GAME_SESSION_OK);
-    EXPECT(game_session_receive_draw_offer(session) == GAME_SESSION_OK);
-    EXPECT(game_session_respond_draw(session, true) == GAME_SESSION_OK);
+    EXPECT(game_session_resign(session) == GAME_SESSION_OK);
     game_session_status_t final = game_session_status(session);
     EXPECT(final.phase == GAME_PHASE_FINISHED);
-    EXPECT(final.chess.end_reason == CHESS_END_AGREED_DRAW);
+    EXPECT(final.chess.end_reason == CHESS_END_RESIGNATION);
     game_session_destroy(session);
     return final;
 }

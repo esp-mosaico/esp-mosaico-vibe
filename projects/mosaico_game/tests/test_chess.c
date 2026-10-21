@@ -161,6 +161,16 @@ static void test_castling(void)
     EXPECT(!has_move(game, "e1c1"));
     chess_game_destroy(game);
 
+    game = game_from_fen("3rk3/8/8/8/8/8/8/R3K2R w KQ - 0 1");
+    EXPECT(has_move(game, "e1g1"));
+    EXPECT(!has_move(game, "e1c1"));
+    chess_game_destroy(game);
+
+    game = game_from_fen("4k3/8/7b/8/8/8/8/R3K2R w KQ - 0 1");
+    EXPECT(has_move(game, "e1g1"));
+    EXPECT(!has_move(game, "e1c1"));
+    chess_game_destroy(game);
+
     game = game_from_fen("4k3/8/8/8/8/8/8/4K3 w KQ - 0 1");
     EXPECT(!has_move(game, "e1g1"));
     EXPECT(!has_move(game, "e1c1"));
@@ -185,6 +195,7 @@ static void test_en_passant(void)
     EXPECT(chess_game_piece_at(game, square("d5")) == 0);
     EXPECT(chess_piece_type(chess_game_piece_at(game, square("d6"))) ==
            CHESS_PIECE_PAWN);
+    EXPECT(chess_game_status(game).halfmove_clock == 0);
     chess_game_destroy(game);
 
     game = game_from_fen("4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1");
@@ -195,6 +206,16 @@ static void test_en_passant(void)
 
     game = game_from_fen("8/8/8/4KPpr/8/8/8/7k w - g6 0 1");
     EXPECT(!has_move(game, "f5g6"));
+    chess_game_destroy(game);
+
+    game = game_from_fen("4k3/8/8/4P3/8/8/8/4K3 w - d6 0 1");
+    EXPECT(!has_move(game, "e5d6"));
+    chess_game_destroy(game);
+
+    game = game_from_fen("4k3/8/8/8/3pP3/8/8/4K3 b - e3 0 1");
+    EXPECT(has_move(game, "d4e3"));
+    apply(game, "d4e3");
+    EXPECT(chess_game_piece_at(game, square("e4")) == 0);
     chess_game_destroy(game);
 }
 
@@ -219,7 +240,25 @@ static void test_promotions(void)
         EXPECT(chess_piece_type(chess_game_piece_at(game, square("a8"))) ==
                cases[index].type);
         chess_game_destroy(game);
+
+        game = game_from_fen("4k3/8/8/8/8/8/p7/4K3 b - - 0 1");
+        char black_uci[] = "a2a1q";
+        black_uci[4] = cases[index].suffix;
+        EXPECT(has_move(game, black_uci));
+        apply(game, black_uci);
+        EXPECT(chess_piece_type(chess_game_piece_at(game, square("a1"))) ==
+               cases[index].type);
+        chess_game_destroy(game);
     }
+
+    chess_game_t *game =
+        game_from_fen("1r2k3/P7/8/8/8/8/8/4K3 w - - 0 1");
+    EXPECT(has_move(game, "a7b8q"));
+    EXPECT(!has_move(game, "a7b8"));
+    apply(game, "a7b8q");
+    EXPECT(chess_piece_type(chess_game_piece_at(game, square("b8"))) ==
+           CHESS_PIECE_QUEEN);
+    chess_game_destroy(game);
 }
 
 static void test_terminal_positions(void)
@@ -238,18 +277,34 @@ static void test_terminal_positions(void)
     EXPECT(status.end_reason == CHESS_END_STALEMATE);
     EXPECT(status.winner == -1);
     chess_game_destroy(game);
+
+    game = game_from_fen("7k/8/5KQ1/8/8/8/8/8 w - - 0 1");
+    const chess_move_t mate = move_from_uci("g6g7");
+    EXPECT(chess_game_apply(game, &mate) == CHESS_OK);
+    status = chess_game_status(game);
+    EXPECT(status.end_reason == CHESS_END_CHECKMATE);
+    EXPECT(status.winner == CHESS_WHITE);
+    chess_game_destroy(game);
+
+    game = game_from_fen("3Q4/7k/8/8/8/8/8/4K3 w - - 0 1");
+    const chess_move_t top_rank_move = move_from_uci("d8d7");
+    EXPECT(chess_game_apply(game, &top_rank_move) == CHESS_OK);
+    chess_game_destroy(game);
 }
 
 static void test_draw_rules(void)
 {
     chess_game_t *game = NULL;
     EXPECT(chess_game_create(&game) == CHESS_OK);
-    for (int cycle = 0; cycle < 2; ++cycle) {
-        apply(game, "g1f3");
-        apply(game, "g8f6");
-        apply(game, "f3g1");
-        apply(game, "f6g8");
-    }
+    apply(game, "g1f3");
+    apply(game, "g8f6");
+    apply(game, "f3g1");
+    apply(game, "f6g8");
+    EXPECT(chess_game_status(game).end_reason == CHESS_END_NONE);
+    apply(game, "g1f3");
+    apply(game, "g8f6");
+    apply(game, "f3g1");
+    apply(game, "f6g8");
     EXPECT(chess_game_status(game).end_reason ==
            CHESS_END_THREEFOLD_REPETITION);
     chess_game_destroy(game);
@@ -258,6 +313,18 @@ static void test_draw_rules(void)
     apply(game, "a1a2");
     EXPECT(chess_game_status(game).end_reason ==
            CHESS_END_FIFTY_MOVE_RULE);
+    chess_game_destroy(game);
+
+    game = game_from_fen("4k3/8/8/8/8/8/P7/R3K3 w - - 99 1");
+    apply(game, "a2a3");
+    EXPECT(chess_game_status(game).halfmove_clock == 0);
+    EXPECT(chess_game_status(game).end_reason == CHESS_END_NONE);
+    chess_game_destroy(game);
+
+    game = game_from_fen("r3k3/8/8/8/8/8/8/R3K3 w - - 99 1");
+    apply(game, "a1a8");
+    EXPECT(chess_game_status(game).halfmove_clock == 0);
+    EXPECT(chess_game_status(game).end_reason == CHESS_END_NONE);
     chess_game_destroy(game);
 
     static const char *insufficient[] = {
@@ -275,7 +342,7 @@ static void test_draw_rules(void)
     }
 }
 
-static void test_resignation_and_agreement(void)
+static void test_resignation(void)
 {
     chess_game_t *game = NULL;
     EXPECT(chess_game_create(&game) == CHESS_OK);
@@ -283,25 +350,28 @@ static void test_resignation_and_agreement(void)
     chess_status_t status = chess_game_status(game);
     EXPECT(status.end_reason == CHESS_END_RESIGNATION);
     EXPECT(status.winner == CHESS_BLACK);
-    EXPECT(chess_game_agree_draw(game) == CHESS_ERR_GAME_OVER);
-    chess_game_destroy(game);
-
-    EXPECT(chess_game_create(&game) == CHESS_OK);
-    EXPECT(chess_game_agree_draw(game) == CHESS_OK);
-    status = chess_game_status(game);
-    EXPECT(status.end_reason == CHESS_END_AGREED_DRAW);
-    EXPECT(status.winner == -1);
     chess_game_destroy(game);
 }
 
-static void test_ai_move_is_legal(void)
+static void test_ai_difficulties(void)
 {
     chess_game_t *game = NULL;
     EXPECT(chess_game_create(&game) == CHESS_OK);
-    chess_move_t move;
-    EXPECT(chess_game_ai_pick(game, &move));
-    EXPECT(chess_game_is_legal(game, &move));
-    EXPECT(chess_game_apply(game, &move) == CHESS_OK);
+    for (chess_ai_level_t level = CHESS_AI_EASY;
+         level <= CHESS_AI_HARD;
+         level = (chess_ai_level_t)(level + 1)) {
+        chess_move_t move;
+        EXPECT(chess_game_ai_pick_level(game, level, &move));
+        EXPECT(chess_game_is_legal(game, &move));
+    }
+    chess_game_destroy(game);
+
+    game = game_from_fen("7k/8/6K1/5Q2/8/8/8/8 w - - 0 1");
+    chess_move_t mate;
+    EXPECT(chess_game_ai_pick_level(game, CHESS_AI_HARD, &mate));
+    EXPECT(chess_game_apply(game, &mate) == CHESS_OK);
+    EXPECT(chess_game_status(game).end_reason == CHESS_END_CHECKMATE);
+    EXPECT(chess_game_status(game).winner == CHESS_WHITE);
     chess_game_destroy(game);
 }
 
@@ -343,8 +413,8 @@ int main(void)
     test_promotions();
     test_terminal_positions();
     test_draw_rules();
-    test_resignation_and_agreement();
-    test_ai_move_is_legal();
+    test_resignation();
+    test_ai_difficulties();
     test_perft();
 
     if (s_failures != 0) {

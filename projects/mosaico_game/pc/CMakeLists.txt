@@ -25,6 +25,8 @@ gsp_add_backend(game_backend
         ../main/game_ui.c
         ../main/game_session.c
         ../main/chess.c
+        ../main/chess_peer_protocol.c
+        ../main/chess_peer_link.c
         platform_pc.c
     INCLUDE_DIRECTORIES ../main
     SCENES ../ui/main.json)

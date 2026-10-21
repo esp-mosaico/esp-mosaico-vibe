@@ -9,6 +9,7 @@
 /.tools/
 /artifacts/
 **/assets/generated/
+**/dist/
 /.mosaico-state/
 
 # Local agent experiments; shared skills and tools remain versioned.

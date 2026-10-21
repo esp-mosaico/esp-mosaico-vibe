@@ -56,6 +56,11 @@ def main() -> None:
     if missing_callbacks:
         fail(f"callbacks not handled by game_ui.c: {missing_callbacks}")
 
+    scene_actions = {macro_name(callback) for callback in callbacks}
+    stale_action_refs = sorted(action_macros - scene_actions)
+    if stale_action_refs:
+        fail(f"native action IDs absent from scene: {stale_action_refs}")
+
     scene_objects = {macro_name(value) for value in names | binds}
     stale_object_refs = sorted(object_macros - scene_objects)
     if stale_object_refs:

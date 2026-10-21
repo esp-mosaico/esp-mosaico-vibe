@@ -27,11 +27,16 @@ typedef enum {
     CHESS_END_CHECKMATE,
     CHESS_END_RESIGNATION,
     CHESS_END_STALEMATE,
-    CHESS_END_AGREED_DRAW,
     CHESS_END_THREEFOLD_REPETITION,
     CHESS_END_FIFTY_MOVE_RULE,
     CHESS_END_INSUFFICIENT_MATERIAL,
 } chess_end_reason_t;
+
+typedef enum {
+    CHESS_AI_EASY = 0,
+    CHESS_AI_NORMAL,
+    CHESS_AI_HARD,
+} chess_ai_level_t;
 
 typedef enum {
     CHESS_OK = 0,
@@ -69,6 +74,7 @@ uint8_t chess_game_piece_at(const chess_game_t *game, int square);
 chess_color_t chess_game_side_to_move(const chess_game_t *game);
 bool chess_game_in_check(const chess_game_t *game, chess_color_t color);
 chess_status_t chess_game_status(const chess_game_t *game);
+uint64_t chess_game_position_hash(const chess_game_t *game);
 
 size_t chess_game_generate_legal(const chess_game_t *game,
                                  chess_move_t *moves,
@@ -80,9 +86,11 @@ size_t chess_game_generate_legal_from(const chess_game_t *game,
 bool chess_game_is_legal(const chess_game_t *game, const chess_move_t *move);
 chess_err_t chess_game_apply(chess_game_t *game, const chess_move_t *move);
 chess_err_t chess_game_resign(chess_game_t *game, chess_color_t color);
-chess_err_t chess_game_agree_draw(chess_game_t *game);
 
 bool chess_game_ai_pick(const chess_game_t *game, chess_move_t *move);
+bool chess_game_ai_pick_level(const chess_game_t *game,
+                              chess_ai_level_t level,
+                              chess_move_t *move);
 uint64_t chess_game_perft(const chess_game_t *game, unsigned depth);
 
 /* Piece encoding helpers used by the portable UI. */

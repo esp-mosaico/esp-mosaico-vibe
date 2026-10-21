@@ -23,12 +23,6 @@ typedef enum {
 } game_phase_t;
 
 typedef enum {
-    GAME_DRAW_NONE = 0,
-    GAME_DRAW_OFFER_SENT,
-    GAME_DRAW_OFFER_RECEIVED,
-} game_draw_state_t;
-
-typedef enum {
     GAME_SESSION_OK = 0,
     GAME_SESSION_INVALID_ARG,
     GAME_SESSION_NO_MEMORY,
@@ -40,7 +34,7 @@ typedef enum {
 typedef struct {
     game_mode_t mode;
     game_phase_t phase;
-    game_draw_state_t draw_state;
+    chess_ai_level_t ai_level;
     chess_color_t local_color;
     uint32_t generation;
     bool connected;
@@ -52,6 +46,11 @@ void game_session_destroy(game_session_t *session);
 game_session_err_t game_session_start(game_session_t *session,
                                       game_mode_t mode,
                                       chess_color_t local_color);
+game_session_err_t game_session_start_with_difficulty(
+    game_session_t *session,
+    game_mode_t mode,
+    chess_color_t local_color,
+    chess_ai_level_t ai_level);
 game_session_err_t game_session_load_fen(game_session_t *session,
                                          const char *fen);
 
@@ -62,6 +61,8 @@ game_session_err_t game_session_apply_local(game_session_t *session,
                                             const chess_move_t *move);
 game_session_err_t game_session_apply_remote(game_session_t *session,
                                              const chess_move_t *move);
+game_session_err_t game_session_apply_synced(game_session_t *session,
+                                             const chess_move_t *move);
 game_session_err_t game_session_compute_ai(const game_session_t *session,
                                            uint32_t *generation,
                                            chess_move_t *move);
@@ -70,12 +71,8 @@ game_session_err_t game_session_commit_ai(game_session_t *session,
                                           const chess_move_t *move);
 
 game_session_err_t game_session_resign(game_session_t *session);
-game_session_err_t game_session_offer_draw(game_session_t *session);
-game_session_err_t game_session_receive_draw_offer(game_session_t *session);
-game_session_err_t game_session_respond_draw(game_session_t *session,
-                                             bool accept);
-game_session_err_t game_session_resolve_draw_offer(game_session_t *session,
-                                                   bool accept);
+game_session_err_t game_session_resign_color(game_session_t *session,
+                                             chess_color_t color);
 
 void game_session_set_connected(game_session_t *session, bool connected);
 void game_session_set_sync_error(game_session_t *session);

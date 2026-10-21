@@ -1,5 +1,0 @@
-{
-  "schema": "mosaico-chess-flow/v1",
-  "pve": {"phase": 5, "end_reason": 2, "winner": 0},
-  "pvp": {"phase": 5, "end_reason": 4, "winner": -1}
-}

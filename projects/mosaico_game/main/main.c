@@ -4,11 +4,16 @@
 #define GSP_BUNDLE_ENABLE_LEGACY_NAMES
 #include "bundle_gsp.h"
 #include "esp_gsp_esp_lcd.h"
+#include "esp_heap_caps.h"
 #include "esp_iris.h"
 #include "esp_log.h"
 #include "game_ui.h"
 #include "iris_ota_support.h"
 #include "nvs_flash.h"
+
+#define GAME_IMAGE_CACHE_LARGE_BYTES (6U * 1024U * 1024U)
+#define GAME_IMAGE_CACHE_SMALL_BYTES (4U * 1024U * 1024U)
+#define GAME_IMAGE_CACHE_LARGE_HEAP_THRESHOLD (16U * 1024U * 1024U)
 
 static const char *TAG = "mosaico_game";
 
@@ -27,6 +32,15 @@ void app_main(void)
 
     esp_gsp_config_t app_config = gsp_bundle_config();
     app_config.disable_swipe = true;
+    const size_t free_spiram =
+        heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+    app_config.image_cache_bytes =
+        free_spiram >= GAME_IMAGE_CACHE_LARGE_HEAP_THRESHOLD ?
+            GAME_IMAGE_CACHE_LARGE_BYTES :
+            GAME_IMAGE_CACHE_SMALL_BYTES;
+    ESP_LOGI(
+        TAG, "GSP image cache: %u bytes (free SPIRAM before UI: %u)",
+        (unsigned)app_config.image_cache_bytes, (unsigned)free_spiram);
     esp_gsp_esp_lcd_config_t lcd = ESP_GSP_ESP_LCD_CONFIG_INIT();
     lcd.display = display;
     lcd.touch = touch;

@@ -34,3 +34,13 @@ target_compile_features(game_flows PRIVATE c_std_11)
 target_compile_options(game_flows PRIVATE -Wall -Wextra -Werror)
 
 add_test(NAME game_flows COMMAND game_flows)
+
+add_executable(chess_peer_protocol
+    test_chess_peer_protocol.c
+    ../main/chess_peer_protocol.c
+    ../main/chess.c)
+target_include_directories(chess_peer_protocol PRIVATE ../main)
+target_compile_features(chess_peer_protocol PRIVATE c_std_11)
+target_compile_options(chess_peer_protocol PRIVATE -Wall -Wextra -Werror)
+
+add_test(NAME chess_peer_protocol COMMAND chess_peer_protocol)

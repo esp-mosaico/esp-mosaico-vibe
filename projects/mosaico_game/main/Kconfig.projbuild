@@ -5,7 +5,7 @@ config MOSAICO_GAME_DEV_PVP
     default n
     help
         Development-only entry for native simulator and protocol-flow tests.
-        Production builds keep simulated pairing hidden and label the real
-        dual-device feature as under development.
+        Production builds keep simulated pairing hidden and use magnetic
+        contact plus ESP-NOW for real dual-device sessions.
 
 endmenu

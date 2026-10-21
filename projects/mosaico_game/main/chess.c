@@ -3,6 +3,7 @@
 #include "chess.h"
 
 #include <ctype.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -38,6 +39,13 @@ typedef struct {
     chess_position_t *positions;
     unsigned max_depth;
 } perft_workspace_t;
+
+typedef struct {
+    chess_move_t *moves;
+    chess_position_t *positions;
+    unsigned max_depth;
+    chess_color_t root_color;
+} ai_workspace_t;
 
 static const int8_t s_knight_steps[8][2] = {
     {1, 2}, {2, 1}, {2, -1}, {1, -2},
@@ -318,7 +326,16 @@ static size_t generate_pseudo_from(const chess_position_t *position,
             const bool normal_capture =
                 target != 0 && chess_piece_color(target) != color &&
                 chess_piece_type(target) != CHESS_PIECE_KING;
-            if (normal_capture || to == position->en_passant) {
+            const int en_passant_pawn =
+                to + (color == CHESS_WHITE ? -8 : 8);
+            const bool en_passant_capture =
+                to == position->en_passant && target == 0 &&
+                en_passant_pawn >= 0 && en_passant_pawn < 64 &&
+                position->board[en_passant_pawn] ==
+                    chess_piece_make(
+                        color == CHESS_WHITE ? CHESS_BLACK : CHESS_WHITE,
+                        CHESS_PIECE_PAWN);
+            if (normal_capture || en_passant_capture) {
                 append_pawn_move(moves, capacity, &count, from, to);
             }
         }
@@ -520,10 +537,21 @@ static uint64_t position_hash(const chess_position_t *position)
     int effective_en_passant = -1;
     if (position->en_passant >= 0) {
         const int target = position->en_passant;
+        const chess_color_t side = (chess_color_t)position->side;
+        const int captured =
+            target + (side == CHESS_WHITE ? -8 : 8);
+        const bool capturable_pawn =
+            captured >= 0 && captured < 64 &&
+            position->board[captured] ==
+                chess_piece_make(
+                    side == CHESS_WHITE ? CHESS_BLACK : CHESS_WHITE,
+                    CHESS_PIECE_PAWN);
         const int pawn_rank =
             square_rank(target) +
             (position->side == CHESS_WHITE ? -1 : 1);
-        for (int file_step = -1; file_step <= 1; file_step += 2) {
+        for (int file_step = -1;
+             capturable_pawn && file_step <= 1;
+             file_step += 2) {
             const int from =
                 square_at(square_file(target) + file_step, pawn_rank);
             if (from < 0 ||
@@ -859,6 +887,11 @@ chess_status_t chess_game_status(const chess_game_t *game)
     return status;
 }
 
+uint64_t chess_game_position_hash(const chess_game_t *game)
+{
+    return game != NULL ? position_hash(&game->position) : 0;
+}
+
 size_t chess_game_generate_legal(const chess_game_t *game,
                                  chess_move_t *moves,
                                  size_t capacity)
@@ -940,19 +973,6 @@ chess_err_t chess_game_resign(chess_game_t *game, chess_color_t color)
     return CHESS_OK;
 }
 
-chess_err_t chess_game_agree_draw(chess_game_t *game)
-{
-    if (game == NULL) {
-        return CHESS_ERR_INVALID_ARG;
-    }
-    if (game->position.end_reason != CHESS_END_NONE) {
-        return CHESS_ERR_GAME_OVER;
-    }
-    game->position.end_reason = CHESS_END_AGREED_DRAW;
-    game->position.winner = -1;
-    return CHESS_OK;
-}
-
 static int piece_value(uint8_t piece)
 {
     switch (chess_piece_type(piece)) {
@@ -973,36 +993,156 @@ static int piece_value(uint8_t piece)
     }
 }
 
-bool chess_game_ai_pick(const chess_game_t *game, chess_move_t *move)
+static int positional_value(const chess_position_t *position,
+                            chess_color_t root_color)
+{
+    int score = 0;
+    for (int square = 0; square < 64; ++square) {
+        const uint8_t piece = position->board[square];
+        if (piece == 0) {
+            continue;
+        }
+        const chess_color_t color = chess_piece_color(piece);
+        const chess_piece_type_t type = chess_piece_type(piece);
+        int value = piece_value(piece);
+        const int file = square_file(square);
+        const int rank = square_rank(square);
+        const int center_file = file < 4 ? file : 7 - file;
+        const int center_rank = rank < 4 ? rank : 7 - rank;
+        if (type == CHESS_PIECE_PAWN) {
+            value += (color == CHESS_WHITE ? rank : 7 - rank) * 4;
+        } else if (type == CHESS_PIECE_KNIGHT ||
+                   type == CHESS_PIECE_BISHOP) {
+            value += (center_file + center_rank) * 4;
+        }
+        score += color == root_color ? value : -value;
+    }
+    return score;
+}
+
+static int ai_search(const chess_position_t *position,
+                     unsigned depth,
+                     int alpha,
+                     int beta,
+                     ai_workspace_t *workspace,
+                     unsigned ply)
+{
+    chess_move_t *moves = workspace->moves + ply * CHESS_MAX_MOVES;
+    const size_t count =
+        generate_legal_position(position, moves, CHESS_MAX_MOVES);
+    if (count == 0) {
+        if (!position_in_check(position, (chess_color_t)position->side)) {
+            return 0;
+        }
+        return position->side == workspace->root_color
+                   ? -1000000 + (int)ply
+                   : 1000000 - (int)ply;
+    }
+    if (depth == 0 || insufficient_material(position) ||
+        position->halfmove >= 100) {
+        return positional_value(position, workspace->root_color);
+    }
+
+    const bool maximize = position->side == workspace->root_color;
+    int best = maximize ? INT_MIN : INT_MAX;
+    for (size_t index = 0; index < count && index < CHESS_MAX_MOVES; ++index) {
+        chess_position_t *child = &workspace->positions[ply];
+        *child = *position;
+        apply_to_position(child, &moves[index]);
+        const int score = ai_search(
+            child, depth - 1, alpha, beta, workspace, ply + 1);
+        if (maximize) {
+            if (score > best) {
+                best = score;
+            }
+            if (best > alpha) {
+                alpha = best;
+            }
+        } else {
+            if (score < best) {
+                best = score;
+            }
+            if (best < beta) {
+                beta = best;
+            }
+        }
+        if (beta <= alpha) {
+            break;
+        }
+    }
+    return best;
+}
+
+static int easy_move_score(const chess_position_t *position,
+                           const chess_move_t *move)
+{
+    int score = piece_value(position->board[move->to]);
+    if (move->to == position->en_passant &&
+        chess_piece_type(position->board[move->from]) == CHESS_PIECE_PAWN &&
+        position->board[move->to] == 0) {
+        score += piece_value(
+            chess_piece_make(
+                position->side == CHESS_WHITE ? CHESS_BLACK : CHESS_WHITE,
+                CHESS_PIECE_PAWN));
+    }
+    if (move->promotion != CHESS_PIECE_NONE) {
+        score += piece_value(
+                     chess_piece_make(
+                         (chess_color_t)position->side, move->promotion)) -
+                 piece_value(position->board[move->from]);
+    }
+    chess_position_t trial = *position;
+    apply_to_position(&trial, move);
+    if (position_in_check(&trial, (chess_color_t)trial.side)) {
+        score += 25;
+    }
+    return score;
+}
+
+bool chess_game_ai_pick_level(const chess_game_t *game,
+                              chess_ai_level_t level,
+                              chess_move_t *move)
 {
     if (game == NULL || move == NULL ||
+        level < CHESS_AI_EASY || level > CHESS_AI_HARD ||
         game->position.end_reason != CHESS_END_NONE) {
         return false;
     }
-    chess_move_t *moves = malloc(CHESS_MAX_MOVES * sizeof(*moves));
-    if (moves == NULL) {
+    const unsigned depth =
+        level == CHESS_AI_EASY ? 1U :
+        level == CHESS_AI_NORMAL ? 2U : 3U;
+    ai_workspace_t workspace = {
+        .moves = calloc((size_t)(depth + 1U) * CHESS_MAX_MOVES,
+                        sizeof(chess_move_t)),
+        .positions = calloc(depth + 1U, sizeof(chess_position_t)),
+        .max_depth = depth + 1U,
+        .root_color = (chess_color_t)game->position.side,
+    };
+    if (workspace.moves == NULL || workspace.positions == NULL) {
+        free(workspace.moves);
+        free(workspace.positions);
         return false;
     }
+
+    chess_move_t *moves = workspace.moves;
     const size_t count =
         generate_legal_position(&game->position, moves, CHESS_MAX_MOVES);
     if (count == 0 || count > CHESS_MAX_MOVES) {
-        free(moves);
+        free(workspace.moves);
+        free(workspace.positions);
         return false;
     }
     size_t best_index = 0;
-    int best_score = -1;
+    int best_score = INT_MIN;
     for (size_t index = 0; index < count; ++index) {
-        int score = piece_value(game->position.board[moves[index].to]);
-        if (moves[index].promotion != CHESS_PIECE_NONE) {
-            score += piece_value(chess_piece_make(
-                         (chess_color_t)game->position.side,
-                         moves[index].promotion)) -
-                     100;
-        }
-        chess_position_t trial = game->position;
-        apply_to_position(&trial, &moves[index]);
-        if (position_in_check(&trial, (chess_color_t)trial.side)) {
-            score += 25;
+        int score = easy_move_score(&game->position, &moves[index]);
+        if (level != CHESS_AI_EASY) {
+            chess_position_t *child = &workspace.positions[0];
+            *child = game->position;
+            apply_to_position(child, &moves[index]);
+            score = ai_search(
+                child, depth - 1, INT_MIN + 1, INT_MAX,
+                &workspace, 1);
         }
         if (score > best_score) {
             best_score = score;
@@ -1010,8 +1150,14 @@ bool chess_game_ai_pick(const chess_game_t *game, chess_move_t *move)
         }
     }
     *move = moves[best_index];
-    free(moves);
+    free(workspace.moves);
+    free(workspace.positions);
     return true;
+}
+
+bool chess_game_ai_pick(const chess_game_t *game, chess_move_t *move)
+{
+    return chess_game_ai_pick_level(game, CHESS_AI_NORMAL, move);
 }
 
 static uint64_t perft_position(const chess_position_t *position,

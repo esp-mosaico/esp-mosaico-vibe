@@ -2,6 +2,7 @@
 
 #define GSP_BUNDLE_ENABLE_LEGACY_NAMES
 #include "bundle_gsp.h"
+#include "chess_peer_link.h"
 #include "game_session.h"
 #include "game_ui.h"
 
@@ -18,14 +19,19 @@
 
 #define FRAME 20
 #define CELL 55
-#define WAIT_X0 120
-#define WAIT_Y 230
-#define WAIT_X1 280
+#define PIECE_W 34
+#define PIECE_H 68
+#define WAIT_X0 127
+#define WAIT_X1 273
 #define WAIT_STEP 8
 #define WAIT_TICK_MS 50
 #define WAIT_TIMEOUT_TICKS (12000 / WAIT_TICK_MS)
+#define PAIR_TRANSITION_MS 3040
 #define AI_DELAY_MS 450
 #define NAVIGATION_TICK_MS 10
+#define PEER_TICK_MS 50
+#define MENU_SWIPE_MIN_Y 80
+#define MENU_SWIPE_MAX_X 120
 #define BASE_PIECE_SLOT_COUNT 32
 
 enum {
@@ -33,10 +39,11 @@ enum {
     SCR_S10,
     SCR_S11,
     SCR_S20,
+    SCR_S20_SUCCESS_ANIM,
+    SCR_S20_FAIL_ANIM,
     SCR_S21,
+    SCR_S21_WAIT,
     SCR_S22,
-    SCR_S23,
-    SCR_S24,
     SCR_PLAY,
     SCR_S50,
     SCR_S51,
@@ -69,18 +76,30 @@ typedef struct {
     uint64_t captures;
     bool selection_visible;
     bool pve;
+    chess_ai_level_t ai_level;
     chess_move_t pending_promotion;
     bool promotion_pending;
     bool has_last_move;
     chess_move_t last_move;
     void *ai_timer;
     void *navigation_timer;
-    bool notice_visible;
+    void *peer_timer;
+    void *transition_timer;
     void *wait_timer;
     int wait_ticks;
     int wait_x;
     int wait_direction;
     bool pointer_pressed;
+    bool pointer_started_in_play;
+    bool pending_menu;
+    int pointer_start_x;
+    int pointer_start_y;
+    bool board_flipped;
+    bool syncing;
+    bool english;
+    bool paired_as_black;
+    uint16_t sync_total_ply;
+    int transition_target;
     int pending_screen;
 } game_ui_state_t;
 
@@ -88,12 +107,66 @@ typedef struct {
  * This module therefore owns one explicitly allocated backend instance. */
 static game_ui_state_t *s_state;
 
+#ifndef ESP_PLATFORM
+static int sim_square_from_text(const char *text)
+{
+    if (text == NULL || text[0] < 'a' || text[0] > 'h' ||
+        text[1] < '1' || text[1] > '8') {
+        return -1;
+    }
+    return text[0] - 'a' + (text[1] - '1') * 8;
+}
+#endif
+
 static const gsp_component_key_t s_screens[] = {
     GSP_OBJ_KEY_S00, GSP_OBJ_KEY_S10, GSP_OBJ_KEY_S11,
     GSP_OBJ_KEY_S20,
-    GSP_OBJ_KEY_S21, GSP_OBJ_KEY_S22, GSP_OBJ_KEY_S23,
-    GSP_OBJ_KEY_S24, GSP_OBJ_KEY_PLAY, GSP_OBJ_KEY_S50,
+    GSP_OBJ_KEY_S20_SUCCESS_ANIM, GSP_OBJ_KEY_S20_FAIL_ANIM,
+    GSP_OBJ_KEY_S21, GSP_OBJ_KEY_S21_WAIT, GSP_OBJ_KEY_S22,
+    GSP_OBJ_KEY_PLAY, GSP_OBJ_KEY_S50,
     GSP_OBJ_KEY_S51, GSP_OBJ_KEY_S52,
+};
+
+typedef struct {
+    gsp_component_key_t zh;
+    gsp_component_key_t en;
+} localized_asset_pair_t;
+
+static const localized_asset_pair_t s_localized_assets[] = {
+    {GSP_OBJ_KEY_S00_BG_ZH, GSP_OBJ_KEY_S00_BG_EN},
+    {GSP_OBJ_KEY_S10_BG_ZH, GSP_OBJ_KEY_S10_BG_EN},
+    {GSP_OBJ_KEY_S11_BG_ZH, GSP_OBJ_KEY_S11_BG_EN},
+    {GSP_OBJ_KEY_S20_BG_ZH, GSP_OBJ_KEY_S20_BG_EN},
+    {
+        GSP_OBJ_KEY_S20_SUCCESS_ANIM_BG_ZH,
+        GSP_OBJ_KEY_S20_SUCCESS_ANIM_BG_EN,
+    },
+    {
+        GSP_OBJ_KEY_S20_FAIL_ANIM_BG_ZH,
+        GSP_OBJ_KEY_S20_FAIL_ANIM_BG_EN,
+    },
+    {
+        GSP_OBJ_KEY_S21_WAIT_BG_ZH,
+        GSP_OBJ_KEY_S21_WAIT_BG_EN,
+    },
+    {GSP_OBJ_KEY_S22_BG_ZH, GSP_OBJ_KEY_S22_BG_EN},
+    {GSP_OBJ_KEY_S50_BG_ZH, GSP_OBJ_KEY_S50_BG_EN},
+    {GSP_OBJ_KEY_S51_BG_ZH, GSP_OBJ_KEY_S51_BG_EN},
+    {GSP_OBJ_KEY_S52_BG_ZH, GSP_OBJ_KEY_S52_BG_EN},
+    {GSP_OBJ_KEY_PROMOTION_PANEL_ZH, GSP_OBJ_KEY_PROMOTION_PANEL_EN},
+    {
+        GSP_OBJ_KEY_RESIGN_CONFIRM_PANEL_ZH,
+        GSP_OBJ_KEY_RESIGN_CONFIRM_PANEL_EN,
+    },
+    {
+        GSP_OBJ_KEY_CONNECTION_LOST_PANEL_ZH,
+        GSP_OBJ_KEY_CONNECTION_LOST_PANEL_EN,
+    },
+    {
+        GSP_OBJ_KEY_SYNC_ERROR_PANEL_ZH,
+        GSP_OBJ_KEY_SYNC_ERROR_PANEL_EN,
+    },
+    {GSP_OBJ_KEY_MENU_PANEL_ZH, GSP_OBJ_KEY_MENU_PANEL_EN},
 };
 
 static const gsp_component_key_t s_dots[64] = {
@@ -171,52 +244,101 @@ static const uint16_t s_hit_actions[64] = {
     GSP_ACT_ID_HIT63,
 };
 
-static const gsp_component_key_t s_white_promotion_images[4] = {
-    GSP_OBJ_KEY_PROMOTION_WQ_IMAGE, GSP_OBJ_KEY_PROMOTION_WR_IMAGE,
-    GSP_OBJ_KEY_PROMOTION_WB_IMAGE, GSP_OBJ_KEY_PROMOTION_WN_IMAGE,
-};
-
-static const gsp_component_key_t s_black_promotion_images[4] = {
-    GSP_OBJ_KEY_PROMOTION_BQ_IMAGE, GSP_OBJ_KEY_PROMOTION_BR_IMAGE,
-    GSP_OBJ_KEY_PROMOTION_BB_IMAGE, GSP_OBJ_KEY_PROMOTION_BN_IMAGE,
-};
-
-static void cell_xy(int square, int *x, int *y)
+static int display_square(const game_ui_state_t *state, int square)
 {
-    *x = FRAME + (square & 7) * CELL;
-    *y = FRAME + (7 - (square >> 3)) * CELL;
+    return state->board_flipped ? 63 - square : square;
 }
 
-static void piece_xy(int square, chess_piece_type_t type, int *x, int *y)
+static void cell_xy(const game_ui_state_t *state, int square, int *x, int *y)
 {
+    const int shown = display_square(state, square);
+    *x = FRAME + (shown & 7) * CELL;
+    *y = FRAME + (7 - (shown >> 3)) * CELL;
+}
+
+static void piece_xy(const game_ui_state_t *state, int square,
+                     chess_piece_type_t type, int *x, int *y)
+{
+    (void)type;
     int cell_x = 0;
     int cell_y = 0;
-    const int width = type == CHESS_PIECE_PAWN ? 51 : 39;
-    const int height = type == CHESS_PIECE_PAWN ? 84 : 64;
-    cell_xy(square, &cell_x, &cell_y);
-    *x = cell_x + (CELL - width) / 2;
-    *y = cell_y + CELL - height;
+    cell_xy(state, square, &cell_x, &cell_y);
+    *x = cell_x + (CELL - PIECE_W) / 2;
+    *y = cell_y + CELL - PIECE_H - 4;
 }
+
+static void apply_language(game_ui_state_t *state);
 
 static void show_only(game_ui_state_t *state, int screen)
 {
     for (size_t index = 0;
          index < sizeof(s_screens) / sizeof(s_screens[0]); ++index) {
         (void)esp_gsp_component_set_visible(
-            state->ui, s_screens[index], (int)index == screen);
+            state->ui, s_screens[index], false);
     }
+    state->screen = screen;
+    apply_language(state);
+    (void)esp_gsp_component_set_visible(
+        state->ui, s_screens[screen], true);
     (void)esp_gsp_set_press_feedback_enabled(
         state->ui, screen != SCR_PLAY);
-    state->screen = screen;
+#ifndef ESP_PLATFORM
+    (void)esp_gsp_component_set_visible(
+        state->ui, GSP_OBJ_KEY_SIM_PEER_READY,
+        screen == SCR_S21_WAIT);
+#endif
+}
+
+static void apply_language(game_ui_state_t *state)
+{
+    for (size_t index = 0;
+         index < sizeof(s_localized_assets) / sizeof(s_localized_assets[0]);
+         ++index) {
+        (void)esp_gsp_component_set_visible(
+            state->ui, s_localized_assets[index].zh, !state->english);
+        (void)esp_gsp_component_set_visible(
+            state->ui, s_localized_assets[index].en, state->english);
+    }
+    (void)esp_gsp_component_set_visible(
+        state->ui, GSP_OBJ_KEY_S21_BG_ZH,
+        !state->paired_as_black && !state->english);
+    (void)esp_gsp_component_set_visible(
+        state->ui, GSP_OBJ_KEY_S21_BG_EN,
+        !state->paired_as_black && state->english);
+    (void)esp_gsp_component_set_visible(
+        state->ui, GSP_OBJ_KEY_S21_BG_BLACK_ZH,
+        state->paired_as_black && !state->english);
+    (void)esp_gsp_component_set_visible(
+        state->ui, GSP_OBJ_KEY_S21_BG_BLACK_EN,
+        state->paired_as_black && state->english);
+}
+
+static void show_localized_overlay(
+    game_ui_state_t *state, gsp_component_key_t key)
+{
+    (void)esp_gsp_component_set_visible(state->ui, key, true);
+    apply_language(state);
 }
 
 static void track_pointer(esp_gsp_handle_t ui, int32_t x, int32_t y,
                           bool pressed, void *context)
 {
     (void)ui;
-    (void)x;
-    (void)y;
     game_ui_state_t *state = context;
+    if (pressed && !state->pointer_pressed) {
+        state->pointer_start_x = x;
+        state->pointer_start_y = y;
+        state->pointer_started_in_play = state->screen == SCR_PLAY;
+    } else if (!pressed && state->pointer_pressed) {
+        const int delta_x = x - state->pointer_start_x;
+        const int delta_y = state->pointer_start_y - y;
+        if (state->pointer_started_in_play &&
+            delta_y >= MENU_SWIPE_MIN_Y &&
+            abs(delta_x) <= MENU_SWIPE_MAX_X) {
+            state->pending_menu = true;
+        }
+        state->pointer_started_in_play = false;
+    }
     state->pointer_pressed = pressed;
 }
 
@@ -224,7 +346,14 @@ static void finish_pending_navigation(esp_gsp_handle_t ui, void *context)
 {
     (void)ui;
     game_ui_state_t *state = context;
-    if (state->pending_screen < 0 || state->pointer_pressed) {
+    if (state->pointer_pressed) {
+        return;
+    }
+    if (state->pending_menu) {
+        state->pending_menu = false;
+        show_localized_overlay(state, GSP_OBJ_KEY_MENU);
+    }
+    if (state->pending_screen < 0) {
         return;
     }
     const int screen = state->pending_screen;
@@ -241,11 +370,11 @@ static void hide_selection(game_ui_state_t *state)
     for (int square = 0; square < 64; ++square) {
         if ((visible & (1ULL << square)) != 0) {
             (void)esp_gsp_component_set_visible(
-                state->ui, s_dots[square], false);
+                state->ui, s_dots[display_square(state, square)], false);
         }
         if ((capture_visible & (1ULL << square)) != 0) {
             (void)esp_gsp_component_set_visible(
-                state->ui, s_captures[square], false);
+                state->ui, s_captures[display_square(state, square)], false);
         }
     }
     if (state->selection_visible) {
@@ -260,7 +389,7 @@ static void show_selection(game_ui_state_t *state, int square)
 {
     int x = 0;
     int y = 0;
-    cell_xy(square, &x, &y);
+    cell_xy(state, square, &x, &y);
     (void)esp_gsp_component_set_position(
         state->ui, GSP_OBJ_KEY_SEL, x, y);
     (void)esp_gsp_component_set_visible(
@@ -296,14 +425,15 @@ static void show_legal(game_ui_state_t *state, int from)
         const bool new_visible = (wanted & (1ULL << square)) != 0;
         if (old_visible != new_visible) {
             (void)esp_gsp_component_set_visible(
-                state->ui, s_dots[square], new_visible);
+                state->ui, s_dots[display_square(state, square)], new_visible);
         }
         const bool old_capture =
             (state->captures & (1ULL << square)) != 0;
         const bool new_capture = (captures & (1ULL << square)) != 0;
         if (old_capture != new_capture) {
             (void)esp_gsp_component_set_visible(
-                state->ui, s_captures[square], new_capture);
+                state->ui, s_captures[display_square(state, square)],
+                new_capture);
         }
     }
     state->dots = wanted;
@@ -373,6 +503,11 @@ static void sync_pieces(game_ui_state_t *state)
             chess_piece_type(piece) == sprite->type) {
             sprite->used = true;
             claimed[sprite->square] = true;
+            int x = 0;
+            int y = 0;
+            piece_xy(state, sprite->square, sprite->type, &x, &y);
+            (void)esp_gsp_component_set_position(
+                state->ui, sprite->key, x, y);
         }
     }
 
@@ -388,7 +523,7 @@ static void sync_pieces(game_ui_state_t *state)
         }
         int x = 0;
         int y = 0;
-        piece_xy(square, sprite->type, &x, &y);
+        piece_xy(state, square, sprite->type, &x, &y);
         if (sprite->visible) {
             (void)esp_gsp_component_animate_position_to(
                 state->ui, sprite->key, x, y, 220, ESP_GSP_EASE_OUT);
@@ -421,8 +556,9 @@ static void board_overlay_position(game_ui_state_t *state,
                                    gsp_component_key_t key,
                                    int square)
 {
-    const int x = (square & 7) * CELL;
-    const int y = (7 - (square >> 3)) * CELL;
+    const int shown = display_square(state, square);
+    const int x = (shown & 7) * CELL;
+    const int y = (7 - (shown >> 3)) * CELL;
     (void)esp_gsp_component_set_position(state->ui, key, x, y);
 }
 
@@ -459,65 +595,20 @@ static void sync_feedback(game_ui_state_t *state)
         state->ui, GSP_OBJ_KEY_CHECK, king_square >= 0);
 }
 
-static const char *end_reason_text(chess_end_reason_t reason)
-{
-    switch (reason) {
-    case CHESS_END_CHECKMATE:
-        return "将死";
-    case CHESS_END_RESIGNATION:
-        return "";
-    case CHESS_END_STALEMATE:
-        return "逼和";
-    case CHESS_END_AGREED_DRAW:
-        return "";
-    case CHESS_END_THREEFOLD_REPETITION:
-        return "三次重复局面";
-    case CHESS_END_FIFTY_MOVE_RULE:
-        return "五十步规则";
-    case CHESS_END_INSUFFICIENT_MATERIAL:
-        return "子力不足";
-    default:
-        return "";
-    }
-}
-
 static void show_result(game_ui_state_t *state)
 {
     const game_session_status_t status =
         game_session_status(state->session);
     int screen = SCR_S52;
-    gsp_component_key_t reason_key = GSP_OBJ_KEY_S52_REASON;
     if (status.chess.winner >= 0) {
         const bool local_won =
             status.chess.winner == status.local_color;
         screen = local_won ? SCR_S50 : SCR_S51;
-        reason_key =
-            local_won ? GSP_OBJ_KEY_S50_REASON : GSP_OBJ_KEY_S51_REASON;
     }
-    (void)esp_gsp_component_set_text(
-        state->ui, reason_key, end_reason_text(status.chess.end_reason));
     show_only(state, screen);
 }
 
 static void after_move(game_ui_state_t *state);
-
-static void show_wait_notice(game_ui_state_t *state)
-{
-    if (!state->notice_visible) {
-        (void)esp_gsp_component_set_visible(
-            state->ui, GSP_OBJ_KEY_NOTICE_WAIT, true);
-        state->notice_visible = true;
-    }
-}
-
-static void hide_notice(game_ui_state_t *state)
-{
-    if (state->notice_visible) {
-        (void)esp_gsp_component_set_visible(
-            state->ui, GSP_OBJ_KEY_NOTICE_WAIT, false);
-        state->notice_visible = false;
-    }
-}
 
 static void ai_tick(esp_gsp_handle_t ui, void *context)
 {
@@ -527,7 +618,6 @@ static void ai_tick(esp_gsp_handle_t ui, void *context)
         (void)esp_gsp_timer_delete(state->ui, state->ai_timer);
         state->ai_timer = NULL;
     }
-    hide_notice(state);
     uint32_t generation = 0;
     chess_move_t move;
     const game_session_status_t status =
@@ -557,9 +647,6 @@ static void after_move(game_ui_state_t *state)
 {
     const game_session_status_t status =
         game_session_status(state->session);
-    if (status.phase == GAME_PHASE_WAITING_OPPONENT) {
-        show_wait_notice(state);
-    }
     hide_selection(state);
     sync_pieces(state);
     sync_feedback(state);
@@ -611,7 +698,16 @@ static bool move_for_target(game_ui_state_t *state,
 
 static void commit_move(game_ui_state_t *state, const chess_move_t *move)
 {
+    const uint64_t before_hash =
+        chess_game_position_hash(game_session_game(state->session));
     if (game_session_apply_local(state->session, move) == GAME_SESSION_OK) {
+        const uint64_t after_hash =
+            chess_game_position_hash(game_session_game(state->session));
+        if (!state->pve &&
+            !chess_peer_link_send_move(move, before_hash, after_hash)) {
+            game_session_set_sync_error(state->session);
+            show_localized_overlay(state, GSP_OBJ_KEY_SYNC_ERROR);
+        }
         state->last_move = *move;
         state->has_last_move = true;
         after_move(state);
@@ -626,9 +722,6 @@ static void tap_square(game_ui_state_t *state, int square)
         return;
     }
     if (current.phase != GAME_PHASE_ACTIVE) {
-        if (current.phase == GAME_PHASE_WAITING_OPPONENT) {
-            show_wait_notice(state);
-        }
         return;
     }
     const chess_game_t *game = game_session_game(state->session);
@@ -641,18 +734,7 @@ static void tap_square(game_ui_state_t *state, int square)
             if (needs_promotion) {
                 state->pending_promotion = move;
                 state->promotion_pending = true;
-                const chess_color_t color = chess_piece_color(
-                    chess_game_piece_at(game, state->selected));
-                for (size_t index = 0; index < 4; ++index) {
-                    (void)esp_gsp_component_set_visible(
-                        state->ui, s_white_promotion_images[index],
-                        color == CHESS_WHITE);
-                    (void)esp_gsp_component_set_visible(
-                        state->ui, s_black_promotion_images[index],
-                        color == CHESS_BLACK);
-                }
-                (void)esp_gsp_component_set_visible(
-                    state->ui, GSP_OBJ_KEY_PROMOTION, true);
+                show_localized_overlay(state, GSP_OBJ_KEY_PROMOTION);
             } else {
                 commit_move(state, &move);
             }
@@ -694,23 +776,18 @@ static void stop_ai(game_ui_state_t *state)
 
 static void start_game(game_ui_state_t *state,
                        game_mode_t mode,
-                       chess_color_t local_color)
+                       chess_color_t local_color,
+                       chess_ai_level_t ai_level)
 {
     stop_ai(state);
+    hide_selection(state);
     state->pve = mode == GAME_MODE_PVE;
+    state->ai_level = ai_level;
+    state->board_flipped =
+        mode == GAME_MODE_PVP && local_color == CHESS_BLACK;
+    state->syncing = false;
     state->promotion_pending = false;
     state->has_last_move = false;
-    (void)esp_gsp_component_set_visible(
-        state->ui, GSP_OBJ_KEY_DRAW, mode == GAME_MODE_PVP);
-#if CONFIG_MOSAICO_GAME_DEV_PVP
-    (void)esp_gsp_component_set_visible(
-        state->ui, GSP_OBJ_KEY_DEV_DISCONNECT, mode == GAME_MODE_PVP);
-#else
-    (void)esp_gsp_component_set_visible(
-        state->ui, GSP_OBJ_KEY_DEV_DISCONNECT, false);
-#endif
-    hide_notice(state);
-    hide_selection(state);
     (void)esp_gsp_component_set_visible(
         state->ui, GSP_OBJ_KEY_MENU, false);
     (void)esp_gsp_component_set_visible(
@@ -718,13 +795,11 @@ static void start_game(game_ui_state_t *state,
     (void)esp_gsp_component_set_visible(
         state->ui, GSP_OBJ_KEY_RESIGN_CONFIRM, false);
     (void)esp_gsp_component_set_visible(
-        state->ui, GSP_OBJ_KEY_DRAW_REQUEST, false);
-    (void)esp_gsp_component_set_visible(
         state->ui, GSP_OBJ_KEY_CONNECTION_LOST, false);
     (void)esp_gsp_component_set_visible(
         state->ui, GSP_OBJ_KEY_SYNC_ERROR, false);
-    if (game_session_start(state->session, mode, local_color) !=
-        GAME_SESSION_OK) {
+    if (game_session_start_with_difficulty(
+            state->session, mode, local_color, ai_level) != GAME_SESSION_OK) {
         show_only(state, SCR_S10);
         return;
     }
@@ -744,13 +819,51 @@ static int hit_square(uint16_t action)
     return -1;
 }
 
+static void stop_pair_transition(game_ui_state_t *state)
+{
+    if (state->transition_timer != NULL) {
+        (void)esp_gsp_timer_delete(
+            state->ui, state->transition_timer);
+        state->transition_timer = NULL;
+    }
+    state->transition_target = -1;
+}
+
+static void finish_pair_transition(esp_gsp_handle_t ui, void *context)
+{
+    (void)ui;
+    game_ui_state_t *state = context;
+    const int target = state->transition_target;
+    stop_pair_transition(state);
+    if (target >= 0) {
+        show_only(state, target);
+    }
+}
+
+static void start_pair_transition(game_ui_state_t *state,
+                                  int animation_screen,
+                                  int target_screen)
+{
+    stop_pair_transition(state);
+    state->transition_target = target_screen;
+    show_only(state, animation_screen);
+    state->transition_timer = esp_gsp_timer_create(
+        state->ui, PAIR_TRANSITION_MS,
+        finish_pair_transition, state);
+    if (state->transition_timer == NULL) {
+        finish_pair_transition(state->ui, state);
+    }
+}
+
 static void reset_wait(game_ui_state_t *state)
 {
+    stop_pair_transition(state);
     state->wait_ticks = 0;
     state->wait_x = WAIT_X0;
     state->wait_direction = 1;
-    (void)esp_gsp_component_set_position(
-        state->ui, GSP_OBJ_KEY_WAITBAR, WAIT_X0, WAIT_Y);
+    state->paired_as_black = false;
+    apply_language(state);
+    (void)gsp_main_waitbar_set_x(state->ui, WAIT_X0);
 }
 
 static void wait_tick(esp_gsp_handle_t ui, void *context)
@@ -767,10 +880,138 @@ static void wait_tick(esp_gsp_handle_t ui, void *context)
         state->wait_x = WAIT_X0;
         state->wait_direction = 1;
     }
-    (void)esp_gsp_component_set_position(
-        ui, GSP_OBJ_KEY_WAITBAR, state->wait_x, WAIT_Y);
+    (void)gsp_main_waitbar_set_x(ui, state->wait_x);
     if (++state->wait_ticks >= WAIT_TIMEOUT_TICKS) {
-        show_only(state, SCR_S22);
+        start_pair_transition(
+            state, SCR_S20_FAIL_ANIM, SCR_S22);
+    }
+}
+
+static void peer_tick(esp_gsp_handle_t ui, void *context)
+{
+    (void)ui;
+    game_ui_state_t *state = context;
+    chess_peer_event_t event;
+    while (chess_peer_link_poll_event(&event)) {
+        switch (event.kind) {
+        case CHESS_PEER_EVENT_PAIRED:
+            state->paired_as_black = event.local_color == CHESS_BLACK;
+            apply_language(state);
+            start_pair_transition(
+                state, SCR_S20_SUCCESS_ANIM, SCR_S21);
+            break;
+        case CHESS_PEER_EVENT_STARTED:
+            start_game(state, GAME_MODE_PVP, event.local_color,
+                       CHESS_AI_NORMAL);
+            (void)chess_peer_link_set_position(
+                0, chess_game_position_hash(
+                       game_session_game(state->session)));
+            break;
+        case CHESS_PEER_EVENT_REMOTE_MOVE: {
+            const uint64_t before_hash = chess_game_position_hash(
+                game_session_game(state->session));
+            if (before_hash != event.data.remote_move.before_hash ||
+                game_session_apply_remote(
+                    state->session, &event.data.remote_move.move) !=
+                    GAME_SESSION_OK) {
+                game_session_set_sync_error(state->session);
+                show_localized_overlay(state, GSP_OBJ_KEY_SYNC_ERROR);
+                (void)chess_peer_link_request_sync(0, before_hash);
+                break;
+            }
+            const uint64_t after_hash = chess_game_position_hash(
+                game_session_game(state->session));
+            if (after_hash != event.data.remote_move.after_hash ||
+                !chess_peer_link_accept_remote_move(
+                    event.data.remote_move.ply,
+                    &event.data.remote_move.move, after_hash)) {
+                game_session_set_sync_error(state->session);
+                show_localized_overlay(state, GSP_OBJ_KEY_SYNC_ERROR);
+                (void)chess_peer_link_request_sync(0, after_hash);
+                break;
+            }
+            state->last_move = event.data.remote_move.move;
+            state->has_last_move = true;
+            after_move(state);
+            break;
+        }
+        case CHESS_PEER_EVENT_REMOTE_RESIGNED:
+            if (game_session_resign_color(
+                    state->session, event.data.resign.color) ==
+                GAME_SESSION_OK) {
+                show_result(state);
+            }
+            break;
+        case CHESS_PEER_EVENT_DISCONNECTED:
+            game_session_set_connected(state->session, false);
+            show_localized_overlay(state, GSP_OBJ_KEY_CONNECTION_LOST);
+            break;
+        case CHESS_PEER_EVENT_RECONNECTED: {
+            game_session_set_connected(state->session, true);
+            (void)esp_gsp_component_set_visible(
+                state->ui, GSP_OBJ_KEY_CONNECTION_LOST, false);
+            const game_session_status_t status =
+                game_session_status(state->session);
+            if (status.local_color == CHESS_BLACK) {
+                (void)chess_peer_link_request_sync(
+                    0, chess_game_position_hash(
+                           game_session_game(state->session)));
+            }
+            break;
+        }
+        case CHESS_PEER_EVENT_SYNC_BEGIN: {
+            const game_session_status_t status =
+                game_session_status(state->session);
+            state->syncing = true;
+            state->sync_total_ply = 0;
+            state->has_last_move = false;
+            (void)game_session_start(
+                state->session, GAME_MODE_PVP, status.local_color);
+            break;
+        }
+        case CHESS_PEER_EVENT_SYNC_CHUNK:
+            if (!state->syncing) {
+                break;
+            }
+            for (uint8_t i = 0;
+                 i < event.data.sync_chunk.count; ++i) {
+                if (game_session_apply_synced(
+                        state->session,
+                        &event.data.sync_chunk.moves[i]) != GAME_SESSION_OK) {
+                    state->syncing = false;
+                    game_session_set_sync_error(state->session);
+                    show_localized_overlay(state, GSP_OBJ_KEY_SYNC_ERROR);
+                    break;
+                }
+                state->last_move = event.data.sync_chunk.moves[i];
+                state->has_last_move = true;
+            }
+            state->sync_total_ply =
+                event.data.sync_chunk.total_ply;
+            break;
+        case CHESS_PEER_EVENT_SYNC_COMPLETE: {
+            const uint64_t hash = chess_game_position_hash(
+                game_session_game(state->session));
+            if (!state->syncing ||
+                !chess_peer_link_complete_sync(
+                    state->sync_total_ply, hash)) {
+                game_session_set_sync_error(state->session);
+                show_localized_overlay(state, GSP_OBJ_KEY_SYNC_ERROR);
+                break;
+            }
+            state->syncing = false;
+            (void)esp_gsp_component_set_visible(
+                state->ui, GSP_OBJ_KEY_SYNC_ERROR, false);
+            sync_pieces(state);
+            sync_feedback(state);
+            after_move(state);
+            break;
+        }
+        case CHESS_PEER_EVENT_SYNC_ERROR:
+            game_session_set_sync_error(state->session);
+            show_localized_overlay(state, GSP_OBJ_KEY_SYNC_ERROR);
+            break;
+        }
     }
 }
 
@@ -785,15 +1026,18 @@ static void on_ui_event(esp_gsp_handle_t ui,
     }
     const int square = hit_square(event->action_id);
     if (square >= 0) {
-        tap_square(state, square);
+        tap_square(state, state->board_flipped ? 63 - square : square);
         return;
     }
     switch (event->action_id) {
+    case GSP_ACT_ID_TOGGLE_LANGUAGE:
+        state->english = !state->english;
+        apply_language(state);
+        break;
     case GSP_ACT_ID_ENTER_CHESS:
         show_only(state, SCR_S10);
         break;
     case GSP_ACT_ID_GO_PVE:
-    case GSP_ACT_ID_SELECT_PVE:
         /*
          * The mode and difficulty hit areas overlap.  Do not reveal S11
          * until this touch has been released, so its release cannot trigger
@@ -806,24 +1050,33 @@ static void on_ui_event(esp_gsp_handle_t ui,
         }
         break;
     case GSP_ACT_ID_DIFFICULTY_EASY:
+        start_game(
+            state, GAME_MODE_PVE, CHESS_WHITE, CHESS_AI_EASY);
+        break;
     case GSP_ACT_ID_DIFFICULTY_NORMAL:
+        start_game(
+            state, GAME_MODE_PVE, CHESS_WHITE, CHESS_AI_NORMAL);
+        break;
     case GSP_ACT_ID_DIFFICULTY_HARD:
-        start_game(state, GAME_MODE_PVE, CHESS_WHITE);
+        start_game(
+            state, GAME_MODE_PVE, CHESS_WHITE, CHESS_AI_HARD);
         break;
     case GSP_ACT_ID_GO_PVP:
         show_only(state, SCR_S20);
         reset_wait(state);
+        (void)chess_peer_link_begin_pairing();
         break;
     case GSP_ACT_ID_PVP_DEVELOPING:
-#if CONFIG_MOSAICO_GAME_DEV_PVP
         show_only(state, SCR_S20);
         reset_wait(state);
-#else
-        show_only(state, SCR_S23);
-#endif
+        (void)chess_peer_link_begin_pairing();
         break;
     case GSP_ACT_ID_WAIT_CANCEL:
     case GSP_ACT_ID_BACK_S00:
+        if (event->action_id == GSP_ACT_ID_WAIT_CANCEL) {
+            chess_peer_link_leave();
+        }
+        stop_pair_transition(state);
         show_only(state, event->action_id == GSP_ACT_ID_BACK_S00
                              ? SCR_S00
                              : SCR_S10);
@@ -832,22 +1085,35 @@ static void on_ui_event(esp_gsp_handle_t ui,
         show_only(state, SCR_S10);
         break;
     case GSP_ACT_ID_SIM_PAIR_OK:
-        show_only(state, SCR_S21);
+#if CONFIG_MOSAICO_GAME_DEV_PVP
+        state->paired_as_black = false;
+        apply_language(state);
+        start_pair_transition(
+            state, SCR_S20_SUCCESS_ANIM, SCR_S21);
+#endif
         break;
     case GSP_ACT_ID_S21_CONTINUE:
-        show_only(state, SCR_S24);
+        stop_pair_transition(state);
+#ifdef ESP_PLATFORM
+        (void)chess_peer_link_set_ready();
+#endif
+        state->wait_x = WAIT_X0;
+        state->wait_direction = 1;
+        show_only(state, SCR_S21_WAIT);
         break;
-    case GSP_ACT_ID_S24_GO:
-        start_game(state, GAME_MODE_PVP, CHESS_WHITE);
+    case GSP_ACT_ID_SIM_PEER_READY:
+#ifndef ESP_PLATFORM
+        start_game(
+            state, GAME_MODE_PVP, CHESS_WHITE, CHESS_AI_NORMAL);
+#endif
         break;
     case GSP_ACT_ID_OPEN_MENU:
-        break; /* The scene's declarative action shows the menu. */
+        show_localized_overlay(state, GSP_OBJ_KEY_MENU);
+        break;
     case GSP_ACT_ID_RESIGN:
-    case GSP_ACT_ID_LEAVE_GAME:
         (void)esp_gsp_component_set_visible(
             state->ui, GSP_OBJ_KEY_MENU, false);
-        (void)esp_gsp_component_set_visible(
-            state->ui, GSP_OBJ_KEY_RESIGN_CONFIRM, true);
+        show_localized_overlay(state, GSP_OBJ_KEY_RESIGN_CONFIRM);
         break;
     case GSP_ACT_ID_CANCEL_RESIGN:
         (void)esp_gsp_component_set_visible(
@@ -857,59 +1123,41 @@ static void on_ui_event(esp_gsp_handle_t ui,
         stop_ai(state);
         (void)esp_gsp_component_set_visible(
             state->ui, GSP_OBJ_KEY_RESIGN_CONFIRM, false);
+        if (!state->pve) {
+            const game_session_status_t status =
+                game_session_status(state->session);
+            (void)chess_peer_link_send_resign(status.local_color);
+        }
         if (game_session_resign(state->session) == GAME_SESSION_OK) {
             show_result(state);
         }
         break;
-    case GSP_ACT_ID_OFFER_DRAW:
-        if (game_session_offer_draw(state->session) == GAME_SESSION_OK) {
-            (void)esp_gsp_component_set_visible(
-                state->ui, GSP_OBJ_KEY_MENU, false);
-            /* Development PvP loop: expose the peer response UI locally. */
-            (void)esp_gsp_component_set_visible(
-                state->ui, GSP_OBJ_KEY_DRAW_REQUEST, true);
-        }
-        break;
-    case GSP_ACT_ID_DRAW_REJECT:
-        (void)game_session_resolve_draw_offer(state->session, false);
+    case GSP_ACT_ID_CONNECTION_MENU:
+        stop_ai(state);
         (void)esp_gsp_component_set_visible(
-            state->ui, GSP_OBJ_KEY_DRAW_REQUEST, false);
-        break;
-    case GSP_ACT_ID_DRAW_ACCEPT:
+            state->ui, GSP_OBJ_KEY_CONNECTION_LOST, false);
         (void)esp_gsp_component_set_visible(
-            state->ui, GSP_OBJ_KEY_DRAW_REQUEST, false);
-        if (game_session_resolve_draw_offer(
-                state->session, true) == GAME_SESSION_OK) {
-            show_result(state);
-        }
-        break;
-    case GSP_ACT_ID_DEV_DISCONNECT:
-#if CONFIG_MOSAICO_GAME_DEV_PVP
-        game_session_set_connected(state->session, false);
-        (void)esp_gsp_component_set_visible(
-            state->ui, GSP_OBJ_KEY_MENU, false);
-        (void)esp_gsp_component_set_visible(
-            state->ui, GSP_OBJ_KEY_CONNECTION_LOST, true);
-#endif
+            state->ui, GSP_OBJ_KEY_SYNC_ERROR, false);
+        chess_peer_link_leave();
+        show_only(state, SCR_S10);
         break;
     case GSP_ACT_ID_DEV_RECONNECT:
-#if CONFIG_MOSAICO_GAME_DEV_PVP
+#ifdef ESP_PLATFORM
+        (void)chess_peer_link_request_sync(
+            0, chess_game_position_hash(
+                   game_session_game(state->session)));
+#elif CONFIG_MOSAICO_GAME_DEV_PVP
         game_session_set_connected(state->session, true);
         (void)esp_gsp_component_set_visible(
             state->ui, GSP_OBJ_KEY_CONNECTION_LOST, false);
 #endif
         break;
-    case GSP_ACT_ID_DEV_SYNC_ERROR:
-#if CONFIG_MOSAICO_GAME_DEV_PVP
-        game_session_set_sync_error(state->session);
-        (void)esp_gsp_component_set_visible(
-            state->ui, GSP_OBJ_KEY_CONNECTION_LOST, false);
-        (void)esp_gsp_component_set_visible(
-            state->ui, GSP_OBJ_KEY_SYNC_ERROR, true);
-#endif
-        break;
     case GSP_ACT_ID_DEV_RETRY_SYNC:
-#if CONFIG_MOSAICO_GAME_DEV_PVP
+#ifdef ESP_PLATFORM
+        (void)chess_peer_link_request_sync(
+            0, chess_game_position_hash(
+                   game_session_game(state->session)));
+#elif CONFIG_MOSAICO_GAME_DEV_PVP
         game_session_set_connected(state->session, true);
         (void)esp_gsp_component_set_visible(
             state->ui, GSP_OBJ_KEY_SYNC_ERROR, false);
@@ -929,14 +1177,17 @@ static void on_ui_event(esp_gsp_handle_t ui,
         break;
     case GSP_ACT_ID_RESULT_MENU:
         stop_ai(state);
+        chess_peer_link_leave();
         show_only(state, SCR_S10);
         break;
     case GSP_ACT_ID_RESULT_AGAIN:
         if (state->pve) {
-            start_game(state, GAME_MODE_PVE, CHESS_WHITE);
+            start_game(
+                state, GAME_MODE_PVE, CHESS_WHITE, state->ai_level);
         } else {
             show_only(state, SCR_S20);
             reset_wait(state);
+            (void)chess_peer_link_begin_pairing();
         }
         break;
     default:
@@ -957,6 +1208,7 @@ esp_gsp_err_t game_ui_init(esp_gsp_handle_t ui)
     state->screen = -1;
     state->selected = -1;
     state->pending_screen = -1;
+    state->transition_target = -1;
     if (game_session_create(&state->session) != GAME_SESSION_OK) {
         free(state);
         return ESP_GSP_ERR_NO_MEM;
@@ -991,24 +1243,66 @@ esp_gsp_err_t game_ui_init(esp_gsp_handle_t ui)
         free(state);
         return ESP_GSP_ERR_NO_MEM;
     }
+    (void)chess_peer_link_init();
+    state->peer_timer =
+        esp_gsp_timer_create(ui, PEER_TICK_MS, peer_tick, state);
+    if (state->peer_timer == NULL) {
+        chess_peer_link_deinit();
+        (void)esp_gsp_timer_delete(ui, state->wait_timer);
+        (void)esp_gsp_timer_delete(ui, state->navigation_timer);
+        state->wait_timer = NULL;
+        state->navigation_timer = NULL;
+        (void)esp_gsp_set_pointer_observer(ui, NULL, NULL);
+        game_session_destroy(state->session);
+        free(state);
+        return ESP_GSP_ERR_NO_MEM;
+    }
 #if CONFIG_MOSAICO_GAME_DEV_PVP
     (void)esp_gsp_component_set_visible(
         ui, GSP_OBJ_KEY_SIM_OK, true);
 #endif
     s_state = state;
+    apply_language(state);
     show_only(state, SCR_S00);
 #ifndef ESP_PLATFORM
     /*
      * Native replay seam: start the real shared C backend at a supplied
      * position without adding a production UI or a second rules engine.
      */
+    const char *sim_language = getenv("MOSAICO_GAME_SIM_LANGUAGE");
+    if (sim_language != NULL && strcmp(sim_language, "en") == 0) {
+        state->english = true;
+        apply_language(state);
+    }
     const char *sim_fen = getenv("MOSAICO_GAME_SIM_FEN");
     if (sim_fen != NULL && sim_fen[0] != '\0') {
-        start_game(state, GAME_MODE_PVP, CHESS_WHITE);
+        const char *sim_color = getenv("MOSAICO_GAME_SIM_COLOR");
+        const chess_color_t local_color =
+            sim_color != NULL && strcmp(sim_color, "black") == 0 ?
+                CHESS_BLACK : CHESS_WHITE;
+        start_game(
+            state, GAME_MODE_PVP, local_color, CHESS_AI_NORMAL);
         if (game_session_load_fen(state->session, sim_fen) ==
             GAME_SESSION_OK) {
             sync_pieces(state);
             sync_feedback(state);
+            const char *sim_move = getenv("MOSAICO_GAME_SIM_MOVE");
+            const int from = sim_square_from_text(sim_move);
+            const int to =
+                sim_move != NULL ? sim_square_from_text(sim_move + 2) : -1;
+            if (from >= 0 && to >= 0) {
+                const chess_move_t move = {
+                    .from = (uint8_t)from,
+                    .to = (uint8_t)to,
+                    .promotion = CHESS_PIECE_NONE,
+                };
+                if (game_session_apply_local(state->session, &move) ==
+                    GAME_SESSION_OK) {
+                    state->last_move = move;
+                    state->has_last_move = true;
+                    after_move(state);
+                }
+            }
         }
     }
 #endif
@@ -1025,6 +1319,11 @@ void game_ui_deinit(esp_gsp_handle_t ui)
         return;
     }
     stop_ai(state);
+    stop_pair_transition(state);
+    if (state->peer_timer != NULL) {
+        (void)esp_gsp_timer_delete(ui, state->peer_timer);
+        state->peer_timer = NULL;
+    }
     if (state->wait_timer != NULL) {
         (void)esp_gsp_timer_delete(ui, state->wait_timer);
         state->wait_timer = NULL;
@@ -1034,6 +1333,7 @@ void game_ui_deinit(esp_gsp_handle_t ui)
         state->navigation_timer = NULL;
     }
     (void)esp_gsp_set_pointer_observer(ui, NULL, NULL);
+    chess_peer_link_deinit();
     game_session_destroy(state->session);
     s_state = NULL;
     free(state);
