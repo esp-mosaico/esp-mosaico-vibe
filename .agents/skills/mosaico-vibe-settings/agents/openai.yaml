@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mosaico Vibe Settings"
+  short_description: "Ask which settings to list, simulate them, and apply Vibe Mode sysmeta"
+  default_prompt: "Use $mosaico-vibe-settings. Ask which settings-bar items to list, simulate those pages on GSP, and apply Wi-Fi scan, list updates, and haptics the way the skill describes."
