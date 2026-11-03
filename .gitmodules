@@ -1,9 +1,9 @@
 [submodule "bsp"]
 	path = submodule/esp-mosaico-bsp
-	url = https://github.com/esp-mosaico/esp-mosaico-bsp
+	url = ../esp-mosaico-bsp
 [submodule "submodule/esp-mosaico-utils"]
 	path = submodule/esp-mosaico-utils
-	url = https://github.com/esp-mosaico/esp-mosaico-utils.git
+	url = ../esp-mosaico-utils.git
 [submodule "submodule/raylib-lite-engine"]
 	path = submodule/raylib-lite-engine
-	url = https://github.com/espressif2022/raylib-lite-engine.git
+	url = ../../espressif2022/raylib-lite-engine.git
