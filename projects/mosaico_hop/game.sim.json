@@ -1,0 +1,8 @@
+{
+  "schema": "raylib-lite-game-sim/v1",
+  "sources": [
+    "main/game_module.c",
+    "main/platform_game.c",
+    "main/mosaico_hop_view.c"
+  ]
+}

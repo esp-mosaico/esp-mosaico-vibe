@@ -1,0 +1,6 @@
+# The official BOX-3 board pack defines both a GPIO output and an LEDC
+# peripheral on GPIO47. The PWM peripheral is the sole backlight owner.
+# Suppress the unused GPIO initialization to avoid the LEDC pin conflict.
+peripherals:
+  - name: gpio_backlight_control
+    gen_skip: true

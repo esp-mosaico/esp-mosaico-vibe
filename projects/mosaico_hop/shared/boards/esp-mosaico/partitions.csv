@@ -1,0 +1,5 @@
+# Standalone native example; product wrappers supply their own layout.
+# Name, Type, SubType, Offset, Size, Flags
+nvs, data, nvs, 0x9000, 0x6000,
+phy_init, data, phy, 0xf000, 0x1000,
+factory, app, factory, 0x10000, 0xf00000,

@@ -1,0 +1,116 @@
+# Hardware only; optional audio and IMU initialize on demand.
+version: 1.0.0
+devices:
+- name: board_power
+  type: custom
+  version: default
+- name: lcd_power_ctrl
+  type: power_ctrl
+  sub_type: gpio
+  peripherals:
+  - active_level: 0
+    gpio_name: gpio_lcd_en
+- name: display_lcd
+  chip: co5300
+  type: display_lcd
+  sub_type: spi
+  version: default
+  power_ctrl_device: lcd_power_ctrl
+  dependencies:
+    espressif/esp_lcd_co5300: ^2.2
+  config:
+    x_max: 480
+    y_max: 480
+    swap_xy: false
+    mirror_x: false
+    mirror_y: false
+    need_reset: true
+    io_spi_config:
+      cs_gpio_num: 50
+      dc_gpio_num: -1
+      spi_mode: 0
+      pclk_hz: 40000000
+      trans_queue_depth: 2
+      lcd_cmd_bits: 32
+      flags:
+        quad_mode: true
+        psram_dma_direct: false
+    lcd_panel_config:
+      reset_gpio_num: 42
+      rgb_ele_order: LCD_RGB_ELEMENT_ORDER_RGB
+      data_endian: LCD_RGB_DATA_ENDIAN_BIG
+      bits_per_pixel: 16
+      vendor_config: null
+  peripherals:
+  - spi_name: spi_display
+  depends_on:
+  - board_power
+- name: lcd_touch
+  chip: cst9220
+  type: lcd_touch
+  sub_type: i2c
+  version: default
+  dependencies:
+    espressif/esp_lcd_touch_cst9220: ^0.1
+  config:
+    io_i2c_config:
+      scl_speed_hz: 400000
+      transaction_timeout_ms: 100
+    touch_config:
+      x_max: 479
+      y_max: 479
+      rst_gpio_num: -1
+      int_gpio_num: 6
+      levels:
+        reset: 0
+        interrupt: 0
+      flags:
+        swap_xy: false
+        mirror_x: false
+        mirror_y: false
+  peripherals:
+  - i2c_addr:
+    - 180
+    i2c_name: i2c_master
+  depends_on:
+  - board_power
+- name: audio_dac
+  chip: es8311
+  type: audio_codec
+  version: default
+  config:
+    dac_enabled: true
+    sys_cfg:
+      is_master: false
+      no_mclk: false
+  peripherals:
+  - gain: 6
+    active_level: 1
+    pa_name: gpio_pa_control
+  - i2s_name: i2s_audio_out
+  - address: 50
+    frequency: 400000
+    i2c_name: i2c_master
+  init_skip: true
+  depends_on:
+  - board_power
+- name: vibration_motor
+  type: ledc_ctrl
+  version: default
+  config:
+    default_percent: 0
+  peripherals:
+  - ledc_name: ledc_vibration_motor
+- name: imu_sensor
+  chip: bmi270
+  type: custom
+  version: default
+  init_skip: true
+  dependencies:
+    espressif2022/bmi270: ^1.1.0
+  config:
+    addr: 105
+  peripherals:
+  - name: i2c_master
+  depends_on:
+  - board_power

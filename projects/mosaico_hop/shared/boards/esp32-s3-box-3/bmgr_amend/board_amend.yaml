@@ -1,0 +1,5 @@
+version: "1.0"
+description: Raylib Lite display and touch profile for ESP32-S3-BOX-3
+apply:
+  - peripherals.yaml
+  - devices.yaml

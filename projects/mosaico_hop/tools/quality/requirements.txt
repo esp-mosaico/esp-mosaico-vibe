@@ -1,0 +1,2 @@
+# Python 3.8+; hook tools are isolated and pinned in .pre-commit-config.yaml.
+pre-commit==3.5.0

@@ -1,0 +1,15 @@
+{
+  "events": [
+    {"frame": 15, "type": "tap", "track_id": 0, "x": 240, "y": 263},
+    {"frame": 24, "type": "action", "code": "right", "pressed": true},
+    {"frame": 30, "type": "action", "code": "jump", "pressed": true},
+    {"frame": 42, "type": "action", "code": "jump", "pressed": false},
+    {"frame": 78, "type": "action", "code": "jump", "pressed": true},
+    {"frame": 90, "type": "action", "code": "jump", "pressed": false},
+    {"frame": 130, "type": "action", "code": "jump", "pressed": true},
+    {"frame": 142, "type": "action", "code": "jump", "pressed": false},
+    {"frame": 210, "type": "action", "code": "right", "pressed": false},
+    {"frame": 220, "type": "tap", "track_id": 1, "x": 456, "y": 18},
+    {"frame": 240, "type": "tap", "track_id": 0, "x": 240, "y": 260}
+  ]
+}

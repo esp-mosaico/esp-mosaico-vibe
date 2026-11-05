@@ -1,0 +1,12 @@
+# Do not make SD-card insertion or audio initialization a display startup
+# requirement. The official board-pack remains authoritative for pin mapping.
+devices:
+  - name: fs_sdcard
+    init_skip: true
+  - name: audio_dac
+    init_skip: true
+  - name: audio_adc
+    init_skip: true
+  - name: lcd_brightness
+    config:
+      default_percent: 85

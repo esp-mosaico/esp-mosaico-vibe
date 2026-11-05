@@ -1,0 +1,15 @@
+{
+  "schema": "mosaico-game-assets/v1",
+  "atlases": [
+    {
+      "config": "atlas.json",
+      "source": "mosaico_hop_atlas.png",
+      "output": "tower.atlas"
+    }
+  ],
+  "sounds": [
+    {
+      "source": "*.wav"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "forbidden_apis": [],
+  "generated_checks": [],
+  "compile_commands": "build/compile_commands.json"
+}

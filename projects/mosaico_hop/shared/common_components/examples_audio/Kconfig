@@ -1,0 +1,16 @@
+menu "Native Example Game Audio"
+
+# Preserve existing ESP-Mosaico sdkconfig overrides when sharing the audio
+# mixer/worker with other native Boards.
+
+config ESP_MOSAICO_AUDIO_CLIPS
+    int "Maximum loaded audio clips"
+    range 4 64
+    default 20
+
+config ESP_MOSAICO_AUDIO_VOICES
+    int "Simultaneous sound-effect voices"
+    range 1 16
+    default 8
+
+endmenu

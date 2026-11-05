@@ -1,0 +1,5 @@
+board: esp_mosaico
+chip: esp32s31
+version: 1.0.0
+description: ESP-Mosaico v1.0/v1.1/v1.2 native game hardware
+manufacturer: ESPRESSIF

@@ -1,0 +1,4 @@
+# ESP-IDF 6.2, commit 7b9cc1ac79f865983f59bb8ff3ff43eb74ff1dbe,
+# tools/ci/astyle-rules.yml. Only the shared defaults are inherited.
+DEFAULT:
+  options: "--style=otbs --attach-namespaces --attach-classes --indent=spaces=4 --convert-tabs --align-reference=name --keep-one-line-statements --pad-header --pad-oper --unpad-paren --max-continuation-indent=120"

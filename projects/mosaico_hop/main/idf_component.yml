@@ -1,0 +1,6 @@
+dependencies:
+  idf: ">=6.1"
+  espressif/esp_board_manager: "^0.7.1"
+  espressif2022/raylib-lite-engine:
+    version: "^0.1.0"
+    override_path: "../../../submodule/raylib-lite-engine"
