@@ -1,0 +1,35 @@
+menu "MiniHub panel"
+
+config MINIHUB_PANEL_WIFI_SSID
+    string "Wi-Fi SSID"
+    default ""
+    help
+        Station network used by the Mosaico panel. When empty, the
+        application tries the Wi-Fi profile already saved in NVS.
+
+config MINIHUB_PANEL_WIFI_PASSWORD
+    string "Wi-Fi password"
+    default ""
+
+config MINIHUB_PANEL_HUB_URL
+    string "MiniHub base URL"
+    default "http://127.0.0.1"
+    help
+        Embedded Host listens on this device. Leave the loopback URL
+        unless the panel is talking to another Hub.
+
+config MINIHUB_PANEL_HUB_USERNAME
+    string "MiniHub username"
+    default "admin"
+
+config MINIHUB_PANEL_HUB_PASSWORD
+    string "MiniHub password"
+    default ""
+
+config MINIHUB_PANEL_API_TOKEN
+    string "MiniHub bearer token"
+    default ""
+    help
+        Unused when the panel talks to the on-device Host with login auth off.
+
+endmenu

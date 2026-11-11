@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<title>MiniHub · 480×480 Mosaico UI 预览</title>
+<style>
+:root {
+  --bg: #F6F6F3;
+  --ink: #101010;
+  --accent: #FF4C01;
+  --muted: #70706C;
+  --line: #CBCBC6;
+  --tile: #CECECA;
+  --card: #FFFFFF;
+  --key: #E4E4DF;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  background: #20201E;
+  color: #E8E8E4;
+  font-family: "Noto Sans CJK SC", "Noto Sans CJK SC Regular", "DejaVu Sans", sans-serif;
+}
+body.solo { background: var(--bg); }
+body.solo .doc, body.solo .cell-cap { display: none; }
+body.solo .grid { display: block; padding: 0; gap: 0; }
+body.solo .cell { display: none; }
+body.solo .cell.target { display: block; }
+body.solo .screen { outline: none; }
+
+.doc {
+  padding: 28px 48px 12px;
+  max-width: 2120px;
+}
+.doc h1 { font: 700 22px/1.2 "DejaVu Sans", sans-serif; color: #F6F6F3; }
+.doc p { margin-top: 8px; font-size: 13px; color: #B0B0AA; max-width: 1120px; line-height: 1.5; }
+.tokens { display: flex; gap: 14px; margin-top: 14px; flex-wrap: wrap; }
+.sw { display: flex; align-items: center; gap: 8px; font: 12px/1 "DejaVu Sans", monospace; color: #CECECA; }
+.sw i { width: 18px; height: 18px; border-radius: 4px; display: block; border: 1px solid #444; }
+
+.grid {
+  padding: 20px 48px 48px;
+  display: grid;
+  grid-template-columns: repeat(4, 480px);
+  gap: 36px 32px;
+}
+.cell-cap {
+  font: 700 12px/1 "DejaVu Sans", sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9A9A94;
+  margin-bottom: 10px;
+  height: 16px;
+}
+.screen {
+  position: relative;
+  width: 480px;
+  height: 480px;
+  background: var(--bg);
+  color: var(--ink);
+  overflow: hidden;
+  outline: 1px solid #111;
+  font-family: "Noto Sans CJK SC", "DejaVu Sans", sans-serif;
+}
+
+/* Mosaico primitives (GSP-compatible: container / button / label / slider / list / keyboard) */
+.kicker { font: 700 12px/1 "DejaVu Sans", sans-serif; color: var(--muted); letter-spacing: 0.14em; text-transform: uppercase; }
+.title { font-size: 28px; font-weight: 700; color: var(--ink); line-height: 1.15; }
+.sub { font-size: 14px; color: var(--muted); line-height: 1.35; }
+.hair { height: 1px; background: var(--line); }
+.back {
+  width: 56px; height: 48px; background: var(--tile); border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font: 700 22px/1 "DejaVu Sans", sans-serif; color: var(--ink);
+}
+.cta {
+  background: var(--ink); color: var(--bg); border-radius: 16px;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  font-size: 18px; font-weight: 700;
+}
+.cta .arr { color: var(--accent); font-size: 24px; font-weight: 700; }
+.cta.orange { background: var(--accent); color: var(--bg); }
+.cta.ghost { background: var(--tile); color: var(--ink); }
+.card { background: var(--card); border-radius: 18px; }
+.card.sel { border: 2px solid var(--ink); }
+.add-ring {
+  position: absolute; right: 14px; bottom: 12px; width: 36px; height: 36px;
+  border-radius: 50%; border: 2px solid var(--accent); background: transparent;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent); font: 700 22px/1 "DejaVu Sans", sans-serif;
+}
+.choice {
+  display: flex; align-items: center; padding: 0 24px;
+}
+.choice .txt { display: flex; flex-direction: column; justify-content: center; }
+.choice .txt b { font: 700 22px/1 "DejaVu Sans", "Noto Sans CJK SC", sans-serif; }
+.choice .txt .sub { margin-top: 8px; }
+.proto {
+  display: flex; flex-direction: column; justify-content: center; padding: 0 16px;
+}
+.proto b { font: 700 20px/1.15 "DejaVu Sans", sans-serif; }
+.proto .sub { margin-top: 8px; font-size: 12px; }
+.sq { border-radius: 4px; }
+.badge {
+  height: 26px; padding: 0 10px; border-radius: 6px;
+  background: var(--bg); border: 1px solid var(--line);
+  display: inline-flex; align-items: center; gap: 6px;
+  font: 700 12px/1 "DejaVu Sans", "Noto Sans CJK SC", sans-serif; color: var(--ink);
+}
+.badge i { width: 8px; height: 8px; border-radius: 2px; background: var(--accent); display: block; }
+
+.tabbar {
+  position: absolute; left: 12px; top: 392px; width: 456px; height: 76px;
+  background: transparent; border-radius: 0;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+}
+.tab {
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+  font-size: 20px; font-weight: 700; color: var(--muted);
+}
+.tab.on {
+  background: var(--ink); color: var(--bg); border-color: transparent;
+}
+
+.seg {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;
+}
+.seg span {
+  height: 36px; border-radius: 6px; background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; color: var(--muted);
+}
+.seg span.on { background: var(--ink); color: var(--bg); }
+.seg span.acc { background: var(--accent); color: var(--bg); }
+
+.slider-row {
+  position: absolute; left: 20px; width: 440px; height: 54px;
+  background: var(--card); border-radius: 10px;
+}
+.slider-row .lbl {
+  position: absolute; left: 16px; top: 17px; font-size: 14px; font-weight: 700; color: var(--ink);
+}
+.slider-row .track {
+  position: absolute; left: 96px; top: 23px; width: 268px; height: 8px;
+  background: var(--tile); border-radius: 4px; overflow: hidden;
+}
+.slider-row .fill {
+  height: 8px; background: var(--accent); border-radius: 4px;
+}
+.slider-row .fill.ink { background: var(--ink); }
+.slider-row .knob {
+  position: absolute; top: 15px; width: 24px; height: 24px;
+  background: var(--card); border: 2px solid var(--ink); border-radius: 6px;
+}
+.slider-row .val {
+  position: absolute; right: 16px; top: 16px;
+  font: 700 15px/22px "DejaVu Sans", sans-serif; color: var(--ink);
+}
+
+.keys {
+  position: absolute; left: 16px; right: 16px; bottom: 14px; height: 260px;
+  background: var(--tile); border-radius: 10px; padding: 8px;
+  display: grid; grid-template-columns: repeat(10, 1fr); grid-auto-rows: 44px; gap: 5px;
+}
+.key {
+  background: var(--card); border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font: 700 14px/1 "DejaVu Sans", sans-serif; color: var(--ink);
+}
+.key.fn { background: var(--line); }
+.key.ok { background: var(--accent); color: var(--bg); }
+.key.wide { grid-column: span 2; }
+.key.sp { grid-column: span 5; }
+</style>
+</head>
+<body>
+<div class="doc">
+  <h1>MiniHub · 480×480 Mosaico UI 预览（未改固件代码 / 未刷机）</h1>
+  <p>基于 Mosaico 设计语言（<code>#F6F6F3</code> 暖白底 / <code>#101010</code> 墨黑 / <code>#FF4C01</code> 信号橙 / <code>#70706C</code> 次级灰 / <code>#CBCBC6</code> 细分割线 / <code>#CECECA</code> 几何块），完全清除旧版 Telegram 蓝绿与大圆角胶囊。全部控件 1:1 对应 GSP 原生能力（4 行滑条、2×2 协议网格、遮罩弹窗、双位大数字看板）。</p>
+  <div class="tokens">
+    <div class="sw"><i style="background:#F6F6F3"></i>#F6F6F3 BG</div>
+    <div class="sw"><i style="background:#FFFFFF"></i>#FFFFFF CARD</div>
+    <div class="sw"><i style="background:#101010"></i>#101010 INK</div>
+    <div class="sw"><i style="background:#FF4C01"></i>#FF4C01 ACCENT</div>
+    <div class="sw"><i style="background:#70706C"></i>#70706C MUTED</div>
+    <div class="sw"><i style="background:#CBCBC6"></i>#CBCBC6 LINE</div>
+    <div class="sw"><i style="background:#CECECA"></i>#CECECA TILE</div>
+  </div>
+</div>
+
+<div class="grid">
+
+<!-- 01 welcome -->
+<div class="cell" id="welcome">
+  <div class="cell-cap">01 · Welcome</div>
+  <div class="screen">
+    <img src="01-welcome.png" width="480" height="480" alt="MiniHub" style="display:block;width:480px;height:480px"/>
+  </div>
+</div>
+
+<!-- 02 language -->
+<div class="cell" id="language">
+  <div class="cell-cap">02 · Language · Default English</div>
+  <div class="screen">
+    <div class="kicker" style="position:absolute;left:36px;top:38px">01 / SETUP</div>
+    <div class="title" style="position:absolute;left:36px;top:58px;font-size:32px">Language</div>
+    <div class="hair" style="position:absolute;left:36px;top:106px;width:408px"></div>
+
+    <div class="card sel choice" style="position:absolute;left:36px;top:148px;width:408px;height:100px">
+      <div class="txt"><b>English</b><div class="sub">Default</div></div>
+      <div class="sq" style="position:absolute;right:24px;top:40px;width:20px;height:20px;background:var(--accent)"></div>
+    </div>
+
+    <div class="card choice" style="position:absolute;left:36px;top:264px;width:408px;height:100px">
+      <div class="txt"><b>中文</b><div class="sub">简体中文</div></div>
+      <div class="sq" style="position:absolute;right:24px;top:40px;width:20px;height:20px;border:1px solid var(--line);background:var(--bg)"></div>
+    </div>
+
+    <div class="cta" style="position:absolute;left:36px;top:384px;width:408px;height:56px">
+      Continue <span class="arr">→</span>
+    </div>
+  </div>
+</div>
+
+<!-- 03 wifi -->
+<div class="cell" id="wifi">
+  <div class="cell-cap">03 · Wi-Fi List</div>
+  <div class="screen">
+    <div class="back" style="position:absolute;left:36px;top:32px">&lt;</div>
+    <div class="kicker" style="position:absolute;left:108px;top:34px">02 / NETWORK</div>
+    <div class="title" style="position:absolute;left:108px;top:52px;font-size:28px">Wi-Fi</div>
+    <div class="hair" style="position:absolute;left:36px;top:96px;width:408px"></div>
+
+    <div class="sub" style="position:absolute;left:36px;top:112px;font-weight:700;color:var(--ink)">选择网络</div>
+    <div class="sq" style="position:absolute;right:72px;top:116px;width:10px;height:10px;background:var(--accent)"></div>
+    <div class="sq" style="position:absolute;right:54px;top:116px;width:10px;height:10px;background:var(--tile)"></div>
+    <div class="sq" style="position:absolute;right:36px;top:116px;width:10px;height:10px;background:var(--tile)"></div>
+
+    <div class="card" style="position:absolute;left:36px;top:144px;width:408px;height:256px;overflow:hidden">
+      <div style="height:64px;padding:0 22px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--bg);font:700 18px/1 'DejaVu Sans'">
+        <span>espressif</span><span class="sq" style="width:10px;height:10px;background:var(--accent)"></span>
+      </div>
+      <div style="height:64px;padding:0 22px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--bg);font:700 18px/1 'DejaVu Sans'">
+        <span>Mosaico-Lab</span><span class="sq" style="width:10px;height:10px;background:var(--ink)"></span>
+      </div>
+      <div style="height:64px;padding:0 22px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--bg);font:700 18px/1 'DejaVu Sans'">
+        <span>Office-2.4G</span><span class="sq" style="width:10px;height:10px;background:var(--ink)"></span>
+      </div>
+      <div style="height:64px;padding:0 22px;display:flex;align-items:center;justify-content:space-between;font:700 18px/1 'DejaVu Sans'">
+        <span>Esp-Guest</span><span class="sq" style="width:10px;height:10px;background:var(--tile)"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 04 wifi password -->
+<div class="cell" id="wifi-pass">
+  <div class="cell-cap">04 · Wi-Fi Password</div>
+  <div class="screen">
+    <div class="back" style="position:absolute;left:36px;top:28px">&lt;</div>
+    <div class="title" style="position:absolute;left:108px;top:28px;font-size:22px">espressif</div>
+    <div class="sub" style="position:absolute;left:108px;top:56px">输入 Wi-Fi 密码</div>
+
+    <div class="card sel" style="position:absolute;left:36px;top:94px;width:408px;height:52px">
+      <div style="padding:14px 18px;font:700 18px/20px 'DejaVu Sans';letter-spacing:2px;color:var(--ink)">••••••••••</div>
+      <div class="sq" style="position:absolute;right:16px;top:18px;width:4px;height:16px;background:var(--accent)"></div>
+    </div>
+
+    <div class="keys">
+      <div class="key">1</div><div class="key">2</div><div class="key">3</div><div class="key">4</div><div class="key">5</div><div class="key">6</div><div class="key">7</div><div class="key">8</div><div class="key">9</div><div class="key">0</div>
+      <div class="key">q</div><div class="key">w</div><div class="key">e</div><div class="key">r</div><div class="key">t</div><div class="key">y</div><div class="key">u</div><div class="key">i</div><div class="key">o</div><div class="key">p</div>
+      <div class="key">a</div><div class="key">s</div><div class="key">d</div><div class="key">f</div><div class="key">g</div><div class="key">h</div><div class="key">j</div><div class="key">k</div><div class="key">l</div><div class="key fn">⌫</div>
+      <div class="key fn">⇧</div><div class="key">z</div><div class="key">x</div><div class="key">c</div><div class="key">v</div><div class="key">b</div><div class="key">n</div><div class="key">m</div><div class="key ok wide">Join</div>
+      <div class="key fn wide">?123</div><div class="key sp">space</div><div class="key">.</div><div class="key">@</div><div class="key">-</div>
+    </div>
+  </div>
+</div>
+
+<!-- 05 mode -->
+<div class="cell" id="mode">
+  <div class="cell-cap">05 · Choose Mode</div>
+  <div class="screen">
+    <div class="back" style="position:absolute;left:36px;top:32px">&lt;</div>
+    <div class="kicker" style="position:absolute;left:108px;top:34px">03 / PRODUCT</div>
+    <div class="title" style="position:absolute;left:108px;top:52px;font-size:28px">选择模式</div>
+    <div class="hair" style="position:absolute;left:36px;top:96px;width:408px"></div>
+    <div class="sub" style="position:absolute;left:36px;top:110px">Wi-Fi 已就绪 · 192.168.1.108</div>
+
+    <div class="card sel choice" style="position:absolute;left:36px;top:146px;width:408px;height:108px">
+      <div class="txt"><b>Hub</b><div class="sub">在这台 Mosaico 上运行 MiniHub 中枢</div></div>
+      <div class="sq" style="position:absolute;right:24px;top:44px;width:20px;height:20px;background:var(--accent)"></div>
+    </div>
+
+    <div class="card choice" style="position:absolute;left:36px;top:270px;width:408px;height:108px">
+      <div class="txt"><b>Panel</b><div class="sub">作为遥控屏连接其它 MiniHub 主机</div></div>
+      <div class="sq" style="position:absolute;right:24px;top:44px;width:20px;height:20px;border:1px solid var(--line);background:var(--bg)"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 06 home empty -->
+<div class="cell" id="home-empty">
+  <div class="cell-cap">06 · Devices · Empty</div>
+  <div class="screen">
+    <div class="title" style="position:absolute;left:20px;top:18px;font-family:'DejaVu Sans'">MiniHub</div>
+    <div class="badge" style="position:absolute;right:20px;top:22px"><i></i>HUB · 在线</div>
+    <div class="hair" style="position:absolute;left:20px;top:60px;width:440px"></div>
+
+    <div style="position:absolute;left:20px;top:70px;font:700 38px/1 'DejaVu Sans';color:var(--ink)">00</div>
+    <div class="kicker" style="position:absolute;left:82px;top:86px">设备</div>
+    <div style="position:absolute;right:20px;top:70px;font:700 38px/1 'DejaVu Sans';color:var(--muted)">00</div>
+    <div class="kicker" style="position:absolute;right:82px;top:86px">在线</div>
+
+    <div class="card" style="position:absolute;left:20px;top:124px;width:214px;height:128px;border:1px solid var(--line)">
+      <div style="position:absolute;left:16px;top:12px;font-size:17px;font-weight:700">添加设备</div>
+      <div class="add-ring">+</div>
+    </div>
+
+    <div class="tabbar">
+      <div class="tab on">设备</div><div class="tab">场景</div><div class="tab">自动化</div><div class="tab">设置</div>
+    </div>
+  </div>
+</div>
+
+<!-- 07 home -->
+<div class="cell" id="home">
+  <div class="cell-cap">07 · Devices · Primary</div>
+  <div class="screen">
+    <div class="title" style="position:absolute;left:20px;top:18px;font-family:'DejaVu Sans'">MiniHub</div>
+    <div class="badge" style="position:absolute;right:20px;top:22px"><i></i>HUB · 在线</div>
+    <div class="hair" style="position:absolute;left:20px;top:60px;width:440px"></div>
+
+    <div style="position:absolute;left:20px;top:70px;font:700 38px/1 'DejaVu Sans';color:var(--ink)">03</div>
+    <div class="kicker" style="position:absolute;left:82px;top:86px">设备</div>
+    <div style="position:absolute;right:20px;top:70px;font:700 38px/1 'DejaVu Sans';color:var(--accent)">02</div>
+    <div class="kicker" style="position:absolute;right:82px;top:86px">在线</div>
+
+    <!-- Card 0: ON -->
+    <div class="card" style="position:absolute;left:20px;top:118px;width:214px;height:116px;border:1px solid var(--ink)">
+      <div style="position:absolute;left:16px;top:12px;font-size:17px;font-weight:700">客厅主灯</div>
+      <div class="sub" style="position:absolute;left:16px;top:42px;font-size:12px">Matter · 72%</div>
+      <div style="position:absolute;right:16px;bottom:14px;font:700 22px/1 'Noto Sans CJK SC';color:var(--accent)">开</div>
+    </div>
+
+    <!-- Card 1: OFF -->
+    <div class="card" style="position:absolute;left:246px;top:118px;width:214px;height:116px">
+      <div style="position:absolute;left:16px;top:12px;font-size:17px;font-weight:700">书桌灯</div>
+      <div class="sub" style="position:absolute;left:16px;top:42px;font-size:12px">Zigbee</div>
+      <div style="position:absolute;right:16px;bottom:14px;font:700 22px/1 'Noto Sans CJK SC';color:var(--ink)">关</div>
+    </div>
+
+    <!-- Card 2: Offline -->
+    <div class="card" style="position:absolute;left:20px;top:244px;width:214px;height:116px">
+      <div style="position:absolute;left:16px;top:12px;font-size:17px;font-weight:700;color:var(--muted)">走廊灯</div>
+      <div class="sub" style="position:absolute;left:16px;top:42px;font-size:12px">Matter · 离线</div>
+      <div style="position:absolute;right:16px;bottom:14px;font-size:16px;font-weight:700;color:var(--muted)">离线</div>
+    </div>
+
+    <!-- Card 3: Add -->
+    <div class="card" style="position:absolute;left:246px;top:244px;width:214px;height:116px;border:1px solid var(--line)">
+      <div style="position:absolute;left:16px;top:12px;font-size:17px;font-weight:700">添加设备</div>
+      <div class="add-ring">+</div>
+    </div>
+
+    <!-- Pager dots -->
+    <div class="sq" style="position:absolute;left:224px;top:372px;width:16px;height:6px;background:var(--accent)"></div>
+    <div class="sq" style="position:absolute;left:246px;top:372px;width:6px;height:6px;background:var(--tile)"></div>
+
+    <div class="tabbar">
+      <div class="tab on">设备</div><div class="tab">场景</div><div class="tab">自动化</div><div class="tab">设置</div>
+    </div>
+  </div>
+</div>
+
+<!-- 08 detail on (4 sliders matching GSP main.json) -->
+<div class="cell" id="detail">
+  <div class="cell-cap">08 · Device Detail · On (Full Color)</div>
+  <div class="screen">
+    <div class="back" style="position:absolute;left:20px;top:18px">&lt;</div>
+    <div class="title" style="position:absolute;left:90px;top:18px;font-size:22px">客厅主灯</div>
+    <div class="sub" style="position:absolute;left:90px;top:46px">Matter · 在线</div>
+    <div class="sq" style="position:absolute;right:20px;top:22px;width:36px;height:36px;background:var(--accent)"></div>
+
+    <!-- 4 slider rows: Brightness, Hue, Saturation, CCT -->
+    <div class="slider-row" style="top:80px">
+      <div class="lbl">亮度</div>
+      <div class="track"><div class="fill" style="width:72%"></div></div>
+      <div class="knob" style="left:276px"></div>
+      <div class="val">72</div>
+    </div>
+    <div class="slider-row" style="top:142px">
+      <div class="lbl">色相</div>
+      <div class="track"><div class="fill ink" style="width:45%"></div></div>
+      <div class="knob" style="left:205px"></div>
+      <div class="val">160</div>
+    </div>
+    <div class="slider-row" style="top:204px">
+      <div class="lbl">饱和度</div>
+      <div class="track"><div class="fill ink" style="width:80%"></div></div>
+      <div class="knob" style="left:298px"></div>
+      <div class="val">80</div>
+    </div>
+    <div class="slider-row" style="top:266px">
+      <div class="lbl">色温</div>
+      <div class="track"><div class="fill" style="width:40%"></div></div>
+      <div class="knob" style="left:192px"></div>
+      <div class="val">4000</div>
+    </div>
+
+    <div class="cta orange" style="position:absolute;left:20px;top:340px;width:440px;height:52px">关闭灯</div>
+    <div class="cta ghost" style="position:absolute;left:20px;top:404px;width:440px;height:52px;font-size:16px">删除设备</div>
+  </div>
+</div>
+
+<!-- 09 detail offline -->
+<div class="cell" id="detail-off">
+  <div class="cell-cap">09 · Device Detail · Offline</div>
+  <div class="screen">
+    <div class="back" style="position:absolute;left:20px;top:18px">&lt;</div>
+    <div class="title" style="position:absolute;left:90px;top:18px;font-size:22px">走廊灯</div>
+    <div class="sub" style="position:absolute;left:90px;top:46px">Matter · 离线</div>
+    <div class="sq" style="position:absolute;right:20px;top:22px;width:36px;height:36px;background:var(--tile)"></div>
+
+    <div class="card" style="position:absolute;left:20px;top:92px;width:440px;height:180px;padding:24px">
+      <div class="kicker">OFFLINE</div>
+      <div style="margin-top:12px;font-size:20px;font-weight:700">设备暂时未响应</div>
+      <div class="sub" style="margin-top:10px;font-size:15px;line-height:1.5">请确认设备已通电且与 MiniHub 处于同一 2.4 GHz Wi-Fi，再轻触下方重连。</div>
+    </div>
+
+    <div class="cta" style="position:absolute;left:20px;top:340px;width:440px;height:52px">
+      重连设备 <span class="arr">→</span>
+    </div>
+    <div class="cta ghost" style="position:absolute;left:20px;top:404px;width:440px;height:52px;font-size:16px">删除设备</div>
+  </div>
+</div>
+
+<!-- 10 add device protocol (2x2 + 1 grid matching GSP main.json) -->
+<div class="cell" id="add">
+  <div class="cell-cap">10 · Add Device · Protocols</div>
+  <div class="screen">
+    <div class="back" style="position:absolute;left:36px;top:32px">&lt;</div>
+    <div class="title" style="position:absolute;left:108px;top:30px;font-size:22px">选择设备类型</div>
+    <div class="sub" style="position:absolute;left:108px;top:58px">仅显示当前固件支持的协议</div>
+
+    <!-- 2x2 + 1 layout matching add_protocols in main.json -->
+    <div class="card sel proto" style="position:absolute;left:36px;top:112px;width:196px;height:100px">
+      <b>Matter</b><div class="sub">11/21 位码 · MT:</div>
+    </div>
+    <div class="card proto" style="position:absolute;left:248px;top:112px;width:196px;height:100px">
+      <b>Zigbee</b><div class="sub">802.15.4 配网</div>
+    </div>
+    <div class="card proto" style="position:absolute;left:36px;top:228px;width:196px;height:100px">
+      <b>BLE Mesh</b><div class="sub">蓝牙 Mesh 节点</div>
+    </div>
+    <div class="card proto" style="position:absolute;left:248px;top:228px;width:196px;height:100px">
+      <b>MQTT</b><div class="sub">Broker · Topic</div>
+    </div>
+    <div class="card proto" style="position:absolute;left:36px;top:344px;width:196px;height:100px">
+      <b>Modbus TCP</b><div class="sub">网关 · 从站 · 寄存器</div>
+    </div>
+  </div>
+</div>
+
+<!-- 11 matter pairing code -->
+<div class="cell" id="matter">
+  <div class="cell-cap">11 · Matter Pairing Code</div>
+  <div class="screen">
+    <div class="back" style="position:absolute;left:36px;top:28px">&lt;</div>
+    <div class="title" style="position:absolute;left:108px;top:28px;font-size:22px">添加 Matter 设备</div>
+    <div class="sub" style="position:absolute;left:108px;top:56px">1/3  入网码（11/21 位数字或 MT:）</div>
+
+    <div class="card sel" style="position:absolute;left:36px;top:94px;width:408px;height:52px">
+      <div style="padding:14px 18px;font:700 18px/22px 'DejaVu Sans';color:var(--ink)">34970112332</div>
+      <div class="sq" style="position:absolute;right:16px;top:18px;width:4px;height:16px;background:var(--accent)"></div>
+    </div>
+
+    <div class="keys">
+      <div class="key">1</div><div class="key">2</div><div class="key">3</div><div class="key">4</div><div class="key">5</div><div class="key">6</div><div class="key">7</div><div class="key">8</div><div class="key">9</div><div class="key">0</div>
+      <div class="key">q</div><div class="key">w</div><div class="key">e</div><div class="key">r</div><div class="key">t</div><div class="key">y</div><div class="key">u</div><div class="key">i</div><div class="key">o</div><div class="key">p</div>
+      <div class="key">a</div><div class="key">s</div><div class="key">d</div><div class="key">f</div><div class="key">g</div><div class="key">h</div><div class="key">j</div><div class="key">k</div><div class="key">l</div><div class="key fn">⌫</div>
+      <div class="key fn">⇧</div><div class="key">z</div><div class="key">x</div><div class="key">c</div><div class="key">v</div><div class="key">b</div><div class="key">n</div><div class="key">m</div><div class="key ok wide">Add</div>
+      <div class="key fn wide">MT:</div><div class="key sp">space</div><div class="key">-</div><div class="key">.</div><div class="key">:</div>
+    </div>
+  </div>
+</div>
+
+<!-- 12 discovering -->
+<div class="cell" id="discover">
+  <div class="cell-cap">12 · Discovering</div>
+  <div class="screen">
+    <div class="back" style="position:absolute;left:36px;top:32px">&lt;</div>
+    <div class="title" style="position:absolute;left:108px;top:30px;font-size:22px">添加 Matter 设备</div>
+    <div class="sub" style="position:absolute;left:108px;top:58px">客厅主灯</div>
+
+    <div class="card" style="position:absolute;left:36px;top:116px;width:408px;height:212px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 32px">
+      <div style="display:flex;gap:12px">
+        <div class="sq" style="width:20px;height:20px;background:var(--accent)"></div>
+        <div class="sq" style="width:20px;height:20px;background:var(--ink)"></div>
+        <div class="sq" style="width:20px;height:20px;background:var(--tile)"></div>
+      </div>
+      <div class="title" style="margin-top:18px;font-size:26px">正在发现...</div>
+      <div class="sub" style="margin-top:12px;line-height:1.45">配对码校验通过才会进入此页。<br/>超时约 2 分钟，失败直接返回。</div>
+    </div>
+
+    <div class="cta ghost" style="position:absolute;left:36px;top:360px;width:408px;height:56px">取消入网</div>
+  </div>
+</div>
+
+<!-- 13 scenes -->
+<div class="cell" id="scenes">
+  <div class="cell-cap">13 · Scenes</div>
+  <div class="screen">
+    <div class="title" style="position:absolute;left:20px;top:18px">场景</div>
+    <div class="cta" style="position:absolute;left:320px;top:16px;width:140px;height:44px;font-size:16px">创建 <span class="arr">→</span></div>
+    <div class="sub" style="position:absolute;left:20px;top:62px;width:440px">轻触一次即可执行，右侧删除</div>
+
+    <div class="card" style="position:absolute;left:20px;top:96px;width:440px;height:72px">
+      <div class="sq" style="position:absolute;left:18px;top:18px;width:10px;height:36px;background:var(--accent)"></div>
+      <div style="position:absolute;left:40px;top:14px;font-size:19px;font-weight:700">回家全开</div>
+      <div class="sub" style="position:absolute;left:40px;top:42px;font-size:13px">开 2 · 客厅主灯、书桌灯</div>
+      <div class="cta ghost" style="position:absolute;right:14px;top:16px;width:72px;height:40px;font-size:14px">删除</div>
+    </div>
+
+    <div class="card" style="position:absolute;left:20px;top:180px;width:440px;height:72px">
+      <div class="sq" style="position:absolute;left:18px;top:18px;width:10px;height:36px;background:var(--ink)"></div>
+      <div style="position:absolute;left:40px;top:14px;font-size:19px;font-weight:700">离家全关</div>
+      <div class="sub" style="position:absolute;left:40px;top:42px;font-size:13px">关 2 · 客厅主灯、书桌灯</div>
+      <div class="cta ghost" style="position:absolute;right:14px;top:16px;width:72px;height:40px;font-size:14px">删除</div>
+    </div>
+
+    <div class="tabbar">
+      <div class="tab">设备</div><div class="tab on">场景</div><div class="tab">自动化</div><div class="tab">设置</div>
+    </div>
+  </div>
+</div>
+
+<!-- 14 scene builder -->
+<div class="cell" id="scene-edit">
+  <div class="cell-cap">14 · Scene Builder</div>
+  <div class="screen">
+    <div class="title" style="position:absolute;left:20px;top:18px">场景</div>
+    <div class="cta orange" style="position:absolute;left:320px;top:16px;width:140px;height:44px;font-size:16px">保存 <span class="arr" style="color:var(--bg)">→</span></div>
+    <div class="sub" style="position:absolute;left:20px;top:62px;width:440px">点设备卡片切换 开 / 关，再点右上角保存</div>
+
+    <div class="card sel" style="position:absolute;left:20px;top:96px;width:440px;height:72px">
+      <div style="position:absolute;left:20px;top:14px;font-size:19px;font-weight:700">客厅主灯 · <span style="color:var(--accent)">开</span></div>
+      <div class="sub" style="position:absolute;left:20px;top:42px;font-size:13px">轻触切换状态</div>
+      <div class="sq" style="position:absolute;right:20px;top:24px;width:24px;height:24px;background:var(--accent)"></div>
+    </div>
+
+    <div class="card" style="position:absolute;left:20px;top:180px;width:440px;height:72px">
+      <div style="position:absolute;left:20px;top:14px;font-size:19px;font-weight:700">书桌灯 · <span>关</span></div>
+      <div class="sub" style="position:absolute;left:20px;top:42px;font-size:13px">轻触切换状态</div>
+      <div class="sq" style="position:absolute;right:20px;top:24px;width:24px;height:24px;background:var(--ink)"></div>
+    </div>
+
+    <div class="card" style="position:absolute;left:20px;top:264px;width:440px;height:72px;border:1px solid var(--line)">
+      <div style="position:absolute;left:20px;top:14px;font-size:18px;font-weight:700">+ 添加设备</div>
+      <div class="sub" style="position:absolute;left:20px;top:42px;font-size:13px">轻触加入更多可控制设备</div>
+    </div>
+
+    <div class="tabbar">
+      <div class="tab">设备</div><div class="tab on">场景</div><div class="tab">自动化</div><div class="tab">设置</div>
+    </div>
+  </div>
+</div>
+
+<!-- 15 automation -->
+<div class="cell" id="automation">
+  <div class="cell-cap">15 · Automation</div>
+  <div class="screen">
+    <div class="title" style="position:absolute;left:20px;top:18px">自动化</div>
+    <div class="cta" style="position:absolute;left:320px;top:16px;width:140px;height:44px;font-size:16px">创建 <span class="arr">→</span></div>
+    <div class="sub" style="position:absolute;left:20px;top:62px;width:440px">轻触即可启用或停用，右侧删除</div>
+
+    <div class="card" style="position:absolute;left:20px;top:96px;width:440px;height:72px">
+      <div class="sq" style="position:absolute;left:18px;top:18px;width:10px;height:36px;background:var(--accent)"></div>
+      <div style="position:absolute;left:40px;top:14px;font-size:18px;font-weight:700">客厅主灯 开 → 书桌灯 关</div>
+      <div class="sub" style="position:absolute;left:40px;top:42px;font-size:13px;color:var(--accent);font-weight:700">开（已启用）</div>
+      <div class="cta ghost" style="position:absolute;right:14px;top:16px;width:72px;height:40px;font-size:14px">删除</div>
+    </div>
+
+    <div class="card" style="position:absolute;left:20px;top:180px;width:440px;height:72px">
+      <div class="sq" style="position:absolute;left:18px;top:18px;width:10px;height:36px;background:var(--tile)"></div>
+      <div style="position:absolute;left:40px;top:14px;font-size:18px;font-weight:700">书桌灯 开 → 客厅主灯 开</div>
+      <div class="sub" style="position:absolute;left:40px;top:42px;font-size:13px">关（已停用）</div>
+      <div class="cta ghost" style="position:absolute;right:14px;top:16px;width:72px;height:40px;font-size:14px">删除</div>
+    </div>
+
+    <div class="tabbar">
+      <div class="tab">设备</div><div class="tab">场景</div><div class="tab on">自动化</div><div class="tab">设置</div>
+    </div>
+  </div>
+</div>
+
+<!-- 16 automation builder -->
+<div class="cell" id="auto-edit">
+  <div class="cell-cap">16 · Automation Builder</div>
+  <div class="screen">
+    <div class="title" style="position:absolute;left:20px;top:18px">自动化</div>
+    <div class="cta orange" style="position:absolute;left:320px;top:16px;width:140px;height:44px;font-size:16px">保存 <span class="arr" style="color:var(--bg)">→</span></div>
+    <div class="sub" style="position:absolute;left:20px;top:62px;width:440px">2/2  再点卡片切换开/关，点右上角保存</div>
+
+    <div class="card sel" style="position:absolute;left:20px;top:96px;width:440px;height:72px">
+      <div class="kicker" style="position:absolute;left:20px;top:14px;color:var(--accent)">IF · 触发设备</div>
+      <div style="position:absolute;left:20px;top:34px;font-size:19px;font-weight:700">客厅主灯</div>
+      <div style="position:absolute;right:20px;top:24px;font:700 20px/1 'Noto Sans CJK SC';color:var(--accent)">开</div>
+    </div>
+
+    <div class="card sel" style="position:absolute;left:20px;top:180px;width:440px;height:72px">
+      <div class="kicker" style="position:absolute;left:20px;top:14px">THEN · 目标设备</div>
+      <div style="position:absolute;left:20px;top:34px;font-size:19px;font-weight:700">书桌灯</div>
+      <div style="position:absolute;right:20px;top:24px;font:700 20px/1 'Noto Sans CJK SC';color:var(--ink)">关</div>
+    </div>
+
+    <div class="tabbar">
+      <div class="tab">设备</div><div class="tab">场景</div><div class="tab on">自动化</div><div class="tab">设置</div>
+    </div>
+  </div>
+</div>
+
+<!-- 17 settings -->
+<div class="cell" id="settings">
+  <div class="cell-cap">17 · Settings</div>
+  <div class="screen">
+    <div class="title" style="position:absolute;left:20px;top:18px">设置</div>
+
+    <div class="card" style="position:absolute;left:20px;top:68px;width:440px;height:106px;display:flex;flex-direction:column;justify-content:center;padding:0 20px;gap:6px">
+      <div style="font:700 20px/1 'DejaVu Sans'">MiniHub · 在线</div>
+      <div class="sub" style="font-family:'DejaVu Sans'">http://192.168.1.108</div>
+      <div class="sub">可用 128 KB · Zigbee 固件</div>
+    </div>
+
+    <div class="card" style="position:absolute;left:20px;top:188px;width:140px;height:72px;display:flex;align-items:center;justify-content:center;font:700 18px/1 'DejaVu Sans'">Wi-Fi</div>
+    <div class="card" style="position:absolute;left:170px;top:188px;width:140px;height:72px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700">模式</div>
+    <div class="card" style="position:absolute;left:320px;top:188px;width:140px;height:72px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700">语言</div>
+
+    <div class="card" style="position:absolute;left:20px;top:276px;width:440px;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 20px">
+      <span style="font-size:18px;font-weight:700;color:var(--accent)">重启 MiniHub</span>
+      <span style="font:700 20px/1 'DejaVu Sans';color:var(--accent)">→</span>
+    </div>
+
+    <div class="sub" style="position:absolute;left:20px;top:350px;width:440px;text-align:center;font-size:13px">系统更新使用 Mosaico Vibe Mode</div>
+
+    <div class="tabbar">
+      <div class="tab">设备</div><div class="tab">场景</div><div class="tab">自动化</div><div class="tab on">设置</div>
+    </div>
+  </div>
+</div>
+
+<!-- 18 reboot confirm overlay -->
+<div class="cell" id="reboot">
+  <div class="cell-cap">18 · Restart Confirm Modal</div>
+  <div class="screen">
+    <!-- Dimmed underlying settings screen -->
+    <div style="position:absolute;inset:0;background:rgba(16,16,16,0.62)"></div>
+
+    <div class="card sel" style="position:absolute;left:36px;top:124px;width:408px;height:232px;background:var(--bg)">
+      <div class="sq" style="position:absolute;left:192px;top:24px;width:24px;height:24px;background:var(--accent)"></div>
+      <div class="title" style="position:absolute;left:24px;top:62px;width:360px;text-align:center;font-size:26px">重启 MiniHub？</div>
+      <div class="sub" style="position:absolute;left:24px;top:106px;width:360px;text-align:center">设备将短暂离线。系统更新不走此按钮。</div>
+      <div class="cta ghost" style="position:absolute;left:24px;top:156px;width:172px;height:52px">取消</div>
+      <div class="cta orange" style="position:absolute;right:24px;top:156px;width:172px;height:52px">重启</div>
+    </div>
+  </div>
+</div>
+
+</div>
+<script>
+(function () {
+  const p = new URLSearchParams(location.search).get("s");
+  if (!p) return;
+  document.body.classList.add("solo");
+  const cell = document.getElementById(p);
+  if (cell) cell.classList.add("target");
+})();
+</script>
+</body>
+</html>

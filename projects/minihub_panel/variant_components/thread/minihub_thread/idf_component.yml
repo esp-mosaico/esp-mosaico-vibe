@@ -1,0 +1,4 @@
+dependencies:
+  espressif/esp_rcp_update: "1.6.2"
+  # Keep one responder instance with ESP-Iris 0.2.0.
+  espressif/mdns: "1.12.0"

@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "run_id": "20261110-111941-build-8764",
+  "action": "build",
+  "status": "failed",
+  "exit_code": 2,
+  "duration_seconds": 12.511,
+  "project": "/tmp/audit-refs/esp-mosaico-vibe/projects/minihub_panel",
+  "idf_path": "/tmp/audit-refs/esp-idf",
+  "target": "esp32s31",
+  "build_dir": "/tmp/audit-refs/esp-mosaico-vibe/projects/minihub_panel/build",
+  "warnings": 0,
+  "diagnostic": {
+    "category": "cmake",
+    "line": 27,
+    "message": "CMake Error",
+    "excerpt_start": 19,
+    "excerpt_end": 47,
+    "excerpt": "-- Detecting CXX compile features\n-- Detecting CXX compile features - done\n-- Building ESP-IDF components for target esp32s31\nNOTE: Dependencies lock doesn't exist, solving dependencies.\nNOTE: Skipping optional dependency: espressif/esp_wifi_remote\nNOTE: Skipping optional dependency: espressif/esp_hosted\nNOTE: Using component placed at /tmp/audit-refs/esp-mosaico-vibe/submodule/esp-mosaico-bsp/components/esp-mosaico-bsp for dependency \"esp-mosaico-bsp\", specified in /tmp/audit-refs/esp-mosaico-vibe/projects/minihub_panel/main/idf_component.yml\nNOTE: Using component placed at /tmp/audit-refs/esp-mosaico-vibe/submodule/esp-mosaico-utils/ESP-Iris/components/esp_iris for dependency \"esp_iris\", specified in /tmp/audit-refs/esp-mosaico-vibe/projects/minihub_panel/main/idf_component.yml\nCMake Error at /tmp/audit-refs/esp-idf/tools/cmake/build.cmake:717 (message):\n  ERROR: Version solving failed:\n\n      - esp_iris (0.2.0) depends on espressif/mdns (1.12.0)\n      - no versions of esp_iris match >=0.0.0,<0.2.0 || >0.2.0\n      - project depends on esp_iris (*)\n      - project depends on espressif/mdns (1.13.1)\n\n  Result: Because project depends on both esp_iris (*) and espressif/mdns\n  (1.13.1), version solving failed.\n\nCall Stack (most recent call first):\n  /tmp/audit-refs/esp-idf/tools/cmake/project.cmake:904 (idf_build_process)\n  CMakeLists.txt:101 (project)\n\n\n.........................................................-- Configuring incomplete, errors occurred!\nERROR: cmake failed with exit code 1, output of the command is in the /tmp/audit-refs/esp-mosaico-vibe/projects/minihub_panel/build/log/idf_py_stderr_output_8798 and /tmp/audit-refs/esp-mosaico-vibe/projects/minihub_panel/build/log/idf_py_stdout_output_8798\nExecuting action: all (aliases: build)\nRunning cmake in directory /tmp/audit-refs/esp-mosaico-vibe/projects/minihub_panel/build\nExecuting \"cmake -G Ninja -B /tmp/audit-refs/esp-mosaico-vibe/projects/minihub_panel/build -DPYTHON_DEPS_CHECKED=1 -DPYTHON=/home/ubuntu/.espressif/python_env/idf6.2_py3.12_env/bin/python -DESP_PLATFORM=1 -DCCACHE_ENABLE=True -DCONFIGDEP_ENABLE=True /tmp/audit-refs/esp-mosaico-vibe/projects/minihub_panel\"..."
+  },
+  "artifacts": [],
+  "raw_log": "/tmp/audit-refs/esp-mosaico-vibe/projects/minihub_panel/.codex-runs/idf-low-noise-build/20261110-111941-build-8764/raw.log",
+  "clean_log": "/tmp/audit-refs/esp-mosaico-vibe/projects/minihub_panel/.codex-runs/idf-low-noise-build/20261110-111941-build-8764/clean.log",
+  "result_file": "/tmp/audit-refs/esp-mosaico-vibe/projects/minihub_panel/.codex-runs/idf-low-noise-build/20261110-111941-build-8764/result.json"
+}

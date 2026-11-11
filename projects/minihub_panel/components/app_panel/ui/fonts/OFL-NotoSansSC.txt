@@ -1,0 +1,11 @@
+Noto Sans CJK is licensed under the SIL Open Font License, Version 1.1.
+
+The complete license text is available at:
+https://openfontlicense.org/open-font-license-official-text/
+
+Copyright 2014-2026 Adobe (http://www.adobe.com/), with Reserved Font Name
+'Source'. Source is a trademark of Adobe in the United States and/or other
+countries.
+
+This project vendors Noto Sans CJK SC Regular (NotoSansCJKsc-Regular) for the
+panel UI. Rasterized settings labels may still use a smaller derived subset.

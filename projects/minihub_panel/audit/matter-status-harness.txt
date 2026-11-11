@@ -1,0 +1,14 @@
+PASS screen path wifi down
+PASS screen path queued
+PASS screen path queue full
+PASS direct api wifi down
+PASS screen path is not the silent branch
+PASS specific reason retained only in unused buffer
+PASS screen shows generic start failure
+PASS status field holds 63 chars
+PASS status field drops the tail
+PASS binding still titled discovering
+PASS activating still titled discovering
+PASS 300s deadline is many short polls
+PASS single poll is 1.2s not 300s
+HARNESS_OK

@@ -1,0 +1,19 @@
+dependencies:
+  idf: ">=6.2"
+  esp-mosaico-bsp:
+    version: "*"
+    override_path: "../../../submodule/esp-mosaico-bsp/components/esp-mosaico-bsp"
+  esp_iris:
+    version: "*"
+    override_path: "../../../submodule/esp-mosaico-utils/ESP-Iris/components/esp_iris"
+  espressif/esp-gsp: "==1.5.1"
+  espressif/cjson: "^1.7.19"
+  espressif/esp_websocket_client: "^1.5.0"
+  espressif/network_provisioning: "1.2.4"
+  espressif/esp_flash_dispatcher: "1.0.3"
+  joltwallet/littlefs: "~1.21.0"
+  # Iris USB transport on esp32s31. Keep this explicit so component manager
+  # does not prune leftover tinyusb folders as unused.
+  espressif/esp_tinyusb: "==2.3.0"
+  # The BSP display adapter uses headers deprecated by LVGL 9.6.
+  lvgl/lvgl: "==9.5.0"

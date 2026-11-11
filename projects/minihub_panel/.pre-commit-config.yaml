@@ -1,0 +1,77 @@
+minimum_pre_commit_version: "3.5.0"
+default_stages: [pre-commit]
+
+# Do not add a global exclude: forced additions of build outputs must be checked.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: detect-private-key
+      - id: check-merge-conflict
+        args: [--assume-in-merge]
+      - id: check-added-large-files
+        args: [--maxkb=5120, --enforce-all]
+      - id: check-case-conflict
+      - id: check-symlinks
+      - id: destroyed-symlinks
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+  - repo: https://github.com/espressif/astyle_py
+    rev: v1.0.5
+    hooks:
+      - id: astyle_py
+        args: [--astyle-version=3.4.7, --rules=tools/quality/astyle.yml]
+        exclude: &external_sources '(^|/)(build|build[-_][^/]*|cmake-build-[^/]*|managed_components|third_party|third-party|vendor|submodule|submodules|generated|\.venv[^/]*|venv)/|^shared/(common_components|boards)/'
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.7
+    hooks:
+      - id: ruff
+        args: [--config, tools/quality/ruff.toml]
+        exclude: *external_sources
+      - id: ruff-format
+        args: [--config, tools/quality/ruff.toml]
+        exclude: *external_sources
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+  - repo: local
+    hooks:
+      - id: mosaico-artifacts
+        name: Reject build outputs and local credentials
+        entry: >-
+          python "../../submodule/esp-mosaico-utils/mosaico-tools/tools/quality/check_project.py" artifacts
+        language: python
+        types: [file]
+      - id: mosaico-components
+        name: Check ESP-IDF components and configured API restrictions
+        entry: >-
+          python "../../submodule/esp-mosaico-utils/mosaico-tools/tools/quality/check_project.py" components
+        language: python
+        always_run: true
+        pass_filenames: false
+      - id: mosaico-cppcheck
+        name: Analyze application C/C++ using its compilation database
+        entry: >-
+          python "../../submodule/esp-mosaico-utils/mosaico-tools/tools/quality/check_project.py" cppcheck
+        language: python
+        additional_dependencies: [cppcheck==1.5.1]
+        stages: [manual]
+        always_run: true
+        pass_filenames: false
+      - id: mosaico-generated
+        name: Check configured generated sources are synchronized
+        entry: >-
+          python "../../submodule/esp-mosaico-utils/mosaico-tools/tools/quality/check_project.py" generated
+        language: python
+        stages: [manual]
+        always_run: true
+        pass_filenames: false

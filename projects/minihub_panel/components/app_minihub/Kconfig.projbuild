@@ -1,0 +1,4 @@
+# Mount MiniHub's official configuration menu without importing its umbrella
+# component dependency graph. The panel selects radio components per firmware
+# variant in the project CMakeLists instead.
+rsource "../../../../../esp-minihub/cmake/minihub_bundle/Kconfig.projbuild"

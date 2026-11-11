@@ -1,0 +1,8 @@
+# MiniHub panel Zigbee release variant.
+CONFIG_MINIHUB_ZIGBEE_SDK=y
+# CONFIG_MINIHUB_THREAD_ADAPTER is not set
+
+# Wi-Fi + Zigbee consumes the product's supported 2.4 GHz radio budget.
+# Keep BLE Mesh out of the default Zigbee image instead of exposing a mode
+# that disables already paired Zigbee devices.
+# CONFIG_MINIHUB_BLE_MESH_SDK is not set
