@@ -18,6 +18,7 @@ mosaico.py
 │   ├── logs / memory / crash / rpc
 │   ├── device-status / screenshot / operation-status
 │   ├── operation-reconcile
+│   ├── flash / app-flash / run-app / restart
 │   ├── app-update
 │   ├── system-update
 │   └── test enter-recovery / recovery-wifi / bridge-code
@@ -50,6 +51,9 @@ mosaico.py
 | `iris screenshot <output>` | 直接保存设备图像并返回图像及操作信息；核对截图前后 Device ID 和 Boot ID 一致 |
 | `iris operation-status <operation-id>` | 查询已有操作并保留其实际状态；不认领设备、不重放操作 |
 | `iris operation-reconcile <operation-id>` | 继续验证；ROM 恢复按原记录中的身份重连，不重复写入或复位 |
+| `iris flash` / `iris app-flash` | 经 Gateway 执行对应的原生 IDF 烧录目标，可随后恢复控制台；这是开发流程，不等同产品更新验收 |
+| `iris run-app` | 通过 USB 或 UART 请求 Vibe Mode 重试已安装的应用 |
+| `iris restart` | 重启所选设备，并确认其以新的 Boot ID 返回 |
 | `iris app-update` | 仅更新正常应用代码，要求完整分区表与设备一致 |
 | `iris system-update` | 新应用、分区布局或资源变化的推荐入口，按更新包清单写入 |
 | `recover` | 初始化或恢复设备基础固件，包括 ESP-Iris 不可达时的恢复 |
@@ -65,22 +69,23 @@ mosaico.py
 
 ## Ideas 文件发布
 
-按 `mosaico-ideas/project-release/1` 编写 `mosaico-ideas.json`，先构建应用的
-`.irisfw`。打包将网站内容、固件和中英文设备展示资源冻结为不可变 ZIP：
+按 `mosaico-ideas/project-release/1` 编写 `mosaico-ideas.json`，并填写有效的
+站点分类 `project.category_id`；先构建应用的 `.irisfw`。打包将网站内容、固件和
+中英文设备展示资源冻结为不可变 ZIP：
 
 ```sh
 python mosaico.py project package --project projects/my_app --output dist/release.zip
 python mosaico.py project validate dist/release.zip --json
 python mosaico.py account login
 python mosaico.py project upload dist/release.zip --create --yes --json
-# 使用上次上传被接受后返回的当前草稿版本：
-python mosaico.py project upload dist/release.zip --update APPLICATION_ID --expected-project-version 1 --yes --json
+# 使用云端 public_id 替换尚未提交审核的草稿：
+python mosaico.py project upload dist/release.zip --update PUBLIC_ID --yes --json
 ```
 
-package/validate 离线执行；upload 接收已有 ZIP，不重新构建，只创建或替换草稿，
-正式发布是另一步操作。请求回执与幂等状态支持丢失响应后的重试，`--wait-timeout`
-超时保留待验证回执。普通发布不能包含 Vibe Mode 或 bootloader。
-依赖、资源、认证和服务端校验见[文件发布指南](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/ideas-file-release/README.zh-CN.md)。
+package/validate 离线执行；upload 接收已有 ZIP，不重新构建，并同步创建或替换草稿，
+正式发布是另一步操作。上传没有幂等回执或任务轮询；响应不确定时，先检查网站再决定
+是否重试。普通发布不能包含 Vibe Mode 或 bootloader。元数据、资源、认证和服务端校验见
+[文件发布指南（英文）](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/ideas-file-release/README.md)。
 
 ## 构建工具兼容性与诊断
 
@@ -147,8 +152,8 @@ python mosaico.py iris crash --project projects/my_app --archive
 从工程构建的 `system-update` 包包含应用、分区表及工程声明的资源镜像，保留
 Vibe Mode 固定前缀和 bootloader。仅预留但未使用的 `game_assets` 不需要镜像；
 使用外部资源的应用通过 CMake 声明将镜像纳入包。已有包可使用 `--bundle PATH`。
-Vibe Mode 自身更新、HTTP(S)/NAND 更新及基础包约束见
-[Vibe Mode 说明](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/esp-mosaico-vibe-mode/firmware/vibe-mode/README.md)。
+已审查基础包和 ROM 恢复流程见
+[Utils 指南](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/README.md#rom-recovery-operations)。
 
 `app-update` 遇到分区表不同会返回 `partition_layout_mismatch`、设备/构建
 SHA-256 及 `system-update` 建议，不会自动扩大写入范围或修改工程分区表。
@@ -195,8 +200,11 @@ Vibe Mode 身份、启动实例、固件和 OTA 就绪状态，不重复写入�
 随后由 Agent 核实 ROM 连接、继续 `recover` 并验证设备和目标应用。
 不得仅为恢复连接擦除整片 Flash，或未经授权覆盖凭据、身份、Vibe Mode 数据或分区。
 
-应用烧录和监控避免 USB Serial/JTAG；Gateway 拥有接口时不得并发打开它。
-Vibe Mode 始终将 High-Speed USB 交给 ESP-Iris，normal 应用默认也如此。
+Gateway 拥有 UART 或 USB Serial/JTAG 端点时，不得直接并发打开。通过受支持的 UART
+或 USB Serial/JTAG 连接执行原生开发烧录时，使用 `python mosaico.py iris flash`
+或 `app-flash`；Gateway 会协调端点并可恢复控制台采集。这些命令不替代通过
+`app-update`、`system-update` 或 `recover` 完成的产品安装与验收。Vibe Mode 始终将
+High-Speed USB 交给 ESP-Iris，normal 应用默认也如此。
 产品功能需要占用它的 normal 应用应记录例外，并通过其他可用传输保留 ESP-Iris 运维和恢复路径。
 
 ## 旧命令兼容

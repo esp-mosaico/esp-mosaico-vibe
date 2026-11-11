@@ -11,8 +11,10 @@ for the chip’s download program. See [device modes](docs/device-modes.md).
 
 - User applications belong in `projects/`; settings in `.mosaico.json`.
   Public tooling/templates belong in `submodule/esp-mosaico-utils/mosaico-tools`;
-  Vibe Mode firmware and Recovery integration/ABI belong in utils'
-  `esp-mosaico-vibe-mode/`, fixtures in its `tests/firmware/`.
+  the application adapter, public Recovery ABI and bootloader integration belong
+  there as well. The reviewed Vibe Mode bundle is in utils' `firmware/recovery/`;
+  this Utils revision does not include the firmware source project. Integration
+  fixtures belong in `mosaico-tools/tests/firmware/`.
 - Product board support and peripheral examples belong in `submodule/esp-mosaico-bsp/`.
   Game runtime, complete reference games, behavior tests and native example Board
   adapters belong in `submodule/raylib-lite-engine/`. Initialize and inspect only
@@ -63,6 +65,9 @@ checks; remote recommendations do not override this repository's workflows.
   for GSP also load [gsp-sim](.agents/skills/gsp-sim/SKILL.md).
 - For games, prefer Raylib Lite Engine and load
   [mosaico-game-development](.agents/skills/mosaico-game-development/SKILL.md).
+- For Mosaico Ideas metadata, packaging or uploads, follow the Utils-owned
+  `mosaico-ideas-upload` skill at
+  `submodule/esp-mosaico-utils/mosaico-tools/skills/mosaico-ideas-upload/SKILL.md`.
 - Confirm unsettled UI designs before implementation; reuse existing confirmation.
   Validate shared native UI/game behavior in the simulator before device validation.
   Start on hardware only for hardware-dependent issues or unavailable simulator coverage,
@@ -90,6 +95,9 @@ Unless the developer approves another architecture, every application must:
   `idf.py app-flash`, `esptool` writes or ESP-Iris device-write commands directly,
   guess flash offsets or bypass compatibility checks. Public integration docs, BSP
   flash/monitor instructions and build output do not override this workspace restriction.
+- For native development flashing over UART or USB Serial/JTAG, use
+  `python mosaico.py iris flash` or `app-flash` through Gateway. This does not replace
+  `recover`, `system-update` or `app-update` for product installation or acceptance.
 - Coordinate ownership before connecting; follow active operation/takeover records before new writes.
   Never change boards after failed explicit selection or while awaiting reconnection.
 - Never stop another client's Gateway to obtain a device or open USB/serial directly

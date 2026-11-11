@@ -34,9 +34,6 @@ class ToolSubmoduleIntegrationTests(unittest.TestCase):
             "__pycache__", "build", "build-*", "managed_components", ".cache", ".codex-runs"))
         shutil.copytree(UTILS_ROOT / "shared", self.tools.parent / "shared",
                         ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
-        recovery = self.tools.parent / "esp-mosaico-vibe-mode"
-        recovery.mkdir()
-        shutil.copyfile(UTILS_ROOT / "esp-mosaico-vibe-mode/product_contract.json", recovery / "product_contract.json")
         self.config = json.loads((self.root / ".mosaico.json").read_text())
 
     def cli(self, *args, cwd=None, success=True):
@@ -119,8 +116,7 @@ class ToolSubmoduleIntegrationTests(unittest.TestCase):
 
     def test_internal_recovery_is_never_an_application(self):
         rec = self.workspace().recovery_project
-        rec.mkdir(parents=True)
-        (rec / "CMakeLists.txt").write_text("project(vibe-mode)\n")
+        self.assertTrue((rec / "CMakeLists.txt").is_file())
         with self.assertRaises(SelectionError):
             resolve_project(self.workspace(), str(rec), self.root)
         with self.assertRaises(SelectionError):

@@ -54,9 +54,10 @@ View the app's name, icon, description and compatible release, then confirm the
 download to NAND. Downloading and selecting the boot application are separate
 operations. My Ideas manages local downloads; About provides a confirmed online
 Vibe Mode firmware update. The legacy Bridge pairing workflow is a separate
-maintenance interface. See the [current firmware workflows](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/esp-mosaico-vibe-mode/docs/vibe-mode-workflows.md).
+maintenance interface. For the workspace's reviewed base bundle and ROM recovery
+procedure, see [recovery operations](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/README.md#rom-recovery-operations).
 
 The 0.2 product uses Recovery ABI 2 and the retained test-partition layout;
-normal firmware runs in `main_app` (`app/ota_0`). Source updates and reviewed
-prebuilt bundles are released separately. See [migration](workspace-migration.md)
-before using an older device or workspace with these tools.
+normal firmware runs in `main_app` (`app/ota_0`). The pinned Utils revision
+contains a reviewed prebuilt Vibe Mode bundle, not its firmware source project.
+See [workspace migration](workspace-migration.md) before using an older device or workspace.

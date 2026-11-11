@@ -18,6 +18,7 @@ mosaico.py
 │   ├── logs / memory / crash / rpc
 │   ├── device-status / screenshot / operation-status
 │   ├── operation-reconcile
+│   ├── flash / app-flash / run-app / restart
 │   ├── app-update
 │   ├── system-update
 │   └── test enter-recovery / recovery-wifi / bridge-code
@@ -51,6 +52,9 @@ For mode definitions and the AI/Boot button distinction, see
 | `iris screenshot <output>` | Save the device image directly and return image/operation metadata; verify the same Device ID and Boot ID before and after capture |
 | `iris operation-status <operation-id>` | Query an existing operation, preserving its actual status; does not acquire a device or replay the operation |
 | `iris operation-reconcile <operation-id>` | Continue verification; ROM recovery reconnects to its recorded identity without rewriting or resetting |
+| `iris flash` / `iris app-flash` | Run the corresponding native IDF flash target through Gateway, then optionally resume the console; a development path, not product update acceptance |
+| `iris run-app` | Ask Vibe Mode to retry the installed application over USB or UART |
+| `iris restart` | Restart the selected device and verify that it returns with a new Boot ID |
 | `iris app-update` | Update normal application code only; requires the complete partition table to match the device |
 | `iris system-update` | Recommended entry for a new application, partition layout changes or resource changes; writes according to the update bundle manifest |
 | `recover` | Provision or restore the device's base firmware, including when ESP-Iris is unreachable |
@@ -66,25 +70,26 @@ Commands under `iris test` exercise individual Vibe Mode workflows:
 
 ## Ideas file releases
 
-Prepare `mosaico-ideas.json` using `mosaico-ideas/project-release/1` and build the
-application's `.irisfw` first. Packaging produces an immutable ZIP with website
-content, firmware and Chinese/English device presentation resources:
+Prepare `mosaico-ideas.json` using `mosaico-ideas/project-release/1`, including a
+valid site `project.category_id`, and build the application's `.irisfw` first.
+Packaging produces an immutable ZIP with website content, firmware and
+Chinese/English device presentation resources:
 
 ```sh
 python mosaico.py project package --project projects/my_app --output dist/release.zip
 python mosaico.py project validate dist/release.zip --json
 python mosaico.py account login
 python mosaico.py project upload dist/release.zip --create --yes --json
-# Use the current draft version returned by the last accepted upload:
-python mosaico.py project upload dist/release.zip --update APPLICATION_ID --expected-project-version 1 --yes --json
+# Replace an unsubmitted draft using its cloud public_id:
+python mosaico.py project upload dist/release.zip --update PUBLIC_ID --yes --json
 ```
 
 Package/validate are offline. Upload takes an existing ZIP, does not rebuild it,
-and creates or replaces a draft; publishing is separate. Its receipt/idempotency
-state permits retry after a lost response. `--wait-timeout` preserves a pending
-validation receipt. Ordinary releases cannot contain Vibe Mode or bootloader
-components. See the [file release guide](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/ideas-file-release/README.zh-CN.md)
-for dependencies, resources, authentication and server validation.
+and synchronously creates or replaces a draft; publishing is separate. Upload has
+no idempotency receipt or task polling. If the response is uncertain, inspect the
+website before retrying. Ordinary releases cannot contain Vibe Mode or bootloader
+components. See the [file release guide](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/ideas-file-release/README.md)
+for metadata, resources, authentication and server validation.
 
 ## Build tool compatibility and diagnostics
 
@@ -156,9 +161,9 @@ A `system-update` bundle built from a project contains the application, partitio
 table and resource images declared by the project. It preserves the fixed Vibe Mode
 prefix and bootloader. A reserved but unused `game_assets` partition needs no image;
 applications using external resources declare their images through CMake for inclusion
-in the bundle. Use `--bundle PATH` for an existing bundle. See the
-[Vibe Mode guide](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/esp-mosaico-vibe-mode/firmware/vibe-mode/README.md)
-for updates to Vibe Mode itself, HTTP(S)/NAND updates and base bundle constraints.
+in the bundle. Use `--bundle PATH` for an existing bundle. The reviewed base bundle
+and ROM recovery behavior are documented in the
+[Utils guide](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/README.md#rom-recovery-operations).
 
 If the partition tables differ, `app-update` returns `partition_layout_mismatch`,
 the device and build SHA-256 hashes, and a `system-update` recommendation. It does
@@ -214,11 +219,14 @@ the [physical entry steps](device-modes.md#physical-entry); the agent verifies
 the ROM connection, resumes `recover`, and checks the device and target application. Never erase the whole flash merely to restore
 connectivity, or overwrite credentials, identity, Vibe Mode data or partitions without authorization.
 
-Avoid USB Serial/JTAG for application flashing and monitoring. Do not open the
-interface concurrently while the Gateway owns it. Vibe Mode always assigns High-Speed
-USB to ESP-Iris; normal applications do so by default. A normal application whose
-product function requires that interface must document the exception and preserve
-ESP-Iris device operations and recovery through another available transport.
+Do not open a UART or USB Serial/JTAG endpoint directly while the Gateway owns it.
+For native development flashing over a supported UART or USB Serial/JTAG connection,
+use `python mosaico.py iris flash` or `app-flash`; Gateway coordinates the endpoint
+and can resume console capture. These commands do not replace product installation
+and acceptance through `app-update`, `system-update` or `recover`. Vibe Mode always
+assigns High-Speed USB to ESP-Iris; normal applications do so by default. A normal
+application whose product function requires that interface must document the exception
+and preserve ESP-Iris device operations and recovery through another available transport.
 
 ## Legacy command compatibility
 

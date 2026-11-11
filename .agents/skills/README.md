@@ -18,3 +18,10 @@ Developer-facing guides start at the [documentation index](../../docs/README.md)
 | [`mosaico-device-operations`](mosaico-device-operations/SKILL.md) | Diagnose live devices, install/update applications, or recover through mosaico.py with identity and outcome verification. |
 | [`gsp-sim`](gsp-sim/SKILL.md) | Preview GSP apps on PC with sim_bridge by default (esp-gsp 1.5.1). |
 | [`mosaico-game-development`](mosaico-game-development/SKILL.md) | Prefer Raylib Lite Engine for games; validate visuals and gameplay in the simulator before device validation. |
+
+## Tool-owned skills
+
+The Utils submodule owns the Ideas upload workflow. After initializing Utils, use
+`submodule/esp-mosaico-utils/mosaico-tools/skills/mosaico-ideas-upload/SKILL.md`
+for metadata, packaging and draft uploads. Keep that skill and its references with
+the pinned Utils revision instead of copying them into this workspace.

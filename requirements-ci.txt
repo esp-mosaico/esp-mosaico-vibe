@@ -1,5 +1,4 @@
 -r submodule/esp-mosaico-utils/ESP-Iris/components/esp_iris/tools/requirements.lock
--r submodule/esp-mosaico-utils/esp-mosaico-vibe-mode/tests/requirements-ui.txt
 -r submodule/esp-mosaico-utils/mosaico-tools/requirements-ideas.txt
 pytest>=8,<8.4 ; python_version < "3.9"
 pytest>=8,<9 ; python_version >= "3.9"

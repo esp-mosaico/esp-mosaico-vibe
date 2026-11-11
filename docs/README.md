@@ -13,17 +13,17 @@
 Public implementations, APIs and protocol documentation are maintained by their
 owning repositories:
 
-- [Utils component boundaries](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/docs/component-boundaries.md)
+- [Utils repository layout](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/README.md)
 - [Public application interfaces](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/application-integration.md)
 - [Hello World template](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/templates/hello_world/README.md)
 - [GSP preview](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/tools/gsp-sim/README.md)
-- [Vibe Mode firmware](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/esp-mosaico-vibe-mode/firmware/vibe-mode/README.md)
+- [Reviewed Vibe Mode bundle and recovery operations](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/README.md#rom-recovery-operations)
 - [BSP examples](https://github.com/esp-mosaico/esp-mosaico-bsp/blob/master/README.md#examples)
 - [Game engine](https://github.com/espressif2022/raylib-lite-engine/blob/main/README.md)
 
-- [Ideas file releases](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/ideas-file-release/README.zh-CN.md)
+- [Ideas file release guide (English)](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/ideas-file-release/README.md)
 - [Gateway storage and evidence](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/ESP-Iris/components/esp_iris/tools/README.md#runtime-and-storage-model)
-- [BSP expansion modules: ToF, thermal camera, matrix LED and EEPROM provisioning](https://github.com/esp-mosaico/esp-mosaico-bsp/blob/master/README.md#expansion-modules-and-provisioning)
+- [BSP modules and storage: ToF, thermal camera, matrix LED, relay, NAND and EEPROM provisioning](https://github.com/esp-mosaico/esp-mosaico-bsp/blob/master/README.md#expansion-modules-and-provisioning)
 
 Repository links open their home pages; documentation links follow their default
 branches. To read the workspace's dependency versions locally, initialize the

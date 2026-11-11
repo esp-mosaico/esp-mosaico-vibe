@@ -176,10 +176,10 @@ Gateway 重启不会自动重放设备写操作。
 
 ## 组件边界与版本策略
 
-主机产品工具位于 `submodule/esp-mosaico-utils/mosaico-tools`；Vibe Mode 固件、
-已审查镜像与共享持久化 ABI 位于 `esp-mosaico-vibe-mode`，固件工程为
-`firmware/vibe-mode`。旧转发 launcher、Python 包和构建脚本入口已移除，迁移后
-更新源码路径并使用新的构建缓存。
+主机产品工具、应用适配组件、公开 Recovery ABI 和 bootloader 集成都位于
+`submodule/esp-mosaico-utils/mosaico-tools`；已审查的 Vibe Mode 预构建包位于
+`submodule/esp-mosaico-utils/firmware/recovery/`。当前 Utils 版本不包含固件源码工程。
+旧转发 launcher、Python 包和构建脚本入口已移除，迁移后更新源码路径并使用新的构建缓存。
 CLI 通过 ESP-Iris 公开主机接口查询本机状态，不读取其 SQLite 表或私有锁结构。
 
 默认按 Gateway API 和命令所需能力复用实例，不要求整个工具仓库的 Git 提交一致。
@@ -189,7 +189,7 @@ CLI 通过 ESP-Iris 公开主机接口查询本机状态，不读取其 SQLite �
 
 安装所需的 Vibe Mode 版本和分区哈希由产品 CLI 提交给 Gateway。Gateway 在同一个
 操作中完成切换、重新连接、校验、写入和健康验证；校验不通过不会开始写入。
-详细职责与接口见[组件边界说明](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/docs/component-boundaries.md)。
+应用集成路径和接口见[公共集成契约](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/application-integration.md)。
 
 ## 设备状态与 ROM 恢复
 

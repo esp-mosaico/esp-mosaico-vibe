@@ -235,11 +235,12 @@ failure does not fall back to a local instance.
 
 ## Component boundaries and version policy
 
-The host product tools live in `submodule/esp-mosaico-utils/mosaico-tools`. Vibe Mode
-firmware, reviewed images and the shared persistent ABI belong to `esp-mosaico-vibe-mode`;
-its source project is `firmware/vibe-mode`. Old forwarding launchers, Python packages
-and build-runner entry points were removed. Update source paths and use fresh build
-caches after migrating. The CLI queries local
+The host product tools, application adapter, public Recovery ABI and bootloader
+integration live in `submodule/esp-mosaico-utils/mosaico-tools`. The reviewed
+prebuilt Vibe Mode bundle lives in `submodule/esp-mosaico-utils/firmware/recovery/`;
+the current Utils revision does not include its firmware source project. Old
+forwarding launchers, Python packages and build-runner entry points were removed.
+Update source paths and use fresh build caches after migrating. The CLI queries local
 state through the public ESP-Iris host API, without reading its SQLite tables or
 private lock structures.
 
@@ -253,8 +254,8 @@ users' Gateways.
 The product CLI submits the required Vibe Mode version and partition hash to the
 Gateway. Within one operation, the Gateway performs the transition, reconnection,
 validation, writing and health verification. Failed validation prevents writing.
-See [component boundaries](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/docs/component-boundaries.md)
-for detailed responsibilities and interfaces.
+See the current [public application integration contract](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/application-integration.md)
+for application paths and interfaces.
 
 ## Device state and ROM recovery
 
