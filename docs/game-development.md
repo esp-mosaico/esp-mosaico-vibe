@@ -135,7 +135,7 @@ It also accepts a named engine game, such as `game build sky_hop --target iris`.
 Build does not install firmware. Native and Iris outputs use separate directories.
 The wrapper references `main/` and optional `components/`; it does not use the
 source's top-level partition table or custom top-level CMake logic. Declare
-resources in component CMake files. See the [integration contract](../submodule/esp-mosaico-utils/mosaico-tools/docs/application-integration.md#user-owned-raylib-lite-games).
+resources in component CMake files. See the [integration contract](https://github.com/esp-mosaico/esp-mosaico-utils/blob/9a2d151928dd77165c899099c49c59b0edf537ae/mosaico-tools/docs/application-integration.md#user-owned-raylib-lite-games).
 
 All creators support `--dry-run`, refuse existing targets and initialize an
 independent Git repository plus quality configuration. See [project creation](project-init.md).

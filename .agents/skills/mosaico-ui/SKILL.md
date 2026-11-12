@@ -141,9 +141,9 @@ the device adapter; do not assume automatic inheritance or overwrite global pref
 - For device validation, follow the [CLI guide](../../../docs/mosaico-cli.md)
   and [Gateway evidence checks](../../../docs/project-gateway.md#live-evidence-and-next-steps).
 - For new apps, prefer GSP when it fits and start from
-  [hello_world](../../../submodule/esp-mosaico-utils/mosaico-tools/templates/hello_world/README.md). New apps belong in `projects/`;
+  [hello_world](https://github.com/esp-mosaico/esp-mosaico-utils/blob/9a2d151928dd77165c899099c49c59b0edf537ae/mosaico-tools/templates/hello_world/README.md). New apps belong in `projects/`;
   a new page within an existing app inherits its framework and conventions.
-- Use the [product preview guide](../../../submodule/esp-mosaico-utils/mosaico-tools/tools/gsp-sim/README.md)
+- Use the [product preview guide](https://github.com/esp-mosaico/esp-mosaico-utils/blob/9a2d151928dd77165c899099c49c59b0edf537ae/mosaico-tools/tools/gsp-sim/README.md)
   for GSP runtime constraints and the portable UI boundary. Run the target app's backend for
   logic, not scene-only rendering. Keep controls and dynamic text native
   rather than substituting the concept image for the working UI.
