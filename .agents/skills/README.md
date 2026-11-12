@@ -17,4 +17,5 @@ Developer-facing guides start at the [documentation index](../../docs/README.md)
 | [`idf-low-noise-build`](idf-low-noise-build/SKILL.md) | Run low-noise ESP-IDF builds with complete logs and focused failure diagnostics. |
 | [`mosaico-device-operations`](mosaico-device-operations/SKILL.md) | Diagnose live devices, install/update applications, or recover through mosaico.py with identity and outcome verification. |
 | [`gsp-sim`](gsp-sim/SKILL.md) | Preview GSP apps on PC with sim_bridge by default (esp-gsp 1.5.1). |
+| [`mosaico-power`](mosaico-power/SKILL.md) | Adapt and measure device power: DFS, display transfers, OLED colors/brightness, light sleep and wake behavior. |
 | [`mosaico-game-development`](mosaico-game-development/SKILL.md) | Prefer Raylib Lite Engine for games; validate visuals and gameplay in the simulator before device validation. |
