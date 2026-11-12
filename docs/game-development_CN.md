@@ -109,7 +109,7 @@ python mosaico.py iris system-update --project projects/my_platformer --bundle /
 运行目录下生成独立工程，添加产品服务和兼容分区，再输出 System Update 包；也接受
 引擎游戏名，如 `game build sky_hop --target iris`。构建不安装固件，原生与 Iris
 产物分别存放。适配工程引用 `main/` 和可选的 `components/`，不采用源工程顶层
-分区表或自定义顶层 CMake 逻辑；资源应在组件 CMake 中声明。详见[集成契约](https://github.com/esp-mosaico/esp-mosaico-utils/blob/9a2d151928dd77165c899099c49c59b0edf537ae/mosaico-tools/docs/application-integration.md#user-owned-raylib-lite-games)。
+分区表或自定义顶层 CMake 逻辑；资源应在组件 CMake 中声明。详见[集成契约](https://github.com/esp-mosaico/esp-mosaico-utils/blob/709ed2f295a10dbcd8306ca960699b96b709193d/mosaico-tools/docs/application-integration.md#user-owned-raylib-lite-games)。
 
 所有创建入口支持 `--dry-run`、拒绝覆盖已有目标，并初始化独立 Git 仓库和质量
 配置，见[工程创建](project-init_CN.md)。

@@ -44,9 +44,9 @@ obtain connection state from the app's own network service.
   failures and wake restoration. Verify global settings remain unchanged.
 
 Implementation sources in utils:
-[`vibe_settings.c`](https://github.com/esp-mosaico/esp-mosaico-utils/blob/9a2d151928dd77165c899099c49c59b0edf537ae/esp-mosaico-vibe-mode/firmware/vibe-mode/components/app_settings/src/vibe_settings.c),
-[`factory_network.c`](https://github.com/esp-mosaico/esp-mosaico-utils/blob/9a2d151928dd77165c899099c49c59b0edf537ae/esp-mosaico-vibe-mode/firmware/vibe-mode/components/app_network/src/factory_network.c),
-and [`mosaico_recovery_contract.h`](https://github.com/esp-mosaico/esp-mosaico-utils/blob/9a2d151928dd77165c899099c49c59b0edf537ae/esp-mosaico-vibe-mode/include/mosaico_recovery_contract.h).
+[`vibe_settings.c`](https://github.com/esp-mosaico/esp-mosaico-utils/blob/709ed2f295a10dbcd8306ca960699b96b709193d/esp-mosaico-vibe-mode/firmware/vibe-mode/components/app_settings/src/vibe_settings.c),
+[`factory_network.c`](https://github.com/esp-mosaico/esp-mosaico-utils/blob/709ed2f295a10dbcd8306ca960699b96b709193d/esp-mosaico-vibe-mode/firmware/vibe-mode/components/app_network/src/factory_network.c),
+and [`mosaico_recovery_contract.h`](https://github.com/esp-mosaico/esp-mosaico-utils/blob/709ed2f295a10dbcd8306ca960699b96b709193d/esp-mosaico-vibe-mode/include/mosaico_recovery_contract.h).
 Vibe's private settings/network components own firmware tasks and state; do not
 link them wholesale into an app just to read configuration. See the
 [CLI command guide](mosaico-cli.md#command-responsibilities) for provisioning;
