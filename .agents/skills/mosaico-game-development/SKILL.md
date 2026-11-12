@@ -22,6 +22,6 @@ hardware coverage notes when those paths apply.
 
 For inherited brightness, Wi-Fi or language, follow
 [settings reuse](../../../docs/vibe-settings.md). Product integration must
-preserve the [application contract](https://github.com/esp-mosaico/esp-mosaico-utils/blob/709ed2f295a10dbcd8306ca960699b96b709193d/mosaico-tools/docs/application-integration.md).
+preserve the [application contract](https://github.com/esp-mosaico/esp-mosaico-utils/blob/587005cee2db759deb357ec24cf92ece667a25a2/mosaico-tools/docs/application-integration.md).
 Install through the [product CLI](../../../docs/mosaico-cli.md); keep the OTA
 writer in Vibe Mode and mark healthy after the first successful frame.

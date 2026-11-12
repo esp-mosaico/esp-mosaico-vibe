@@ -5,7 +5,7 @@ description: Preview generated GSP applications with the pinned GSP 1.5.1 sim_br
 
 # GSP application preview
 
-Read the [product preview guide](https://github.com/esp-mosaico/esp-mosaico-utils/blob/709ed2f295a10dbcd8306ca960699b96b709193d/mosaico-tools/tools/gsp-sim/README.md).
+Read the [product preview guide](https://github.com/esp-mosaico/esp-mosaico-utils/blob/587005cee2db759deb357ec24cf92ece667a25a2/mosaico-tools/tools/gsp-sim/README.md).
 Create an application with `python mosaico.py project init <name>`; the template
 is owned by utils, and there is no pre-created Hello World in this workspace.
 
