@@ -4,6 +4,3 @@
 [submodule "submodule/esp-mosaico-utils"]
 	path = submodule/esp-mosaico-utils
 	url = ../esp-mosaico-utils.git
-[submodule "submodule/raylib-lite-engine"]
-	path = submodule/raylib-lite-engine
-	url = ../../espressif2022/raylib-lite-engine.git

@@ -15,8 +15,9 @@ for the chip’s download program. See [device modes](docs/device-modes.md).
   `esp-mosaico-vibe-mode/`, fixtures in its `tests/firmware/`.
 - Product board support and peripheral examples belong in `submodule/esp-mosaico-bsp/`.
   Game runtime, complete reference games, behavior tests and native example Board
-  adapters belong in `submodule/raylib-lite-engine/`. Initialize and inspect only
-  needed submodules. Follow the [game guide](docs/game-development.md) for native adapters and product integration.
+  adapters belong to upstream Raylib Lite Engine. Firmware uses the pinned Registry
+  component; Host/example tools use the verified cache from `python mosaico.py game prepare`.
+  Initialize and inspect only needed submodules. Follow the [game guide](docs/game-development.md) for native adapters and product integration.
 - Keep user documentation in `docs/`, indexed by `docs/README.md`; keep root
   English/Chinese READMEs aligned and short. Component API/protocol docs stay with owners.
 - Agent guidance/tools belong in `.agents/`, shared skills in version-controlled

@@ -2,11 +2,10 @@
 
 [English](workspace-migration.md) | [返回索引](README_CN.md)
 
-移动或克隆整个工作区，包括各用户应用的独立 Git 仓库和固定版本子模组。生成工程
-中的 Hello World 与空白模板通过相对路径引用依赖；引擎示例副本当前在
-`main/idf_component.yml` 中写入绝对的引擎 `override_path`，移动后须更新该引用。
-构建缓存含绝对路径，移动工作区或改变集成布局
-后使用新的构建目录重新配置。本工作区不提供单应用独立导出。
+移动或克隆整个工作区，包括用户应用的独立 Git 仓库和固定的 utils/BSP 子模块。
+游戏运行时改由 Registry 组件提供，Host 与 Board 工具运行 `python mosaico.py game prepare`
+下载并校验。旧游戏的 `override_path` 和工具路径按[游戏迁移](game-development_CN.md#registry-运行时与固定版本开发工具)
+更新。构建缓存含绝对路径，迁移工作区后使用新的构建目录；此布局不提供单应用独立导出。
 
 ## 当前源码布局
 
@@ -17,7 +16,8 @@
 | Vibe Mode 固件工程 | utils 内的 `esp-mosaico-vibe-mode/firmware/vibe-mode/` |
 | 共享 GSP 获取与 Ideas 资源工具 | `submodule/esp-mosaico-utils/shared/` |
 | 产品板级支持与外设示例 | `submodule/esp-mosaico-bsp/` |
-| 完整游戏、原生 Board 适配器与 Host | `submodule/raylib-lite-engine/` |
+| 游戏运行时 | Registry `espressif2022/raylib-lite-engine` `0.1.1` |
+| 完整游戏、原生 Board 适配器与 Host | `game prepare` 返回的已校验源码缓存 |
 
 旧 `esp-mosaico-recovery/`、`firmware/recovery/` 源码目录及转发工具入口已移除。
 根据[公共集成契约](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/application-integration.md)

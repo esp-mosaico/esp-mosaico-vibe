@@ -53,7 +53,8 @@ GSP 预览与设备使用相同的可移植 C UI 和 GSP 1.5.1 场景。
 
 游戏优先使用 Raylib Lite Engine，从空白模板或引擎示例创建，先在仿真器中验证
 画面和玩法，见[游戏入口](docs/game-development_CN.md)；
-仅开发游戏时初始化引擎。Hello World 与空白游戏使用相对引用：移动或重新克隆整个工作区，
+引擎运行时使用固定版本 Registry 组件，Host/示例工具首次使用时下载并校验
+（`python mosaico.py game prepare`）。Hello World 与空白游戏使用相对引用：移动或重新克隆整个工作区，
 初始化固定依赖后重新构建。此布局不提供单应用独立导出或旧工作区路径兼容，
 见[迁移说明](docs/workspace-migration_CN.md)。
 

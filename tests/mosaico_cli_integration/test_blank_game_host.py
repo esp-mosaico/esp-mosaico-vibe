@@ -11,22 +11,26 @@ import sys
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-ENGINE = ROOT / "submodule/raylib-lite-engine"
+TOOLS = ROOT / "submodule/esp-mosaico-utils/mosaico-tools"
+sys.path.insert(0, str(TOOLS / "tools"))
+from mosaico_cli.workspace import load_workspace
+from mosaico_cli.raylib_toolchain import ensure_toolchain
+
 
 
 @pytest.fixture
 def game(tmp_path):
-    if not (ENGINE / "host/run_game.py").is_file():
-        pytest.skip("initialize Raylib Lite Engine for native Host integration")
+    engine = ensure_toolchain(load_workspace(TOOLS, start=ROOT))
     if not any(shutil.which(name) for name in ("cc", "gcc", "clang")):
         pytest.skip("native Host integration needs a C compiler")
     pytest.importorskip("PIL")
-    spec = importlib.util.spec_from_file_location("blank_game_host", ENGINE / "host/run_game.py")
+    spec = importlib.util.spec_from_file_location("blank_game_host", engine / "host/run_game.py")
     host = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(host)
     config = json.loads((ROOT / ".mosaico.json").read_text())
     config["dependencies"] = {key: str((ROOT / value).resolve())
                               for key, value in config["dependencies"].items()}
+    config["dependencies"]["raylib"] = str(engine)
     (tmp_path / ".mosaico.json").write_text(json.dumps(config))
     generated = subprocess.run([sys.executable, str(ROOT / "mosaico.py"),
         "--workspace", str(tmp_path), "game", "create", "snake_seed", "--json"],

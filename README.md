@@ -56,7 +56,8 @@ and resources. Device operations always go through the product CLI.
 
 Prefer Raylib Lite Engine for games, create a blank game or an engine example, and validate
 visuals and gameplay in its simulator first; see the [game entry](docs/game-development.md).
-Initialize the engine only when developing games. Hello World and blank games use
+The game runtime uses a pinned Registry component; Host/example tools are downloaded
+and verified on first use (`python mosaico.py game prepare`). Hello World and blank games use
 relative references: move or clone the whole workspace, initialize its pinned
 dependencies and rebuild. Single-application export and old workspace path
 compatibility are outside this layout. See [migration notes](docs/workspace-migration.md).

@@ -5,14 +5,22 @@ description: Develop Mosaico games with Raylib Lite Engine as the preferred engi
 
 # Mosaico games
 
-Read the [workspace entry](../../../docs/game-development_CN.md) and
-[Engine game guide](../../../submodule/raylib-lite-engine/docs/game-development.EN.md).
-Prefer the workspace's pinned Raylib Lite Engine for game applications.
-Initialize utils, BSP and Raylib Lite Engine. Start a new game with
+Read the [workspace entry](../../../docs/game-development_CN.md). Firmware uses
+Registry component `espressif2022/raylib-lite-engine` pinned to `0.1.1`; default
+manifests must not contain a local source override. Initialize utils and BSP,
+then run `python mosaico.py game prepare` to verify/cache the matching Host,
+and blank-game Board profiles. For released examples, run
+`python mosaico.py game prepare --example last_zone_extraction --json`; this uses
+`idf.py create-project-from-example` at the pinned Registry version and returns
+the local source path. First download needs the SDK; cached copies are reusable. Read `docs/game-development.EN.md` in the returned
+toolchain directory. A developer can explicitly configure `dependencies.raylib`
+for local tools and add an application `override_path` when modifying the runtime.
+Start a new game with
 `python mosaico.py game create <name>` (the tools-owned `blank` template).
 It provides shared C state/update/rendering and Host/device adapters without
 example gameplay or assets. To extend a complete reference game, explicitly
-select `--template sky-hop`, `--template tower-defense` or `--template shooter`.
+select `--template sky-hop`, `--template tower-defense`, `--template shooter` or
+`--template last-zone` (also `living-worlds` and `neon-rift-rally`).
 User applications go under projects/; complete reference games, behavior replays,
 runtime, renderers and implementation tests belong to Raylib Lite Engine.
 Native example Board adapters use Board Manager; inspect their dependencies

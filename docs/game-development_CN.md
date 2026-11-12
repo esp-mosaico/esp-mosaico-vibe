@@ -2,16 +2,17 @@
 
 [English](game-development.md) | [返回索引](README_CN.md)
 
-游戏优先使用 **Raylib Lite Engine**（`submodule/raylib-lite-engine`）。完整参考游戏、
+游戏优先使用 **Raylib Lite Engine**（Registry 组件 `espressif2022/raylib-lite-engine`，固定 `0.1.1`）。完整参考游戏、
 运行时、渲染、资源、行为测试和 Host 仿真由引擎维护；BSP 负责产品板级支持与外设示例。
 原生引擎示例使用自己的 Board Manager 适配器，原生构建本身不添加 Iris 或保留 Vibe Mode 布局。
 
 ## 从空白游戏开始
 
-使用 Python 3.10+、Git 2.28+，初始化工作区依赖：
+使用 Python 3.10+、Git 2.28+，初始化 utils 和 BSP；引擎运行时通过 ESP-IDF Component Registry 获取：
 
 ```sh
-git submodule update --init submodule/esp-mosaico-utils submodule/esp-mosaico-bsp submodule/raylib-lite-engine
+git submodule update --init submodule/esp-mosaico-utils submodule/esp-mosaico-bsp
+python mosaico.py game prepare
 python mosaico.py game create my_game
 python mosaico.py game sim --project projects/my_game
 python mosaico.py game sim --project projects/my_game --headless --frames 120
@@ -35,11 +36,49 @@ python mosaico.py iris system-update --project projects/my_game
 Host 状态包含 `phase`、`tick`、指针坐标/按下状态和 `state_hash`；添加玩法前即可
 验证暂停、继续和重置。headless 命令加 `--state-output state.json` 可保存状态。
 
+## Registry 运行时与固定版本开发工具
+
+新游戏声明 `espressif2022/raylib-lite-engine: "==0.1.1"`，不带 `override_path`。
+IDF 将固件引擎下载到 `managed_components/`。组件包不含 PC Host 仿真器；
+`game prepare` 从固定提交的源码归档获取配套 Host 与空白游戏的启动器、Board 配置，
+校验 SHA-256 后缓存到工作区运行目录。版本、提交和摘要记录在 utils 的
+`mosaico-tools/raylib-toolchain.json`。Host 使用的引擎源码与 Registry 组件源码一致。
+首次使用需要联网，后续复用缓存可离线运行。`game create`、`game sim`、`game build`
+会自动准备缓存；空白模板的 `game create --dry-run` 不下载。
+`game prepare --json` 返回准确目录，可供自动化和 Board Manager 使用。
+
+只有开发引擎时，才在 `.mosaico.json` 中设置 `dependencies.raylib` 指向源码 checkout；
+显式路径无效会报错，不会偷偷换用缓存。该字段选择 Host/空白模板工具，Registry 示例和固件依赖不随它切换。
+需要编译修改后的引擎时，在应用的 Engine 依赖中显式添加 `override_path`。
+普通应用保持精确版本依赖。
+
+旧游戏不会被自动重写。迁移时移除 Engine 的 `override_path`、固定 `==0.1.1`，将
+`RAYLIB_LITE_ENGINE_ROOT` 指向准备好的工具目录（优先使用 CLI 传入的环境变量），
+并按该路径重新生成 Board Manager 文件。不要为迁移删除源码或清空已有构建；
+旧路径阻止重新配置时，改用独立构建目录。
+
 ## 从引擎示例开始
 
-`game create/new` 支持 `--template shooter`、`--template sky-hop` 和
-`--template tower-defense`。引擎当前有七个参考游戏，工作区创建命令提供上述
-三个完整模板及 `blank`。创建会复制原生游戏及其私有共享 launcher/Board。
+`game create/new` 支持 `shooter`、`sky-hop`、`tower-defense`、`last-zone`、
+`living-worlds`、`neon-rift-rally` 及 `blank`。完整示例通过 Registry `0.1.1`
+下载，携带自己的 `shared/` 启动器和 Board，再复制到用户工程。
+首次下载需要固定的 ESP-IDF 环境（`IDF_PATH` 或 `--idf-path`）；已有缓存时，
+创建不需要 SDK 或联网。空白和示例模板的 `--dry-run` 都不下载依赖。
+
+单独下载并定位示例，可在期望存放示例的父目录执行上游命令：
+
+```sh
+idf.py create-project-from-example "espressif2022/raylib-lite-engine=0.1.1:last_zone_extraction"
+```
+
+工作区也提供下载到版本缓存并返回准确目录的入口：
+
+```sh
+python mosaico.py game prepare --example last_zone_extraction --json
+```
+
+`game build last_zone_extraction --target iris` 及按名称仿真均定位 Registry 示例缓存，
+不会转用源码树中的同名示例。修改自己的副本时使用显式工程路径。
 
 ```sh
 python mosaico.py game create my_platformer --template sky-hop
@@ -68,12 +107,17 @@ python mosaico.py iris system-update --project projects/my_platformer --bundle /
 # 在工作区根目录执行，先由首次构建完成依赖解析。
 source /path/to/pinned-esp-idf/export.sh
 mosaico_workspace="$PWD"
+# 使用 game prepare 输出的工具目录，不再使用引擎子模块。
+mosaico_raylib_tools="/path/printed/by/game/prepare"
 mosaico_game_project="$mosaico_workspace/projects/my_game"
 IDF_EXTRA_ACTIONS_PATH="$mosaico_game_project/managed_components/espressif__esp_board_manager" \
   idf.py -C "$mosaico_game_project" bmgr \
-  -c "$mosaico_workspace/submodule/raylib-lite-engine/examples/boards/esp-mosaico/bmgr" \
+  -c "$mosaico_raylib_tools/examples/boards/esp-mosaico/bmgr" \
   -b esp_mosaico
 ```
+
+Registry 示例应使用其自己的 `shared/boards/esp-mosaico/bmgr` 配置目录，
+替换上述空白游戏工具目录中的配置。
 
 然后重跑原来的 `mosaico.py game build`。以上命令只生成板级源文件和配置，
 设备安装仍使用 `mosaico.py`。显式加载扩展可避开 `esp-bmgr-assist` 对空白模板

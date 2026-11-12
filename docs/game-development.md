@@ -2,7 +2,7 @@
 
 [简体中文](game-development_CN.md) | [Documentation index](README.md)
 
-Prefer **Raylib Lite Engine** (`submodule/raylib-lite-engine`) for games. It owns
+Prefer **Raylib Lite Engine** (`espressif2022/raylib-lite-engine`, pinned to `0.1.1`) for games. It owns
 complete reference games, runtime, rendering, assets, behavior tests and Host
 simulation. BSP owns product board support and peripheral examples. Native engine
 examples use their own Board Manager adapters; a native build alone does not add
@@ -10,10 +10,11 @@ Iris or the retained Vibe Mode layout.
 
 ## Start with a blank game
 
-Use Python 3.10+ and Git 2.28+. Initialize the workspace dependencies:
+Use Python 3.10+ and Git 2.28+. Initialize utils and BSP; the Engine is an ESP-IDF Component Registry dependency:
 
 ```sh
-git submodule update --init submodule/esp-mosaico-utils submodule/esp-mosaico-bsp submodule/raylib-lite-engine
+git submodule update --init submodule/esp-mosaico-utils submodule/esp-mosaico-bsp
+python mosaico.py game prepare
 python mosaico.py game create my_game
 python mosaico.py game sim --project projects/my_game
 python mosaico.py game sim --project projects/my_game --headless --frames 120
@@ -40,12 +41,57 @@ depend on drawing or hardware. Host state includes `phase`, `tick`, pointer
 coordinates/pressed state and `state_hash`. Pause, resume and reset work before
 adding gameplay; use `--state-output state.json` to save a headless run's state.
 
+## Registry runtime and pinned development tools
+
+New games declare `espressif2022/raylib-lite-engine: "==0.1.1"` without
+`override_path`. IDF downloads the firmware runtime into `managed_components/`.
+The component does not ship the Host simulator. `game prepare` downloads the
+matching Host and blank-game launcher/Board helpers from a pinned
+source archive, verifies SHA-256, and caches it under the workspace run directory.
+The version, revision and digest live in utils' `mosaico-tools/raylib-toolchain.json`.
+The cached runtime sources used by Host match the Registry component's sources.
+Subsequent runs reuse the verified cache offline; first use requires network access.
+`game create`, `game sim` and `game build` prepare the cache automatically.
+A blank `game create --dry-run` does not download it. `game prepare --json` reports
+its exact path for automation and Board Manager generation.
+
+For Engine development only, set `dependencies.raylib` in `.mosaico.json` to your
+source checkout; an invalid explicit path is an error, never a fallback. This
+selects Host and blank-game tooling, not Registry examples or the firmware runtime. To compile a modified
+runtime, explicitly add `override_path` to the app's Engine manifest dependency.
+Normal applications retain the exact Registry pin.
+
+Existing games are not rewritten automatically. Remove their Engine
+`override_path`, pin `==0.1.1`, point `RAYLIB_LITE_ENGINE_ROOT` at the prepared
+toolchain (prefer the CLI's environment value), and regenerate Board Manager
+files against that path. Do not erase old builds or source checkouts to migrate;
+use a separate build directory if stale paths prevent reconfiguration.
+
 ## Start with an engine example
 
-`game create/new` supports `--template shooter`, `--template sky-hop` and
-`--template tower-defense`. The engine currently contains seven reference games;
-the workspace creator exposes these three complete templates plus `blank`.
-Creation copies the selected native game with its private shared launcher/Board.
+`game create/new` supports `shooter`, `sky-hop`, `tower-defense`, `last-zone`,
+`living-worlds` and `neon-rift-rally`, plus `blank`. Examples are downloaded from
+Registry version `0.1.1` with their private `shared/` launcher and Board, then
+copied into the user project. The first download needs the pinned ESP-IDF
+environment (`IDF_PATH`, or `--idf-path`); a cached example needs no SDK or network
+for creation. Both blank and example creation dry runs do not download anything.
+
+To download and locate an example independently, the upstream command is:
+
+```sh
+# Run in the directory that should contain last_zone_extraction/.
+idf.py create-project-from-example "espressif2022/raylib-lite-engine=0.1.1:last_zone_extraction"
+```
+
+The workspace equivalent downloads into a versioned cache and reports its path:
+
+```sh
+python mosaico.py game prepare --example last_zone_extraction --json
+```
+
+`game build last_zone_extraction --target iris` and named-game simulation resolve
+this Registry example cache, never a similarly named source-tree example.
+Use explicit project paths to work on your own copies.
 
 ```sh
 python mosaico.py game create my_platformer --template sky-hop
@@ -78,12 +124,17 @@ Activate the pinned ESP-IDF environment and run the Board Manager extension:
 # Run from the workspace root, after the first build has resolved dependencies.
 source /path/to/pinned-esp-idf/export.sh
 mosaico_workspace="$PWD"
+# Use the toolchain path printed by game prepare (not a submodule checkout).
+mosaico_raylib_tools="/path/printed/by/game/prepare"
 mosaico_game_project="$mosaico_workspace/projects/my_game"
 IDF_EXTRA_ACTIONS_PATH="$mosaico_game_project/managed_components/espressif__esp_board_manager" \
   idf.py -C "$mosaico_game_project" bmgr \
-  -c "$mosaico_workspace/submodule/raylib-lite-engine/examples/boards/esp-mosaico/bmgr" \
+  -c "$mosaico_raylib_tools/examples/boards/esp-mosaico/bmgr" \
   -b esp_mosaico
 ```
+
+For a Registry example, use its own `shared/boards/esp-mosaico/bmgr` profile
+instead of the blank-game toolchain profile above.
 
 Then repeat the original `mosaico.py game build` command. These commands only
 generate board sources/configuration; device installation still uses `mosaico.py`.
