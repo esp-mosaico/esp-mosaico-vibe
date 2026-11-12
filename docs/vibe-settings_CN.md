@@ -36,8 +36,8 @@ Vibe Mode 保存设置，不代表另一个应用启动后已自动应用。开�
   以及缺失值、范围错误、联网失败和唤醒恢复。验证全局设置保持不变，不以模拟器替代设备验收。
 
 实现依据：utils 中的
-[`vibe_settings.c`](https://github.com/esp-mosaico/esp-mosaico-utils/blob/cf46fbe2d2601b6569360611e07da8a22bb2e83b/esp-mosaico-vibe-mode/firmware/vibe-mode/components/app_settings/src/vibe_settings.c)、
-[`factory_network.c`](https://github.com/esp-mosaico/esp-mosaico-utils/blob/cf46fbe2d2601b6569360611e07da8a22bb2e83b/esp-mosaico-vibe-mode/firmware/vibe-mode/components/app_network/src/factory_network.c) 和
-[`mosaico_recovery_contract.h`](https://github.com/esp-mosaico/esp-mosaico-utils/blob/cf46fbe2d2601b6569360611e07da8a22bb2e83b/esp-mosaico-vibe-mode/include/mosaico_recovery_contract.h)。
+[`vibe_settings.c`](https://github.com/esp-mosaico/esp-mosaico-utils/blob/ac32a5a79a46f24a3495cb17078529025d701d3a/esp-mosaico-vibe-mode/firmware/vibe-mode/components/app_settings/src/vibe_settings.c)、
+[`factory_network.c`](https://github.com/esp-mosaico/esp-mosaico-utils/blob/ac32a5a79a46f24a3495cb17078529025d701d3a/esp-mosaico-vibe-mode/firmware/vibe-mode/components/app_network/src/factory_network.c) 和
+[`mosaico_recovery_contract.h`](https://github.com/esp-mosaico/esp-mosaico-utils/blob/ac32a5a79a46f24a3495cb17078529025d701d3a/esp-mosaico-vibe-mode/include/mosaico_recovery_contract.h)。
 Vibe 私有 `app_settings` / `app_network` 组件管理自身任务与状态，不应整个链接到普通应用来获取配置。
 设备配网命令见 [CLI 文档](mosaico-cli_CN.md#命令职责)，设备写入仍仅通过 `mosaico.py`。

@@ -75,7 +75,7 @@ Unless the developer approves another architecture, every application must:
 
 - Preserve the retained firmware's immutable partition prefix and keep the OTA writer
   only in Vibe Mode. Before application integration changes, read and follow the
-  [public integration contract](https://github.com/esp-mosaico/esp-mosaico-utils/blob/cf46fbe2d2601b6569360611e07da8a22bb2e83b/mosaico-tools/docs/application-integration.md).
+  [public integration contract](https://github.com/esp-mosaico/esp-mosaico-utils/blob/ac32a5a79a46f24a3495cb17078529025d701d3a/mosaico-tools/docs/application-integration.md).
 - Before installation or update, follow [update selection](docs/mosaico-cli.md#select-an-update-method);
   never reshape the partition layout to bypass compatibility checks.
 - Vibe Mode always assigns High-Speed USB to ESP-Iris; normal applications follow
