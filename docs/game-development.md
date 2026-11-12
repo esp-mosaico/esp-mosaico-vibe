@@ -1,4 +1,4 @@
-# Game creation and simulation
+# Mosaico game development entry
 
 [简体中文](game-development_CN.md) | [Documentation index](README.md)
 
@@ -7,6 +7,33 @@ complete reference games, runtime, rendering, assets, behavior tests and Host
 simulation. BSP owns product board support and peripheral examples. Native engine
 examples use their own Board Manager adapters; a native build alone does not add
 Iris or the retained Vibe Mode layout.
+
+## Reading path and version
+
+This page owns **creation, simulation, builds and installation in Mosaico**.
+Engine documents below own game architecture and API details; the skill keeps
+execution constraints rather than repeating the full workflow.
+
+The runtime is pinned to `0.1.1`. Tools and these technical references use the
+revision recorded in utils' `raylib-toolchain.json`. They remain usable without
+a component update. Maintain documentation in its owning repository, not the tool cache.
+
+| Task | Technical reference |
+| --- | --- |
+| Structure model/view/feedback/module code and declare `game.sim.json` | [Game development](https://github.com/espressif2022/raylib-lite-engine/blob/040b84e75640c325bca45515a4135f4b1640fd82/docs/game-development.EN.md) |
+| Choose rendering paths and design inputs, feedback and asset manifests | [Reusable designs](https://github.com/espressif2022/raylib-lite-engine/blob/040b84e75640c325bca45515a4135f4b1640fd82/docs/reference-designs.EN.md) |
+| Check threads, lifecycle, frame ownership, input, audio and saves | [Public API contract](https://github.com/espressif2022/raylib-lite-engine/blob/040b84e75640c325bca45515a4135f4b1640fd82/API.md) |
+| Choose public, low-level or Raylib-compatible interfaces | [API usage boundaries (Chinese)](https://github.com/espressif2022/raylib-lite-engine/blob/040b84e75640c325bca45515a4135f4b1640fd82/docs/custom-api.CN.md) |
+| Implement Scene lifecycle, hit testing, multiple pointers and focus | [Scene/UI contract (Chinese)](https://github.com/espressif2022/raylib-lite-engine/blob/040b84e75640c325bca45515a4135f4b1640fd82/docs/scene-ui.CN.md) |
+| Configure recorded input, state output and Host options | [Host reference](https://github.com/espressif2022/raylib-lite-engine/blob/040b84e75640c325bca45515a4135f4b1640fd82/host/README.md) |
+| Select a complete reference game | [Examples and board matrix](https://github.com/espressif2022/raylib-lite-engine/blob/040b84e75640c325bca45515a4135f4b1640fd82/examples/README.md) |
+
+These are architecture and API references, not a complete step-by-step tutorial.
+Create a project below, then consult the relevant reference. Use the `mosaico.py`
+commands on this page in place of the Engine's standalone CLI workflow;
+installation and recovery follow the [product CLI](mosaico-cli.md).
+Run `python mosaico.py game prepare --json` to locate the tool cache; offline,
+read the same documents and `include/` headers there.
 
 ## Start with a blank game
 
@@ -36,10 +63,10 @@ board first as described in [update selection](mosaico-cli.md#select-an-update-m
 | `main/game_entry.c` | Select the game module |
 | `game.sim.json` | Sources shared by Host and device |
 
-Dependencies flow `main -> app_game_runtime -> app_game`. The model does not
-depend on drawing or hardware. Host state includes `phase`, `tick`, pointer
-coordinates/pressed state and `state_hash`. Pause, resume and reset work before
-adding gameplay; use `--state-output state.json` to save a headless run's state.
+This table locates the blank template's code; use the technical references above
+for reference-game model/view/feedback architecture. Read inherited brightness,
+Wi-Fi and language preferences in the device adapter as described in
+[settings reuse](vibe-settings.md).
 
 ## Registry runtime and pinned development tools
 
@@ -108,7 +135,7 @@ It also accepts a named engine game, such as `game build sky_hop --target iris`.
 Build does not install firmware. Native and Iris outputs use separate directories.
 The wrapper references `main/` and optional `components/`; it does not use the
 source's top-level partition table or custom top-level CMake logic. Declare
-resources in component CMake files. See the [integration contract](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/application-integration.md#user-owned-raylib-lite-games).
+resources in component CMake files. See the [integration contract](../submodule/esp-mosaico-utils/mosaico-tools/docs/application-integration.md#user-owned-raylib-lite-games).
 
 All creators support `--dry-run`, refuse existing targets and initialize an
 independent Git repository plus quality configuration. See [project creation](project-init.md).
@@ -148,24 +175,16 @@ own Board Manager configuration; generating it only in the original example
 is insufficient. Keep normal console output when building: this revision's
 successful `game build --json` does not emit a result object or bundle path.
 
-## Validate behavior
+## Simulator and device checks
 
-The Host needs a C compiler and Pillow; install NumPy when using the engine's
-texture/asset conversion tools. Interactive simulation uses the same C model and
-RGB565 drawing as the device. Check animation, pointer feedback, collisions,
-scoring, win/loss and restart behavior as relevant. Replay recorded input
-headlessly for repeatable checks; inspect visuals and re-run affected flows after
-fixes. A successful launch or fixed frame count does not establish gameplay quality.
-Scene, UI, save and audio engine modules are not all covered by the current Host.
-Validate physical controls, touch, display, audio and performance on hardware;
-Host timing is not device FPS.
+Host needs a C compiler and Pillow; texture/asset conversion tools also need
+NumPy. Run the shared C model and RGB565 drawing rather than separate browser
+game logic. Exercise relevant input, scoring, collisions, pause and restart;
+use recorded input for repeatable checks. A fixed frame count alone does not
+establish interactive behavior.
 
-- [Engine examples and supported boards](https://github.com/espressif2022/raylib-lite-engine/blob/main/examples/README.md)
-- [Sky Hop](https://github.com/espressif2022/raylib-lite-engine/blob/main/examples/sky_hop/README.md)
-- [Tower Defense](https://github.com/espressif2022/raylib-lite-engine/blob/main/examples/tower_defense/README.md)
-- [Raylib Shooter](https://github.com/espressif2022/raylib-lite-engine/blob/main/examples/raylib_shooter/README.md)
-- [Game development guide](https://github.com/espressif2022/raylib-lite-engine/blob/main/docs/game-development.EN.md)
-- [ESP-Mosaico Board Manager adapter](https://github.com/espressif2022/raylib-lite-engine/blob/main/examples/boards/esp-mosaico/README.md)
-
-In this workspace, install and diagnose devices through `mosaico.py`; standalone
-example flash/monitor instructions do not replace the product workflow.
+Check actual browser clicks, keyboard input and coordinates at the displayed size.
+See [preview troubleshooting](simulator-preview.md) for local/SSH connections.
+Host does not cover every Scene, UI, save or audio module. Validate touch,
+display, audio and performance through the [device evidence workflow](project-gateway.md#live-evidence-and-next-steps);
+Host timings are not device FPS.

@@ -3,8 +3,9 @@
 [简体中文](README_CN.md)
 
 A get-started workspace for developing ESP-Mosaico applications with an AI coding
-agent. The repository supplies the CLI entry, workspace settings, pinned
-submodules, documentation and Agent guidance. Applications are created on demand.
+agent. The repository supplies the CLI entry, workspace settings, documentation
+and Agent guidance. Utils and BSP use pinned submodules; Raylib Lite Engine uses
+a Registry component dependency. Applications are created on demand.
 
 ## Create an application
 
@@ -47,17 +48,18 @@ and resources. Device operations always go through the product CLI.
 
 ## Workspace ownership
 
-| Repository | Maintains |
-| --- | --- |
-| This workspace | Entry, configuration, Agent workflows, consumer integration checks |
-| [utils](https://github.com/esp-mosaico/esp-mosaico-utils) | CLI, Vibe Mode firmware, shared application components and Hello World template |
-| [BSP](https://github.com/esp-mosaico/esp-mosaico-bsp) | Product board support and peripheral examples |
-| [Raylib Lite Engine](https://github.com/espressif2022/raylib-lite-engine) | Game runtime, complete reference games, Board adapters and Host simulator |
+| Source | Integration | Maintains |
+| --- | --- | --- |
+| This workspace | Current repository | Entry, configuration, Agent workflows, consumer integration checks |
+| [utils](https://github.com/esp-mosaico/esp-mosaico-utils) | Pinned submodule | CLI, Vibe Mode firmware, shared application components and Hello World template |
+| [BSP](https://github.com/esp-mosaico/esp-mosaico-bsp) | Pinned submodule | Product board support and peripheral examples |
+| [Raylib Lite Engine](https://github.com/espressif2022/raylib-lite-engine) | Registry component `==0.1.1`; Host tools and examples downloaded on demand | Game runtime, complete reference games, Board adapters and Host simulator |
 
 Prefer Raylib Lite Engine for games, create a blank game or an engine example, and validate
 visuals and gameplay in its simulator first; see the [game entry](docs/game-development.md).
-The game runtime uses a pinned Registry component; Host/example tools are downloaded
-and verified on first use (`python mosaico.py game prepare`). Hello World and blank games use
+IDF resolves the Engine runtime component. `python mosaico.py game prepare` downloads
+and verifies pinned Host tools; `game prepare --example <name>` downloads Registry examples.
+Hello World and blank games use
 relative references: move or clone the whole workspace, initialize its pinned
 dependencies and rebuild. Single-application export and old workspace path
 compatibility are outside this layout. See [migration notes](docs/workspace-migration.md).

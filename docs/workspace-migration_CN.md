@@ -17,7 +17,8 @@
 | 共享 GSP 获取与 Ideas 资源工具 | `submodule/esp-mosaico-utils/shared/` |
 | 产品板级支持与外设示例 | `submodule/esp-mosaico-bsp/` |
 | 游戏运行时 | Registry `espressif2022/raylib-lite-engine` `0.1.1` |
-| 完整游戏、原生 Board 适配器与 Host | `game prepare` 返回的已校验源码缓存 |
+| Host、空白游戏启动器与 Board 工具 | `game prepare --json` 返回的已校验源码缓存 |
+| 发布游戏及其自带启动器/Board 适配器 | `game prepare --example <name> --json` 返回的 Registry 示例缓存 |
 
 旧 `esp-mosaico-recovery/`、`firmware/recovery/` 源码目录及转发工具入口已移除。
 根据[公共集成契约](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/application-integration.md)

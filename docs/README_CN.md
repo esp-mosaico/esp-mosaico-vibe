@@ -20,11 +20,13 @@
 - [GSP 预览](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/tools/gsp-sim/README.md)
 - [Vibe Mode 固件](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/esp-mosaico-vibe-mode/firmware/vibe-mode/README.md)
 - [BSP 示例](https://github.com/esp-mosaico/esp-mosaico-bsp/blob/master/README.md#examples)
-- [游戏引擎](https://github.com/espressif2022/raylib-lite-engine/blob/main/README.md)
+- [Raylib Lite Engine 源码参考（Registry 0.1.1）](https://github.com/espressif2022/raylib-lite-engine/blob/040b84e75640c325bca45515a4135f4b1640fd82/README.md)
 
 - [Ideas 文件发布](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/ideas-file-release/README.zh-CN.md)
 - [Gateway 存储与证据](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/ESP-Iris/components/esp_iris/tools/README.md#runtime-and-storage-model)
 - [BSP 扩展模块：ToF、热成像、矩阵 LED 与 EEPROM 配置](https://github.com/esp-mosaico/esp-mosaico-bsp/blob/master/README.md#expansion-modules-and-provisioning)
 
-仓库链接指向首页，文档链接指向默认分支。如需读取与本工作区依赖版本一致的
-本地副本，先初始化 `submodule/` 下的对应依赖。
+utils/BSP 的本地实现文档随固定版本子模块获取。Raylib 使用 Registry 组件，
+运行 `python mosaico.py game prepare` 获取固定版本 Host 工具与技术文档，
+`game prepare --example <name>` 获取示例。版本对应的技术阅读入口见[游戏开发](game-development_CN.md)；
+其他上游链接可能指向默认分支。

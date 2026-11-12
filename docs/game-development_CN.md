@@ -1,10 +1,29 @@
-# 游戏创建与仿真
+# Mosaico 游戏开发入口
 
 [English](game-development.md) | [返回索引](README_CN.md)
 
 游戏优先使用 **Raylib Lite Engine**（Registry 组件 `espressif2022/raylib-lite-engine`，固定 `0.1.1`）。完整参考游戏、
 运行时、渲染、资源、行为测试和 Host 仿真由引擎维护；BSP 负责产品板级支持与外设示例。
 原生引擎示例使用自己的 Board Manager 适配器，原生构建本身不添加 Iris 或保留 Vibe Mode 布局。
+
+## 阅读入口与版本
+
+本页负责 **Mosaico 中的创建、仿真、构建与安装**。游戏架构和引擎 API 由下表链接的引擎文档维护；skill 只保留执行约束，不再复述完整流程。
+
+组件固定 `0.1.1`，配套工具和下列技术文档固定在 utils 的 `raylib-toolchain.json` 所记录提交。组件不更新也可以使用这些资料；不要改工具缓存来维护文档。
+
+| 你要做什么 | 技术引导 |
+| --- | --- |
+| 组织模型、视图、反馈与模块入口，声明 `game.sim.json` | [游戏开发指南](https://github.com/espressif2022/raylib-lite-engine/blob/040b84e75640c325bca45515a4135f4b1640fd82/docs/game-development.CN.md) |
+| 选择绘制路径，设计输入、反馈和资源清单 | [可复用设计方法](https://github.com/espressif2022/raylib-lite-engine/blob/040b84e75640c325bca45515a4135f4b1640fd82/docs/reference-designs.CN.md) |
+| 确认线程、生命周期、帧所有权、输入、音频和存档规则 | [公开 API 契约（英文）](https://github.com/espressif2022/raylib-lite-engine/blob/040b84e75640c325bca45515a4135f4b1640fd82/API.md) |
+| 选择公开接口、底层接口或 Raylib 兼容层 | [接口使用边界](https://github.com/espressif2022/raylib-lite-engine/blob/040b84e75640c325bca45515a4135f4b1640fd82/docs/custom-api.CN.md) |
+| 实现 Scene、按钮命中、多指针和焦点 | [Scene/UI 契约](https://github.com/espressif2022/raylib-lite-engine/blob/040b84e75640c325bca45515a4135f4b1640fd82/docs/scene-ui.CN.md) |
+| 配置 Host 输入回放、状态输出和仿真选项 | [Host 参考（英文）](https://github.com/espressif2022/raylib-lite-engine/blob/040b84e75640c325bca45515a4135f4b1640fd82/host/README.md) |
+| 挑选完整参考游戏 | [示例与开发板矩阵（英文）](https://github.com/espressif2022/raylib-lite-engine/blob/040b84e75640c325bca45515a4135f4b1640fd82/examples/README.md) |
+
+上表是架构与接口参考，尚无覆盖全部功能的从零逐步教程。先从本页创建工程，再按所需功能查阅；引擎文档里的独立 CLI 命令在本工作区使用下文 `mosaico.py` 入口。安装和恢复始终遵循[产品 CLI](mosaico-cli_CN.md)。
+工具缓存路径可用 `python mosaico.py game prepare --json` 查询；离线时在返回目录读取同名文档和 `include/` 头文件。
 
 ## 从空白游戏开始
 
@@ -32,9 +51,7 @@ python mosaico.py iris system-update --project projects/my_game
 | `main/game_entry.c` | 选择游戏模块 |
 | `game.sim.json` | Host 与设备共用的源文件 |
 
-依赖方向为 `main -> app_game_runtime -> app_game`，模型不依赖绘制或硬件。
-Host 状态包含 `phase`、`tick`、指针坐标/按下状态和 `state_hash`；添加玩法前即可
-验证暂停、继续和重置。headless 命令加 `--state-output state.json` 可保存状态。
+此表是空白模板的落点；参考游戏的模型/视图/反馈分层见上方技术引导。需要继承用户亮度、Wi-Fi、语言等配置时，按[设置复用](vibe-settings_CN.md)在设备适配层读取。
 
 ## Registry 运行时与固定版本开发工具
 
@@ -92,7 +109,7 @@ python mosaico.py iris system-update --project projects/my_platformer --bundle /
 运行目录下生成独立工程，添加产品服务和兼容分区，再输出 System Update 包；也接受
 引擎游戏名，如 `game build sky_hop --target iris`。构建不安装固件，原生与 Iris
 产物分别存放。适配工程引用 `main/` 和可选的 `components/`，不采用源工程顶层
-分区表或自定义顶层 CMake 逻辑；资源应在组件 CMake 中声明。详见[集成契约](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/application-integration.md#user-owned-raylib-lite-games)。
+分区表或自定义顶层 CMake 逻辑；资源应在组件 CMake 中声明。详见[集成契约](../submodule/esp-mosaico-utils/mosaico-tools/docs/application-integration.md#user-owned-raylib-lite-games)。
 
 所有创建入口支持 `--dry-run`、拒绝覆盖已有目标，并初始化独立 Git 仓库和质量
 配置，见[工程创建](project-init_CN.md)。
@@ -129,21 +146,8 @@ Registry 示例应使用其自己的 `shared/boards/esp-mosaico/bmgr` 配置目�
 仅在原始示例中生成还不够。构建时保留普通控制台输出：当前版本的
 `game build --json` 成功时不输出结果对象或包路径。
 
-## 验证行为
+## 仿真与设备检查
 
-Host 需要 C 编译器和 Pillow；使用引擎纹理/资源转换工具时还需 NumPy。
-交互仿真使用设备共用的 C 模型和 RGB565 绘制；按实际玩法检查动画、指针反馈、
-碰撞、计分、胜负和重开。录制输入后可 headless 回放，修复后复验受影响流程。
-成功启动或固定帧数运行不能证明游戏效果正确。当前 Host 未覆盖所有引擎 Scene、
-UI、存档和音频模块；物理按键、触摸、显示、音频和实际性能仍需真机验证，
-Host 耗时不能作为设备 FPS。
+Host 需要 C 编译器和 Pillow，纹理/资源转换工具还需 NumPy。运行设备共用的 C 模型与 RGB565 绘制，不另写浏览器游戏逻辑。按实际玩法检查输入、计分、碰撞、暂停和重开，必要时用录制回放复验；固定帧数运行成功不能替代交互检查。
 
-- [引擎示例与支持的开发板](https://github.com/espressif2022/raylib-lite-engine/blob/main/examples/README.md)
-- [Sky Hop](https://github.com/espressif2022/raylib-lite-engine/blob/main/examples/sky_hop/README.md)
-- [Tower Defense](https://github.com/espressif2022/raylib-lite-engine/blob/main/examples/tower_defense/README.md)
-- [Raylib Shooter](https://github.com/espressif2022/raylib-lite-engine/blob/main/examples/raylib_shooter/README.md)
-- [游戏开发指南](https://github.com/espressif2022/raylib-lite-engine/blob/main/docs/game-development.EN.md)
-- [ESP-Mosaico Board Manager 适配器](https://github.com/espressif2022/raylib-lite-engine/blob/main/examples/boards/esp-mosaico/README.md)
-
-本工作区的安装与诊断统一经过 `mosaico.py`；独立示例中的 flash/monitor 命令
-不替代产品工作流。
+浏览器应检查实际点击、键盘和缩放后的坐标；本机/SSH 地址与连接问题见[预览排查](simulator-preview_CN.md)。当前 Host 未覆盖所有 Scene、UI、存档和音频模块；触摸、显示、音频与实际性能按[设备验收](project-gateway_CN.md#实时证据与下一步)检查，Host 耗时不作为设备 FPS。

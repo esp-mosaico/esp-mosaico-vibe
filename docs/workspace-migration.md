@@ -3,7 +3,7 @@
 [简体中文](workspace-migration_CN.md) | [Documentation index](README.md)
 
 Move or clone the whole workspace, including each user application's independent
-Git repository and the pinned submodules. Hello World and blank projects reference
+Git repository and the pinned utils/BSP submodules. Hello World and blank projects reference
 utils, BSP and cached Engine tooling relatively. New games resolve the runtime
 from the Registry without a source override. Run `python mosaico.py game prepare`
 after cloning; see [game migration](game-development.md#registry-runtime-and-pinned-development-tools)
@@ -21,7 +21,8 @@ integration layout. This workspace does not provide standalone application expor
 | Shared GSP acquisition and Ideas resources | `submodule/esp-mosaico-utils/shared/` |
 | Product board/peripheral examples | `submodule/esp-mosaico-bsp/` |
 | Game runtime | Registry `espressif2022/raylib-lite-engine` `0.1.1` |
-| Complete games, native Board adapters and Host | Verified source cache reported by `game prepare` |
+| Host and blank-game launcher/Board tools | Verified source cache reported by `game prepare --json` |
+| Published games and their private launcher/Board adapters | Registry example cache reported by `game prepare --example <name> --json` |
 
 The old `esp-mosaico-recovery/` and `firmware/recovery/` source locations and legacy
 forwarding tool entry points were removed. Update CMake includes, component paths,
