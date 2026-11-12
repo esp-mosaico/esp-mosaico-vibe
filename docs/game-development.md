@@ -45,7 +45,7 @@ python mosaico.py game prepare
 python mosaico.py game create my_game
 python mosaico.py game sim --project projects/my_game
 python mosaico.py game sim --project projects/my_game --headless --frames 120
-# First builds may need the Board Manager setup below.
+# First builds download dependencies and generate Board Manager configuration automatically.
 python mosaico.py game build --project projects/my_game
 python mosaico.py iris system-update --project projects/my_game
 ```
@@ -135,45 +135,35 @@ It also accepts a named engine game, such as `game build sky_hop --target iris`.
 Build does not install firmware. Native and Iris outputs use separate directories.
 The wrapper references `main/` and optional `components/`; it does not use the
 source's top-level partition table or custom top-level CMake logic. Declare
-resources in component CMake files. See the [integration contract](https://github.com/esp-mosaico/esp-mosaico-utils/blob/587005cee2db759deb357ec24cf92ece667a25a2/mosaico-tools/docs/application-integration.md#user-owned-raylib-lite-games).
+resources in component CMake files. See the [integration contract](https://github.com/esp-mosaico/esp-mosaico-utils/blob/cf46fbe2d2601b6569360611e07da8a22bb2e83b/mosaico-tools/docs/application-integration.md#user-owned-raylib-lite-games).
 
 All creators support `--dry-run`, refuse existing targets and initialize an
 independent Git repository plus quality configuration. See [project creation](project-init.md).
 
-## Generate Board Manager configuration
+## Automatic Board Manager preparation
 
-The current engine requires `components/gen_bmgr_codes`. The workspace game
-builder does not generate it automatically. On a fresh project, the first build
-resolves managed dependencies and can stop with `gen_bmgr_codes: unknown name`.
-Activate the pinned ESP-IDF environment and run the Board Manager extension:
+`game build` generates missing `components/gen_bmgr_codes` before compiling. No
+initial failed build or global `esp-bmgr-assist` installation is needed. Tools
+resolve pinned Board Manager `0.7.5` in a separate minimal IDF project, run
+`idf.py bmgr`, validate the output and then publish the component. Failures keep
+complete logs and do not edit application sdkconfig.
 
-```sh
-# Run from the workspace root, after the first build has resolved dependencies.
-source /path/to/pinned-esp-idf/export.sh
-mosaico_workspace="$PWD"
-# Use the toolchain path printed by game prepare (not a submodule checkout).
-mosaico_raylib_tools="/path/printed/by/game/prepare"
-mosaico_game_project="$mosaico_workspace/projects/my_game"
-IDF_EXTRA_ACTIONS_PATH="$mosaico_game_project/managed_components/espressif__esp_board_manager" \
-  idf.py -C "$mosaico_game_project" bmgr \
-  -c "$mosaico_raylib_tools/examples/boards/esp-mosaico/bmgr" \
-  -b esp_mosaico
-```
+Blank games use `examples/boards/esp-mosaico/bmgr` in the pinned tool cache;
+Registry examples use their own `shared/boards/esp-mosaico/bmgr`. `--target iris`
+generates an independent `esp_mosaico` configuration in the wrapper and excludes
+the original game's `components/gen_bmgr_codes`. It does not change the original
+Board selection, generated files or build configuration. First preparation needs
+network access; complete existing configurations are reused.
 
-For a Registry example, use its own `shared/boards/esp-mosaico/bmgr` profile
-instead of the blank-game toolchain profile above.
+Native builds preserve an existing Board selection. Iris product builds check
+the Board, chip, configuration source and required files. Incomplete or mismatched
+existing configurations fail explicitly instead of being overwritten. To regenerate,
+preserve the old `gen_bmgr_codes` outside `components/` and repeat the build;
+do the same after editing Board YAML.
 
-Then repeat the original `mosaico.py game build` command. These commands only
-generate board sources/configuration; device installation still uses `mosaico.py`.
-Explicitly loading the extension avoids relying on `esp-bmgr-assist` project detection,
-which does not recognize the blank template's indirect `project.cmake` include.
-
-For `--target iris`, set `mosaico_game_project` to the generated project reported
-in the build log (`.codex-runs/mosaico/raylib-iris/<name-hash>/project` by default),
-then repeat the same build with `--target iris`. The generated project needs its
-own Board Manager configuration; generating it only in the original example
-is insufficient. Keep normal console output when building: this revision's
-successful `game build --json` does not emit a result object or bundle path.
+Keep normal console output when building: this revision's successful
+`game build --json` does not emit a result object or bundle path. Installation
+remains a separate `mosaico.py` operation.
 
 ## Simulator and device checks
 

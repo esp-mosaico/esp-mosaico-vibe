@@ -35,7 +35,7 @@ python mosaico.py game prepare
 python mosaico.py game create my_game
 python mosaico.py game sim --project projects/my_game
 python mosaico.py game sim --project projects/my_game --headless --frames 120
-# 首次构建可能需要下文的 Board Manager 配置步骤。
+# 首次构建自动下载依赖并生成 Board Manager 配置。
 python mosaico.py game build --project projects/my_game
 python mosaico.py iris system-update --project projects/my_game
 ```
@@ -109,42 +109,30 @@ python mosaico.py iris system-update --project projects/my_platformer --bundle /
 运行目录下生成独立工程，添加产品服务和兼容分区，再输出 System Update 包；也接受
 引擎游戏名，如 `game build sky_hop --target iris`。构建不安装固件，原生与 Iris
 产物分别存放。适配工程引用 `main/` 和可选的 `components/`，不采用源工程顶层
-分区表或自定义顶层 CMake 逻辑；资源应在组件 CMake 中声明。详见[集成契约](https://github.com/esp-mosaico/esp-mosaico-utils/blob/587005cee2db759deb357ec24cf92ece667a25a2/mosaico-tools/docs/application-integration.md#user-owned-raylib-lite-games)。
+分区表或自定义顶层 CMake 逻辑；资源应在组件 CMake 中声明。详见[集成契约](https://github.com/esp-mosaico/esp-mosaico-utils/blob/cf46fbe2d2601b6569360611e07da8a22bb2e83b/mosaico-tools/docs/application-integration.md#user-owned-raylib-lite-games)。
 
 所有创建入口支持 `--dry-run`、拒绝覆盖已有目标，并初始化独立 Git 仓库和质量
 配置，见[工程创建](project-init_CN.md)。
 
-## 生成 Board Manager 配置
+## Board Manager 配置自动准备
 
-当前引擎要求 `components/gen_bmgr_codes`，工作区游戏构建器尚不自动生成。
-新工程首次构建会解析托管依赖，随后可能报 `gen_bmgr_codes: unknown name`。
-激活固定版本的 ESP-IDF 环境，再显式加载 Board Manager 扩展：
+`game build` 在编译前自动生成缺少的 `components/gen_bmgr_codes`，无需先构建失败，
+也不要求安装全局 `esp-bmgr-assist`。工具在独立临时 IDF 工程中下载固定版本
+Board Manager `0.7.5`、执行 `idf.py bmgr`，验证生成结果后再发布到目标工程；
+失败时保留完整日志，不修改应用已有的 sdkconfig。
 
-```sh
-# 在工作区根目录执行，先由首次构建完成依赖解析。
-source /path/to/pinned-esp-idf/export.sh
-mosaico_workspace="$PWD"
-# 使用 game prepare 输出的工具目录，不再使用引擎子模块。
-mosaico_raylib_tools="/path/printed/by/game/prepare"
-mosaico_game_project="$mosaico_workspace/projects/my_game"
-IDF_EXTRA_ACTIONS_PATH="$mosaico_game_project/managed_components/espressif__esp_board_manager" \
-  idf.py -C "$mosaico_game_project" bmgr \
-  -c "$mosaico_raylib_tools/examples/boards/esp-mosaico/bmgr" \
-  -b esp_mosaico
-```
+空白游戏使用固定工具缓存的 `examples/boards/esp-mosaico/bmgr`；Registry 示例
+使用其自己的 `shared/boards/esp-mosaico/bmgr`。`--target iris` 在独立包装工程中
+生成 `esp_mosaico` 配置，并排除原游戏的 `components/gen_bmgr_codes`，不改动
+原游戏的板型、生成文件或构建配置。首次需要联网，已有完整配置时复用。
 
-Registry 示例应使用其自己的 `shared/boards/esp-mosaico/bmgr` 配置目录，
-替换上述空白游戏工具目录中的配置。
+原生构建保留已有的 Board 选择；Iris 产品构建会检查板型、目标芯片、配置来源
+和必需文件。如果已有配置不完整或来自另一套 Board 文件，会明确报错，不覆盖
+用户配置。确认需要重新生成时，将旧 `gen_bmgr_codes` 移到 `components/` 之外
+备份，再重跑构建；修改 Board YAML 后也按此方式重新生成。
 
-然后重跑原来的 `mosaico.py game build`。以上命令只生成板级源文件和配置，
-设备安装仍使用 `mosaico.py`。显式加载扩展可避开 `esp-bmgr-assist` 对空白模板
-间接包含 `project.cmake` 的识别限制。
-
-使用 `--target iris` 时，将 `mosaico_game_project` 改为构建日志中的生成工程
-（默认位于 `.codex-runs/mosaico/raylib-iris/<name-hash>/project`），然后重跑
-带 `--target iris` 的原构建命令。生成工程需要自己的 Board Manager 配置，
-仅在原始示例中生成还不够。构建时保留普通控制台输出：当前版本的
-`game build --json` 成功时不输出结果对象或包路径。
+构建时保留普通控制台输出：当前版本的 `game build --json` 成功时不输出
+结果对象或包路径。设备安装仍单独使用 `mosaico.py`。
 
 ## 仿真与设备检查
 
