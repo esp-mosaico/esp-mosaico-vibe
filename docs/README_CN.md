@@ -4,6 +4,7 @@
 
 - [设备模式：Vibe Mode 与 ROM 下载模式](device-modes_CN.md)
 - [工程创建与选择](project-init_CN.md)
+- [应用复用 Vibe Mode 设置](vibe-settings_CN.md)
 - [编程 Agent 的 Espressif MCP 服务](mcp-servers_CN.md)
 - [CLI 与设备操作](mosaico-cli_CN.md)
 - [Gateway 与设备归属](project-gateway_CN.md)

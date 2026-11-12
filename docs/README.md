@@ -4,6 +4,7 @@
 
 - [Device modes: Vibe Mode and ROM Download Mode](device-modes.md)
 - [Project creation and selection](project-init.md)
+- [Reusing Vibe Mode settings](vibe-settings.md)
 - [Espressif MCP services for coding agents](mcp-servers.md)
 - [CLI and device operations](mosaico-cli.md)
 - [Gateways and device ownership](project-gateway.md)

@@ -132,6 +132,10 @@ image counts, or approval for decorative details.
 
 ## Repository execution support
 
+When an app needs Vibe brightness, Wi-Fi credentials, language or other shared
+settings, follow [settings reuse](../../../docs/vibe-settings.md). Read them in
+the device adapter; do not assume automatic inheritance or overwrite global preferences.
+
 - Follow [AGENTS.md](../../../AGENTS.md) for repository-wide constraints.
   Preserve the Recovery contract and resolve ESP-IDF before running its tools.
 - For device validation, follow the [CLI guide](../../../docs/mosaico-cli.md)

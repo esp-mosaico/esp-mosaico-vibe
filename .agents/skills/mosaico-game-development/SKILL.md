@@ -26,6 +26,10 @@ runtime, renderers and implementation tests belong to Raylib Lite Engine.
 Native example Board adapters use Board Manager; inspect their dependencies
 separately from the product BSP.
 
+When an app needs Vibe brightness, Wi-Fi credentials, language or other shared
+settings, follow [settings reuse](../../../docs/vibe-settings.md). Read them in
+the device adapter; do not assume automatic inheritance or overwrite global preferences.
+
 Use `python mosaico.py game sim --project projects/<name>` and headless replay
 for the shared C model and RGB565 view before device installation. Inspect
 visuals, animation, input feedback and complete gameplay flows interactively;
