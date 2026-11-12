@@ -8,6 +8,7 @@
 - [CLI 与设备操作](mosaico-cli_CN.md)
 - [Gateway 与设备归属](project-gateway_CN.md)
 - [游戏创建与仿真](game-development_CN.md)
+- [仿真预览连接排查](simulator-preview_CN.md)
 - [工作区、依赖与 0.2 迁移](workspace-migration_CN.md)
 
 公共实现、API 和协议资料由所属仓库维护：

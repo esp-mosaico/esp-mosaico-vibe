@@ -34,6 +34,12 @@ collisions, scoring, win/loss and restart behavior. Fix and re-run affected
 flows in the simulator before device validation. A successful headless launch
 alone does not establish that the game looks or plays correctly.
 Never implement a separate Python or browser renderer.
+For browser previews, distinguish the service host from the user's browser host:
+use loopback locally and a verified forwarded or reachable private address for SSH.
+Validate actual clicks, keyboard input and coordinate mapping at the displayed size;
+API or headless success alone does not verify the user's browser. Restart only a
+preview process owned by this task. For connection failures, read
+[preview troubleshooting](../../../docs/simulator-preview.md).
 Generate Board Manager configuration in the effective build project as described
 in the workspace guide, including the generated wrapper for an Iris target. The
 current builder does not generate `gen_bmgr_codes` automatically.

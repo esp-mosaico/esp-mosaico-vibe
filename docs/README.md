@@ -8,6 +8,7 @@
 - [CLI and device operations](mosaico-cli.md)
 - [Gateways and device ownership](project-gateway.md)
 - [Game creation and simulation](game-development.md)
+- [Simulator preview troubleshooting](simulator-preview.md)
 - [Workspace, dependency and 0.2 migration](workspace-migration.md)
 
 Public implementations, APIs and protocol documentation are maintained by their
