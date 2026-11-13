@@ -140,6 +140,12 @@ resources in component CMake files. See the [integration contract](https://githu
 All creators support `--dry-run`, refuse existing targets and initialize an
 independent Git repository plus quality configuration. See [project creation](project-init.md).
 
+Named examples used by native `game build`, `game sim` and `game run` use the
+shared Registry example cache as scratch space, including build/configuration
+output. Run operations on the same named example serially. For concurrent or
+editable work, create separate projects with `game create`; Iris builds use
+separate wrapper directories.
+
 ## Automatic Board Manager preparation
 
 `game build` generates missing `components/gen_bmgr_codes` before compiling. No

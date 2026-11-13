@@ -14,16 +14,23 @@ ROOT = Path(__file__).resolve().parents[2]
 TOOLS = ROOT / "submodule/esp-mosaico-utils/mosaico-tools"
 sys.path.insert(0, str(TOOLS / "tools"))
 from mosaico_cli.workspace import load_workspace
-from mosaico_cli.raylib_toolchain import ensure_toolchain
+from mosaico_cli.raylib_toolchain import cache_path, descriptor, _ready
 
 
 
 @pytest.fixture
 def game(tmp_path):
-    engine = ensure_toolchain(load_workspace(TOOLS, start=ROOT))
     if not any(shutil.which(name) for name in ("cc", "gcc", "clang")):
         pytest.skip("native Host integration needs a C compiler")
     pytest.importorskip("PIL")
+    workspace = load_workspace(TOOLS, start=ROOT)
+    engine = workspace.raylib_path
+    if engine is None:
+        engine = cache_path(TOOLS, workspace.run_dir)
+        if not _ready(engine, descriptor(TOOLS)):
+            pytest.skip("native Host integration needs a prepared toolchain; run python mosaico.py game prepare")
+    if not (engine / "host/run_game.py").is_file():
+        pytest.skip("native Host integration needs the configured Engine Host tools")
     spec = importlib.util.spec_from_file_location("blank_game_host", engine / "host/run_game.py")
     host = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(host)
@@ -79,3 +86,17 @@ def test_generated_blank_game_renders_and_handles_input(game):
     assert game.metadata()["state_hash"] == initial_hash
     short = ctypes.create_string_buffer(8)
     assert game.api.raylib_lite_host_game_state_json_v1(game.context, short, len(short)) < 0
+
+
+@pytest.mark.parametrize("missing_compiler", [True, False])
+def test_host_fixture_skips_without_downloading(tmp_path, monkeypatch, missing_compiler):
+    from types import SimpleNamespace
+    from mosaico_cli import raylib_toolchain
+    workspace = SimpleNamespace(raylib_path=None, run_dir=tmp_path / "empty-cache")
+    monkeypatch.setattr(shutil, "which", lambda _: None if missing_compiler else "/compiler")
+    monkeypatch.setattr(sys.modules[__name__], "load_workspace", lambda *args, **kwargs: workspace)
+    monkeypatch.setattr(raylib_toolchain, "_download", lambda *args: pytest.fail("fixture must never download"))
+    reason = "C compiler" if missing_compiler else "prepared toolchain"
+    with pytest.raises(pytest.skip.Exception, match=reason):
+        next(game.__wrapped__(tmp_path))
+    assert not workspace.run_dir.exists()

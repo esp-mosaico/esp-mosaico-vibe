@@ -114,6 +114,11 @@ python mosaico.py iris system-update --project projects/my_platformer --bundle /
 所有创建入口支持 `--dry-run`、拒绝覆盖已有目标，并初始化独立 Git 仓库和质量
 配置，见[工程创建](project-init_CN.md)。
 
+按名称执行原生 `game build`、`game sim`、`game run` 时，共用 Registry 示例
+缓存作为临时工作目录，其中会写入构建和配置产物。同一命名示例请串行运行；
+需要并发或修改源码时，使用 `game create` 创建各自的工程。Iris 构建使用独立
+包装工程目录。
+
 ## Board Manager 配置自动准备
 
 `game build` 在编译前自动生成缺少的 `components/gen_bmgr_codes`，无需先构建失败，
