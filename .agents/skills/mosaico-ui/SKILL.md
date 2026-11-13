@@ -132,14 +132,18 @@ image counts, or approval for decorative details.
 
 ## Repository execution support
 
+When an app needs Vibe brightness, Wi-Fi credentials, language or other shared
+settings, follow [settings reuse](../../../docs/vibe-settings.md). Read them in
+the device adapter; do not assume automatic inheritance or overwrite global preferences.
+
 - Follow [AGENTS.md](../../../AGENTS.md) for repository-wide constraints.
   Preserve the Recovery contract and resolve ESP-IDF before running its tools.
 - For device validation, follow the [CLI guide](../../../docs/mosaico-cli.md)
   and [Gateway evidence checks](../../../docs/project-gateway.md#live-evidence-and-next-steps).
 - For new apps, prefer GSP when it fits and start from
-  [hello_world](../../../submodule/esp-mosaico-utils/mosaico-tools/templates/hello_world/README.md). New apps belong in `projects/`;
+  [hello_world](https://github.com/esp-mosaico/esp-mosaico-utils/blob/ac32a5a79a46f24a3495cb17078529025d701d3a/mosaico-tools/templates/hello_world/README.md). New apps belong in `projects/`;
   a new page within an existing app inherits its framework and conventions.
-- Use the [product preview guide](../../../submodule/esp-mosaico-utils/mosaico-tools/tools/gsp-sim/README.md)
+- Use the [product preview guide](https://github.com/esp-mosaico/esp-mosaico-utils/blob/ac32a5a79a46f24a3495cb17078529025d701d3a/mosaico-tools/tools/gsp-sim/README.md)
   for GSP runtime constraints and the portable UI boundary. Run the target app's backend for
   logic, not scene-only rendering. Keep controls and dynamic text native
   rather than substituting the concept image for the working UI.

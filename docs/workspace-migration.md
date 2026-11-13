@@ -3,10 +3,11 @@
 [简体中文](workspace-migration_CN.md) | [Documentation index](README.md)
 
 Move or clone the whole workspace, including each user application's independent
-Git repository and the pinned submodules. Hello World and blank projects reference
-utils and board/engine dependencies relatively. Engine example copies currently
-record an absolute engine `override_path` in `main/idf_component.yml`; update that
-reference when moving them. Build caches contain absolute paths;
+Git repository and the pinned utils/BSP submodules. Hello World and blank projects reference
+utils, BSP and cached Engine tooling relatively. New games resolve the runtime
+from the Registry without a source override. Run `python mosaico.py game prepare`
+after cloning; see [game migration](game-development.md#registry-runtime-and-pinned-development-tools)
+for existing apps with source overrides. Build caches contain absolute paths;
 configure fresh build directories after moving the workspace or changing the
 integration layout. This workspace does not provide standalone application export.
 
@@ -19,7 +20,9 @@ integration layout. This workspace does not provide standalone application expor
 | Vibe Mode firmware project | `esp-mosaico-vibe-mode/firmware/vibe-mode/` inside utils |
 | Shared GSP acquisition and Ideas resources | `submodule/esp-mosaico-utils/shared/` |
 | Product board/peripheral examples | `submodule/esp-mosaico-bsp/` |
-| Complete games, native Board adapters and Host | `submodule/raylib-lite-engine/` |
+| Game runtime | Registry `espressif2022/raylib-lite-engine` `0.1.1` |
+| Host and blank-game launcher/Board tools | Verified source cache reported by `game prepare --json` |
+| Published games and their private launcher/Board adapters | Registry example cache reported by `game prepare --example <name> --json` |
 
 The old `esp-mosaico-recovery/` and `firmware/recovery/` source locations and legacy
 forwarding tool entry points were removed. Update CMake includes, component paths,

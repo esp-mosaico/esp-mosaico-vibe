@@ -3,7 +3,8 @@
 [English](README.md)
 
 使用 AI 编程 Agent 开发 ESP-Mosaico 应用的入门工作区。仓库提供 CLI 入口、
-工作区配置、固定版本子模块、文档和 Agent 指引。
+工作区配置、文档和 Agent 指引。utils 与 BSP 通过固定版本子模块接入；
+Raylib Lite Engine 通过 Registry 组件依赖接入。
 
 ## 创建应用
 
@@ -44,16 +45,17 @@ GSP 预览与设备使用相同的可移植 C UI 和 GSP 1.5.1 场景。
 
 ## 工作区职责
 
-| 仓库 | 维护内容 |
-| --- | --- |
-| 本工作区 | 入口、配置、Agent 工作流、消费者集成验证 |
-| [utils](https://github.com/esp-mosaico/esp-mosaico-utils) | CLI、Vibe Mode 固件、公共应用组件、Hello World 模板 |
-| [BSP](https://github.com/esp-mosaico/esp-mosaico-bsp) | 产品板级支持和外设示例 |
-| [Raylib Lite Engine](https://github.com/espressif2022/raylib-lite-engine) | 游戏运行时、完整参考游戏、Board 适配器和 Host 模拟器 |
+| 来源 | 接入方式 | 维护内容 |
+| --- | --- | --- |
+| 本工作区 | 当前仓库 | 入口、配置、Agent 工作流、消费者集成验证 |
+| [utils](https://github.com/esp-mosaico/esp-mosaico-utils) | 固定版本子模块 | CLI、Vibe Mode 固件、公共应用组件、Hello World 模板 |
+| [BSP](https://github.com/esp-mosaico/esp-mosaico-bsp) | 固定版本子模块 | 产品板级支持和外设示例 |
+| [Raylib Lite Engine](https://github.com/espressif2022/raylib-lite-engine) | Registry 组件 `==0.1.1`；Host 工具与示例按需下载 | 游戏运行时、完整参考游戏、Board 适配器和 Host 模拟器 |
 
 游戏优先使用 Raylib Lite Engine，从空白模板或引擎示例创建，先在仿真器中验证
 画面和玩法，见[游戏入口](docs/game-development_CN.md)；
-仅开发游戏时初始化引擎。Hello World 与空白游戏使用相对引用：移动或重新克隆整个工作区，
+IDF 解析引擎运行时组件；`python mosaico.py game prepare` 下载并校验固定版本 Host 工具，
+`game prepare --example <name>` 从 Registry 下载示例。Hello World 与空白游戏使用相对引用：移动或重新克隆整个工作区，
 初始化固定依赖后重新构建。此布局不提供单应用独立导出或旧工作区路径兼容，
 见[迁移说明](docs/workspace-migration_CN.md)。
 

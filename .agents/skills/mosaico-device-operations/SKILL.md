@@ -50,6 +50,10 @@ To enter existing Vibe Mode from a reachable application, use
    and firmware mode; ROM identity is established by the product recovery workflow.
    Do not infer ROM or damaged firmware from a failed handshake alone.
 
+For Vibe Wi-Fi provisioning and application preference inheritance, consult
+[settings ownership and reuse](../../../docs/vibe-settings.md); use the public
+CLI for device writes and preserve stored preferences during updates.
+
 ## Inspect and diagnose
 
 Read the [CLI command reference](../../../docs/mosaico-cli_CN.md#命令职责) for
