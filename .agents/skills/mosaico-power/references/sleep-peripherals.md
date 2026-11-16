@@ -27,13 +27,17 @@ AOD 不保证原有渐变/灰度效果，需检查文字可读性。`28 → 10` 
 
 | 需求 | 设置 |
 | --- | --- |
-| 保持联网并省电 | Wi-Fi 初始化后调用 `esp_wifi_set_ps(WIFI_PS_MIN_MODEM)`，检查返回值 |
+| 通用联网省电起点 | Wi-Fi 初始化后调用 `esp_wifi_set_ps(WIFI_PS_MIN_MODEM)`，检查返回值；按延迟需求选择策略 |
 | 手动 light sleep，不保连接 | 睡前 `esp_wifi_stop()`，醒后 `esp_wifi_start()` 并等待重新连接 |
 | 自动 light sleep 保连接 | 启用 tickless idle、自动睡眠及 modem sleep；核对当前 Wi-Fi 驱动支持 |
 | 完全禁用 | 不初始化 Wi-Fi；仅断开 AP 不等于停用驱动 |
+
+上面的 `MIN_MODEM` 是通用配置示例。[指定版本的 Vibe](runtime-modes.md#vibe-实现与版本边界)使用 `MAX_MODEM`、`listen_interval=3`，批量传输临时设为 `PS_NONE` 后恢复。
 
 ## USB
 
 保留 USB 唤醒的路径：完成枚举 → 主机允许总线挂起、暂停活跃通信 → MCU light sleep → 主机恢复总线 → 重建 Iris 会话。
 主机持续通信或禁止挂起时，不能按这条路径进入硬件睡眠。Gateway 自动空闲释放/按需重连尚未接入；不修改系统电源策略或停止其他客户端来强行进入睡眠。
-USB 恢复通信与屏幕恢复分开检查；睡眠期间保屏恢复仍有未解决的黑屏问题。插充电器、插拔线及 USB Serial/JTAG 不按此路径推断。
+该 Vibe 实现需启用 `CONFIG_VIBE_USB_WAKEUP=y`；已枚举 USB 仅在主机实际挂起后保留 Iris/TinyUSB 及 USB 唤醒。未枚举时走停止 Iris 的睡眠路径。插充电器、插拔线及 USB Serial/JTAG 不按 USB resume 推断。
+
+板级证据：`8d172fa8fd78c80b965240c44ade7d3bd19c4d08` 已完成单轮 USB 挂起/恢复，Boot ID 不变、回首页且亮度恢复 80%；该轮需手动协调主机挂起，未测电流，未做长期循环。后续取消 IMU 唤醒的 `f84fc9a1` 尚未重新刷板验收；不能将前一版本结果视为最新版本通过。验证时分别检查 USB 通信、显示与亮度恢复。
