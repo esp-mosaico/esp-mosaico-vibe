@@ -21,7 +21,7 @@
 | 发布游戏及其自带启动器/Board 适配器 | `game prepare --example <name> --json` 返回的 Registry 示例缓存 |
 
 旧 `esp-mosaico-recovery/`、`firmware/recovery/` 源码目录及转发工具入口已移除。
-根据[公共集成契约](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/application-integration.md)
+根据[公共集成契约](../submodule/esp-mosaico-utils/mosaico-tools/docs/application-integration.md)
 更新 CMake include、组件路径、自动化脚本和测试夹具。Recovery 组件名、命令、协议字段
 与 ABI 标识继续保留，不要机械替换所有 `recovery` 字符串。
 

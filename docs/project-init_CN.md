@@ -18,7 +18,7 @@ python mosaico.py project init my_app
 工作区 `.mosaico.json` 使用 `schema_version: 2`，模板描述仍使用 schema 1。
 旧工作区见[迁移说明](workspace-migration_CN.md)。`workspace.init_template` 可指向自定义描述；
 `workspace.projects_dir` 可修改生成位置，仍须位于工作区内。模板格式及路径变量见
-[应用集成](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/application-integration.md)。
+[应用集成](../submodule/esp-mosaico-utils/mosaico-tools/docs/application-integration.md)。
 
 创建时会初始化分支为 `main` 的独立 Git 仓库，补齐 Git、编辑器和质量检查配置，
 保留模板已有设置；不会自动暂存、提交、设置远端或安装 hooks。在生成工程中按照

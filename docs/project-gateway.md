@@ -144,15 +144,15 @@ logs, artifacts and event segments) and credentials separately. Opening database
 schema 200/201 upgrades it to 202. Rolling back code alone does not reverse this;
 restore the independent pre-upgrade backups. The old source directory may remain
 the live credentials store, so it is not a rollback backup and must not be deleted
-while in use. Follow the [storage migration guide](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/ESP-Iris/components/esp_iris/tools/README.md#runtime-and-storage-model).
+while in use. Follow the [storage migration guide](../submodule/esp-mosaico-utils/ESP-Iris/components/esp_iris/tools/README.md#runtime-and-storage-model).
 
 History is bounded and segmented. Default event retention is 7 days, 200,000 rows
 and 512 MiB; durable operation evidence is retained separately. Slow subscribers,
 queue pressure or storage failures can leave explicit history gaps. Inspect health
 and loss indicators instead of assuming retained logs are complete. Large evidence
 exports run as bounded background jobs: the workbench tracks progress, supports
-cancellation, and downloads the completed ZIP. See [retention](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/ESP-Iris/components/esp_iris/tools/README.md#diagnostic-retention-and-storage-failures)
-and [background export](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/ESP-Iris/components/esp_iris/tools/README.md#background-evidence-exports)
+cancellation, and downloads the completed ZIP. See [retention](../submodule/esp-mosaico-utils/ESP-Iris/components/esp_iris/tools/README.md#diagnostic-retention-and-storage-failures)
+and [background export](../submodule/esp-mosaico-utils/ESP-Iris/components/esp_iris/tools/README.md#background-evidence-exports)
 for API contracts. Agents continue using CLI status, logs, operation records and
 saved screenshots for device evidence.
 
@@ -253,7 +253,7 @@ users' Gateways.
 The product CLI submits the required Vibe Mode version and partition hash to the
 Gateway. Within one operation, the Gateway performs the transition, reconnection,
 validation, writing and health verification. Failed validation prevents writing.
-See [component boundaries](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/docs/component-boundaries.md)
+See [component boundaries](../submodule/esp-mosaico-utils/docs/component-boundaries.md)
 for detailed responsibilities and interfaces.
 
 ## Device state and ROM recovery

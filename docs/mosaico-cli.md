@@ -83,7 +83,7 @@ Package/validate are offline. Upload takes an existing ZIP, does not rebuild it,
 and creates or replaces a draft; publishing is separate. Its receipt/idempotency
 state permits retry after a lost response. `--wait-timeout` preserves a pending
 validation receipt. Ordinary releases cannot contain Vibe Mode or bootloader
-components. See the [file release guide](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/ideas-file-release/README.zh-CN.md)
+components. See the [file release guide](../submodule/esp-mosaico-utils/mosaico-tools/docs/ideas-file-release/README.zh-CN.md)
 for dependencies, resources, authentication and server validation.
 
 ## Build tool compatibility and diagnostics
@@ -157,7 +157,7 @@ table and resource images declared by the project. It preserves the fixed Vibe M
 prefix and bootloader. A reserved but unused `game_assets` partition needs no image;
 applications using external resources declare their images through CMake for inclusion
 in the bundle. Use `--bundle PATH` for an existing bundle. See the
-[Vibe Mode guide](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/esp-mosaico-vibe-mode/firmware/vibe-mode/README.md)
+[Vibe Mode guide](../submodule/esp-mosaico-utils/esp-mosaico-vibe-mode/firmware/vibe-mode/README.md)
 for updates to Vibe Mode itself, HTTP(S)/NAND updates and base bundle constraints.
 
 If the partition tables differ, `app-update` returns `partition_layout_mismatch`,

@@ -51,8 +51,8 @@ and resources. Device operations always go through the product CLI.
 | Source | Integration | Maintains |
 | --- | --- | --- |
 | This workspace | Current repository | Entry, configuration, Agent workflows, consumer integration checks |
-| [utils](https://github.com/esp-mosaico/esp-mosaico-utils) | Pinned submodule | CLI, Vibe Mode firmware, shared application components and Hello World template |
-| [BSP](https://github.com/esp-mosaico/esp-mosaico-bsp) | Pinned submodule | Product board support and peripheral examples |
+| [utils](submodule/esp-mosaico-utils/) | Pinned submodule | CLI, Vibe Mode firmware, shared application components and Hello World template |
+| [BSP](submodule/esp-mosaico-bsp/) | Pinned submodule | Product board support and peripheral examples |
 | [Raylib Lite Engine](https://github.com/espressif2022/raylib-lite-engine) | Registry component `==0.1.1`; Host tools and examples downloaded on demand | Game runtime, complete reference games, Board adapters and Host simulator |
 
 Prefer Raylib Lite Engine for games, create a blank game or an engine example, and validate

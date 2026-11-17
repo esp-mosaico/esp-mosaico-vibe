@@ -22,7 +22,7 @@ The workspace `.mosaico.json` uses `schema_version: 2`; template descriptors
 retain schema 1. See [migration](workspace-migration.md) for existing workspaces.
 `workspace.init_template` can point to a custom descriptor.
 `workspace.projects_dir` can change the output location, which must remain within
-the workspace. See [application integration](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/application-integration.md)
+the workspace. See [application integration](../submodule/esp-mosaico-utils/mosaico-tools/docs/application-integration.md)
 for the template format and path variables.
 
 Creation initializes an independent Git repository on `main`, supplements missing
