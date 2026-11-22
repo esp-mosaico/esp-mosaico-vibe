@@ -53,8 +53,7 @@ Download Ideas accepts a six-digit application number, preserving leading zeros.
 View the app's name, icon, description and compatible release, then confirm the
 download to NAND. Downloading and selecting the boot application are separate
 operations. My Ideas manages local downloads; About provides a confirmed online
-Vibe Mode firmware update. The legacy Bridge pairing workflow is a separate
-maintenance interface. See the [current firmware workflows](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/README.md).
+Vibe Mode firmware update. See the [current firmware workflows](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/README.md).
 
 The 0.2 product uses Recovery ABI 2 and the retained test-partition layout;
 normal firmware runs in `main_app` (`app/ota_0`). Source updates and reviewed

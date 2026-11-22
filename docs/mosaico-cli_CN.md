@@ -16,11 +16,12 @@ mosaico.py
 │   ├── list / claim / release / reconcile
 │   ├── takeover start / status / resume / abort / reconcile
 │   ├── logs / memory / crash / rpc
-│   ├── device-status / screenshot / operation-status
+│   ├── device-status / screenshot / restart / operation-status
 │   ├── operation-reconcile
 │   ├── app-update
 │   ├── system-update
-│   └── test enter-recovery / recovery-wifi / bridge-code
+│   ├── flash / app-flash / run-app
+│   └── test enter-recovery / recovery-wifi
 ├── recover
 └── game create/new/sim/run/build（空白模板、引擎示例与 Host）
 ```
@@ -47,11 +48,14 @@ mosaico.py
 | `iris crash` | 查看崩溃信息；`--archive` 归档并解码 Core Dump |
 | `iris rpc` | 调用指定的应用 RPC |
 | `iris device-status` | 读取实时设备身份、Boot ID 和固件状态；拒绝缓存或身份不匹配的响应 |
+| `iris restart` | 重启所选设备并验证新的 Boot ID |
 | `iris screenshot <output>` | 直接保存设备图像并返回图像及操作信息；核对截图前后 Device ID 和 Boot ID 一致 |
 | `iris operation-status <operation-id>` | 查询已有操作并保留其实际状态；不认领设备、不重放操作 |
 | `iris operation-reconcile <operation-id>` | 继续验证；ROM 恢复按原记录中的身份重连，不重复写入或复位 |
 | `iris app-update` | 仅更新正常应用代码，要求完整分区表与设备一致 |
 | `iris system-update` | 新应用、分区布局或资源变化的推荐入口，按更新包清单写入 |
+| `iris flash/app-flash` | 通过 Gateway 执行原生 IDF 烧录，随后恢复 Iris 日志/RPC；显式指定 UART 或 USB Serial/JTAG 端点时无需 Iris 握手 |
+| `iris run-app` | 从 Vibe Mode 重试已安装的应用，验证新的 Boot ID 和所选固件身份 |
 | `recover` | 初始化或恢复设备基础固件，包括 ESP-Iris 不可达时的恢复 |
 | `game` | 从空白模板或引擎示例创建游戏，调用 Host 仿真及 native/Iris 构建，见[游戏开发入口](game-development_CN.md) |
 
@@ -61,7 +65,6 @@ mosaico.py
 | --- | --- |
 | `enter-recovery` | 正常应用通过 ESP-Iris 响应，重启进入已有 Vibe Mode；等待同一 Device ID 以新的 Boot ID 重连。已经在 Vibe Mode 时返回当前状态 |
 | `recovery-wifi` | 已进入 Vibe Mode 且 ESP-Iris USB 可用；下发 Wi-Fi 名称和密码并等待联网成功 |
-| `bridge-code` | 已进入 Vibe Mode、USB 可用、已配置 Bridge 服务且能够联网；测试旧 Bridge 维护配对接口，返回配对码、有效期和网站地址；与当前六位 Ideas 编号查询分开 |
 
 ## Ideas 文件发布
 
@@ -203,9 +206,9 @@ Vibe Mode 身份、启动实例、固件和 OTA 就绪状态，不重复写入�
 Vibe Mode 始终将 High-Speed USB 交给 ESP-Iris，normal 应用默认也如此。
 产品功能需要占用它的 normal 应用应记录例外，并通过其他可用传输保留 ESP-Iris 运维和恢复路径。
 
-## 旧命令兼容
+## 旧命令迁移
 
-旧入口暂时作为兼容别名保留，新文档和自动化应使用上面的正式入口：
+旧入口已不再接受，也没有兼容别名；已有命令和自动化需改用以下公开入口：
 
 | 旧入口 | 新入口 |
 | --- | --- |
@@ -216,7 +219,10 @@ Vibe Mode 始终将 High-Speed USB 交给 ESP-Iris，normal 应用默认也如�
 | `memory/crash/rpc` | `iris memory/crash/rpc` |
 | `install` | `iris app-update` |
 | `system-update` | `iris system-update` |
-| `enter-recovery/recovery-wifi/bridge-code` | `iris test enter-recovery/recovery-wifi/bridge-code` |
+| `enter-recovery/recovery-wifi` | `iris test enter-recovery/recovery-wifi` |
+
+Bridge 推送下载和 `iris test bridge-code` 已移除，请在设备的 Download Ideas 页面
+使用六位应用编号下载。
 
 `recover`、`doctor` 和工作区的 `game` 入口保留。操作记录中的内部操作标识、
 JSON 业务结果及取证目录格式继续沿用；`iris status` 新增 `running` 字段。
