@@ -235,9 +235,9 @@ failure does not fall back to a local instance.
 
 ## Component boundaries and version policy
 
-The host product tools live in `submodule/esp-mosaico-utils/mosaico-tools`. Vibe Mode
-firmware, reviewed images and the shared persistent ABI belong to `esp-mosaico-vibe-mode`;
-its source project is `firmware/vibe-mode`. Old forwarding launchers, Python packages
+The host product tools, application adapter and shared persistent ABI live in
+`submodule/esp-mosaico-utils/mosaico-tools`. Reviewed Vibe Mode images live in
+utils' `firmware/recovery/`; firmware sources are not included in utils. Old forwarding launchers, Python packages
 and build-runner entry points were removed. Update source paths and use fresh build
 caches after migrating. The CLI queries local
 state through the public ESP-Iris host API, without reading its SQLite tables or

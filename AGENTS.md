@@ -11,8 +11,8 @@ for the chip’s download program. See [device modes](docs/device-modes.md).
 
 - User applications belong in `projects/`; settings in `.mosaico.json`.
   Public tooling/templates belong in `submodule/esp-mosaico-utils/mosaico-tools`;
-  Vibe Mode firmware and Recovery integration/ABI belong in utils'
-  `esp-mosaico-vibe-mode/`, fixtures in its `tests/firmware/`.
+  public Recovery integration/ABI belong in utils' `mosaico-tools/`.
+  Reviewed Vibe Mode images live in utils' `firmware/recovery/`.
 - Product board support and peripheral examples belong in `submodule/esp-mosaico-bsp/`.
   Game runtime, complete reference games, behavior tests and native example Board
   adapters belong in `submodule/raylib-lite-engine/`. Initialize and inspect only

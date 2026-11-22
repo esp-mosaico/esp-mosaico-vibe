@@ -176,9 +176,9 @@ Gateway 重启不会自动重放设备写操作。
 
 ## 组件边界与版本策略
 
-主机产品工具位于 `submodule/esp-mosaico-utils/mosaico-tools`；Vibe Mode 固件、
-已审查镜像与共享持久化 ABI 位于 `esp-mosaico-vibe-mode`，固件工程为
-`firmware/vibe-mode`。旧转发 launcher、Python 包和构建脚本入口已移除，迁移后
+主机产品工具、应用适配组件与共享持久化 ABI 位于
+`submodule/esp-mosaico-utils/mosaico-tools`；已审查的 Vibe Mode 镜像位于 utils 的
+`firmware/recovery/`，固件源码不包含在 utils 中。旧转发 launcher、Python 包和构建脚本入口已移除，迁移后
 更新源码路径并使用新的构建缓存。
 CLI 通过 ESP-Iris 公开主机接口查询本机状态，不读取其 SQLite 表或私有锁结构。
 

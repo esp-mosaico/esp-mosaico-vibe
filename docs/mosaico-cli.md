@@ -108,9 +108,14 @@ incremental builds, but configuration changes may recompile more source files.
 GSP applications bootstrap the pinned standalone GSPC compiler without requiring
 the Python `gsp` module. An uncached first run needs a download; offline builds
 can set `GSPC_EXECUTABLE` to an absolute path to a compatible compiler. Application
-versions are GSPC 0.6.1 and ESP-GSP 1.5.1. Vibe Mode uses its own lightweight UI
+versions are GSPC 0.11.3 and ESP-GSP 1.10.4. Vibe Mode uses its own lightweight UI
 and does not require GSP/GSPC. Shared tool acquisition lives in utils' `shared/gsp`;
 application pins remain in `mosaico-tools/gsp-toolchain.json`.
+For existing apps, update their GSP dependency to `==1.10.4`, remove old
+`GSPC_EXECUTABLE` overrides, and use fresh firmware and `build-sim/` build
+directories. Regenerate resources and headers and rebuild both targets (ABI 3 → 4).
+Also move existing Recovery adapter and `mosaico_idf_project.cmake` references
+from `esp-mosaico-vibe-mode/` to `mosaico-tools/`.
 
 Build error summaries include configdep `touch_file` failures and their following
 path details, falling back to `FAILED:` context when the cause is unrecognized.
@@ -157,8 +162,8 @@ table and resource images declared by the project. It preserves the fixed Vibe M
 prefix and bootloader. A reserved but unused `game_assets` partition needs no image;
 applications using external resources declare their images through CMake for inclusion
 in the bundle. Use `--bundle PATH` for an existing bundle. See the
-[Vibe Mode guide](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/esp-mosaico-vibe-mode/firmware/vibe-mode/README.md)
-for updates to Vibe Mode itself, HTTP(S)/NAND updates and base bundle constraints.
+[Vibe Mode guide](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/README.md)
+for base firmware installation and bundle constraints.
 
 If the partition tables differ, `app-update` returns `partition_layout_mismatch`,
 the device and build SHA-256 hashes, and a `system-update` recommendation. It does

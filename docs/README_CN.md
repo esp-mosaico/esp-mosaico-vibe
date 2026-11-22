@@ -16,7 +16,7 @@
 - [应用公共接口](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/application-integration.md)
 - [Hello World 模板](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/templates/hello_world/README.md)
 - [GSP 预览](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/tools/gsp-sim/README.md)
-- [Vibe Mode 固件](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/esp-mosaico-vibe-mode/firmware/vibe-mode/README.md)
+- [Vibe Mode 固件](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/README.md)
 - [BSP 示例](https://github.com/esp-mosaico/esp-mosaico-bsp/blob/master/README.md#examples)
 - [游戏引擎](https://github.com/espressif2022/raylib-lite-engine/blob/main/README.md)
 

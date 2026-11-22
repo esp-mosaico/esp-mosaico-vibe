@@ -13,13 +13,14 @@
 | 所属内容 | 路径 |
 | --- | --- |
 | 产品入口、模板与构建脚本 | `submodule/esp-mosaico-utils/mosaico-tools/` |
-| 保留固件与应用适配组件 | `submodule/esp-mosaico-utils/esp-mosaico-vibe-mode/` |
-| Vibe Mode 固件工程 | utils 内的 `esp-mosaico-vibe-mode/firmware/vibe-mode/` |
+| 应用适配组件与公共 Recovery ABI | `submodule/esp-mosaico-utils/mosaico-tools/` |
+| 已审查的 Vibe Mode 固件包 | `submodule/esp-mosaico-utils/firmware/recovery/` |
 | 共享 GSP 获取与 Ideas 资源工具 | `submodule/esp-mosaico-utils/shared/` |
 | 产品板级支持与外设示例 | `submodule/esp-mosaico-bsp/` |
 | 完整游戏、原生 Board 适配器与 Host | `submodule/raylib-lite-engine/` |
 
-旧 `esp-mosaico-recovery/`、`firmware/recovery/` 源码目录及转发工具入口已移除。
+Vibe Mode 固件源码已不在 utils 中。旧 `esp-mosaico-recovery/`、
+`esp-mosaico-vibe-mode/` 源码目录及转发工具入口已移除。
 根据[公共集成契约](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/application-integration.md)
 更新 CMake include、组件路径、自动化脚本和测试夹具。Recovery 组件名、命令、协议字段
 与 ABI 标识继续保留，不要机械替换所有 `recovery` 字符串。

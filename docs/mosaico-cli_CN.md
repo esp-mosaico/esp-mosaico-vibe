@@ -106,9 +106,13 @@ JSON 中 `idf.version` 是用于判定的版本，`idf.version_source` 标明来
 
 GSP 应用使用固定版本的独立 GSPC 编译器引导，无需为此安装 Python `gsp`
 模块。首次无缓存时需要下载；离线可用 `GSPC_EXECUTABLE` 指定兼容编译器的
-绝对路径。应用使用 GSPC 0.6.1 和 ESP-GSP 1.5.1；Vibe Mode 使用自己的轻量 UI，
+绝对路径。应用使用 GSPC 0.11.3 和 ESP-GSP 1.10.4；Vibe Mode 使用自己的轻量 UI，
 不依赖 GSP/GSPC。共享下载逻辑位于 utils 的 `shared/gsp`，应用版本由
 `mosaico-tools/gsp-toolchain.json` 固定。
+已有应用需将自身 GSP 依赖更新为 `==1.10.4`，移除旧 `GSPC_EXECUTABLE`
+覆盖，使用新的固件构建目录并清理旧 `build-sim/`，重新生成资源和头文件，
+成套重建固件及 PC 后端（配置 ABI 3 → 4）。已有应用还需将 Recovery 适配组件
+和 `mosaico_idf_project.cmake` 的引用从 `esp-mosaico-vibe-mode/` 改为 `mosaico-tools/`。
 
 构建错误摘要会包含 configdep 的 `touch_file` 失败原因及后续路径信息；
 无法识别具体原因时回退到 `FAILED:` 上下文。文本错误写入 stderr，JSON 错误
@@ -147,8 +151,8 @@ python mosaico.py iris crash --project projects/my_app --archive
 从工程构建的 `system-update` 包包含应用、分区表及工程声明的资源镜像，保留
 Vibe Mode 固定前缀和 bootloader。仅预留但未使用的 `game_assets` 不需要镜像；
 使用外部资源的应用通过 CMake 声明将镜像纳入包。已有包可使用 `--bundle PATH`。
-Vibe Mode 自身更新、HTTP(S)/NAND 更新及基础包约束见
-[Vibe Mode 说明](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/esp-mosaico-vibe-mode/firmware/vibe-mode/README.md)。
+基础固件安装与基础包约束见
+[Vibe Mode 说明](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/README.md)。
 
 `app-update` 遇到分区表不同会返回 `partition_layout_mismatch`、设备/构建
 SHA-256 及 `system-update` 建议，不会自动扩大写入范围或修改工程分区表。

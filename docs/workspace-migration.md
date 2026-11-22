@@ -15,13 +15,14 @@ integration layout. This workspace does not provide standalone application expor
 | Owner | Path |
 | --- | --- |
 | Product launcher, templates and build runner | `submodule/esp-mosaico-utils/mosaico-tools/` |
-| Retained firmware and application adapter | `submodule/esp-mosaico-utils/esp-mosaico-vibe-mode/` |
-| Vibe Mode firmware project | `esp-mosaico-vibe-mode/firmware/vibe-mode/` inside utils |
+| Application adapter and public Recovery ABI | `submodule/esp-mosaico-utils/mosaico-tools/` |
+| Reviewed Vibe Mode bundle | `submodule/esp-mosaico-utils/firmware/recovery/` |
 | Shared GSP acquisition and Ideas resources | `submodule/esp-mosaico-utils/shared/` |
 | Product board/peripheral examples | `submodule/esp-mosaico-bsp/` |
 | Complete games, native Board adapters and Host | `submodule/raylib-lite-engine/` |
 
-The old `esp-mosaico-recovery/` and `firmware/recovery/` source locations and legacy
+Vibe Mode firmware sources are no longer part of utils. The old
+`esp-mosaico-recovery/` and `esp-mosaico-vibe-mode/` source locations and legacy
 forwarding tool entry points were removed. Update CMake includes, component paths,
 automation and fixtures to the public [application integration contract](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/application-integration.md).
 Recovery component names, command names, protocol fields and ABI identifiers remain.
