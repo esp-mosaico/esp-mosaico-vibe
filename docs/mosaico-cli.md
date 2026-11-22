@@ -16,11 +16,12 @@ mosaico.py
 │   ├── list / claim / release / reconcile
 │   ├── takeover start / status / resume / abort / reconcile
 │   ├── logs / memory / crash / rpc
-│   ├── device-status / screenshot / operation-status
+│   ├── device-status / screenshot / restart / operation-status
 │   ├── operation-reconcile
 │   ├── app-update
 │   ├── system-update
-│   └── test enter-recovery / recovery-wifi / bridge-code
+│   ├── flash / app-flash / run-app
+│   └── test enter-recovery / recovery-wifi
 ├── recover
 └── game create/new/sim/run/build (blank template, engine examples and Host)
 ```
@@ -48,11 +49,14 @@ For mode definitions and the AI/Boot button distinction, see
 | `iris crash` | Inspect crash information; `--archive` archives and decodes the Core Dump |
 | `iris rpc` | Call the specified application RPC |
 | `iris device-status` | Read live device identity, Boot ID and firmware state; reject stale or mismatched responses |
+| `iris restart` | Restart the selected device and verify its new Boot ID |
 | `iris screenshot <output>` | Save the device image directly and return image/operation metadata; verify the same Device ID and Boot ID before and after capture |
 | `iris operation-status <operation-id>` | Query an existing operation, preserving its actual status; does not acquire a device or replay the operation |
 | `iris operation-reconcile <operation-id>` | Continue verification; ROM recovery reconnects to its recorded identity without rewriting or resetting |
 | `iris app-update` | Update normal application code only; requires the complete partition table to match the device |
 | `iris system-update` | Recommended entry for a new application, partition layout changes or resource changes; writes according to the update bundle manifest |
+| `iris flash/app-flash` | Run native IDF flashing through Gateway, then resume Iris logs/RPC; no Iris handshake is required for an explicit UART or USB Serial/JTAG endpoint |
+| `iris run-app` | Retry the installed application from Vibe Mode and verify the new Boot ID and selected firmware identity |
 | `recover` | Provision or restore the device's base firmware, including when ESP-Iris is unreachable |
 | `game` | Create blank games or engine examples and invoke Host simulation or native/Iris builds; see [game development](game-development.md) |
 
@@ -62,7 +66,6 @@ Commands under `iris test` exercise individual Vibe Mode workflows:
 | --- | --- |
 | `enter-recovery` | A normal application responds through ESP-Iris and reboots into Vibe Mode; wait for the same Device ID to reconnect with a new Boot ID. If already in Vibe Mode, return its current status |
 | `recovery-wifi` | Requires Vibe Mode with ESP-Iris USB available; submit the Wi-Fi network name and password, then wait for connectivity |
-| `bridge-code` | Requires Vibe Mode, available USB, a configured Bridge service and network connectivity; exercise the legacy Bridge maintenance pairing interface and return its code, validity period and website URL; this is separate from the current six-digit Ideas lookup |
 
 ## Ideas file releases
 
@@ -108,9 +111,14 @@ incremental builds, but configuration changes may recompile more source files.
 GSP applications bootstrap the pinned standalone GSPC compiler without requiring
 the Python `gsp` module. An uncached first run needs a download; offline builds
 can set `GSPC_EXECUTABLE` to an absolute path to a compatible compiler. Application
-versions are GSPC 0.6.1 and ESP-GSP 1.5.1. Vibe Mode uses its own lightweight UI
+versions are GSPC 0.11.3 and ESP-GSP 1.10.4. Vibe Mode uses its own lightweight UI
 and does not require GSP/GSPC. Shared tool acquisition lives in utils' `shared/gsp`;
 application pins remain in `mosaico-tools/gsp-toolchain.json`.
+For existing apps, update their GSP dependency to `==1.10.4`, remove old
+`GSPC_EXECUTABLE` overrides, and use fresh firmware and `build-sim/` build
+directories. Regenerate resources and headers and rebuild both targets (ABI 3 → 4).
+Also move existing Recovery adapter and `mosaico_idf_project.cmake` references
+from `esp-mosaico-vibe-mode/` to `mosaico-tools/`.
 
 Build error summaries include configdep `touch_file` failures and their following
 path details, falling back to `FAILED:` context when the cause is unrecognized.
@@ -157,8 +165,8 @@ table and resource images declared by the project. It preserves the fixed Vibe M
 prefix and bootloader. A reserved but unused `game_assets` partition needs no image;
 applications using external resources declare their images through CMake for inclusion
 in the bundle. Use `--bundle PATH` for an existing bundle. See the
-[Vibe Mode guide](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/esp-mosaico-vibe-mode/firmware/vibe-mode/README.md)
-for updates to Vibe Mode itself, HTTP(S)/NAND updates and base bundle constraints.
+[Vibe Mode guide](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/README.md)
+for base firmware installation and bundle constraints.
 
 If the partition tables differ, `app-update` returns `partition_layout_mismatch`,
 the device and build SHA-256 hashes, and a `system-update` recommendation. It does
@@ -220,10 +228,10 @@ USB to ESP-Iris; normal applications do so by default. A normal application whos
 product function requires that interface must document the exception and preserve
 ESP-Iris device operations and recovery through another available transport.
 
-## Legacy command compatibility
+## Legacy command migration
 
-Legacy entry points temporarily remain as compatibility aliases. Use the formal
-entry points above in new documentation and automation:
+Legacy entry points are no longer accepted; there are no compatibility aliases.
+Update existing commands and automation to use the public paths:
 
 | Legacy entry | Current entry |
 | --- | --- |
@@ -234,7 +242,10 @@ entry points above in new documentation and automation:
 | `memory/crash/rpc` | `iris memory/crash/rpc` |
 | `install` | `iris app-update` |
 | `system-update` | `iris system-update` |
-| `enter-recovery/recovery-wifi/bridge-code` | `iris test enter-recovery/recovery-wifi/bridge-code` |
+| `enter-recovery/recovery-wifi` | `iris test enter-recovery/recovery-wifi` |
+
+Bridge push downloads and `iris test bridge-code` have been removed. Use the
+six-digit application number in the device's Download Ideas page instead.
 
 `recover`, `doctor` and the workspace's `game` entry remain. Internal operation
 identifiers in operation records, JSON result formats and evidence directory formats
