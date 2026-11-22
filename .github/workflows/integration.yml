@@ -57,8 +57,8 @@ jobs:
 
       - name: Prepare pinned GSP compiler
         run: |
-          python -m pip install --disable-pip-version-check esp-gsp-tools==0.1.1
-          python submodule/esp-mosaico-utils/tools/ci/prepare_gsp.py --compiler-only
+          gspc="$(python submodule/esp-mosaico-utils/mosaico-tools/tools/gsp-sim/fetch_gspc.py --pinned)"
+          printf 'GSPC_EXECUTABLE=%s\n' "$gspc" >> "$GITHUB_ENV"
 
       - name: Verify pinned ESP-IDF revision
         shell: bash
