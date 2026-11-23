@@ -13,16 +13,17 @@ mosaico.py
 ├── account login / status / logout
 ├── iris
 │   ├── run / status
-│   ├── list / claim / release / reconcile
+│   ├── list / claim / pair / forget-pairing / release / reconcile
 │   ├── takeover start / status / resume / abort / reconcile
 │   ├── logs / memory / crash / rpc
 │   ├── device-status / screenshot / operation-status
 │   ├── operation-reconcile
 │   ├── app-update
 │   ├── system-update
-│   └── test enter-recovery / recovery-wifi / bridge-code
+│   ├── flash / app-flash / run-app
+│   └── test enter-recovery / recovery-wifi
 ├── recover
-└── game create/new/sim/run/build (blank template, engine examples and Host)
+└── game prepare/create/new/sim/run/build (blank template, engine examples and Host)
 ```
 
 For mode definitions and the AI/Boot button distinction, see
@@ -41,6 +42,7 @@ For mode definitions and the AI/Boot button distinction, see
 | `iris run` | Retain a client on the shared Gateway; on initial creation, try to connect the sole device. Ctrl+C releases only this client |
 | `iris status [--all]` | Passively query this project's Gateway, or Gateways across workspaces for the same OS user, including clients and device ownership; neither start nor keep a Gateway alive |
 | `iris list` | Enumerate endpoints/devices through the selected project Gateway, starting it if needed; discovery does not claim or connect a device |
+| `iris pair/forget-pairing` | Save or remove this host’s TCP pairing for a verified device. Pairing requires the device’s USB data interface |
 | `iris claim/release/reconcile` | Claim or release a device, or explicitly clean up ordinary ownership confirmed to be stale |
 | `iris takeover start/status/resume/abort/reconcile` | Request takeover, query its record, resume verification, abort, or reconcile ownership |
 | `iris logs` | Show retained logs and keep following new output; `--snapshot` reads only retained logs |
@@ -53,6 +55,8 @@ For mode definitions and the AI/Boot button distinction, see
 | `iris operation-reconcile <operation-id>` | Continue verification; ROM recovery reconnects to its recorded identity without rewriting or resetting |
 | `iris app-update` | Update normal application code only; requires the complete partition table to match the device |
 | `iris system-update` | Recommended entry for a new application, partition layout changes or resource changes; writes according to the update bundle manifest |
+| `iris run-app` | Retry the installed application from Vibe Mode and verify its return over ESP-Iris |
+| `iris flash/app-flash` | Run native IDF flashing through the Gateway for workflows that explicitly require it |
 | `recover` | Provision or restore the device's base firmware, including when ESP-Iris is unreachable |
 | `game` | Create blank games or engine examples and invoke Host simulation or native/Iris builds; see [game development](game-development.md) |
 
@@ -62,7 +66,6 @@ Commands under `iris test` exercise individual Vibe Mode workflows:
 | --- | --- |
 | `enter-recovery` | A normal application responds through ESP-Iris and reboots into Vibe Mode; wait for the same Device ID to reconnect with a new Boot ID. If already in Vibe Mode, return its current status |
 | `recovery-wifi` | Requires Vibe Mode with ESP-Iris USB available; submit the Wi-Fi network name and password, then wait for connectivity |
-| `bridge-code` | Requires Vibe Mode, available USB, a configured Bridge service and network connectivity; exercise the legacy Bridge maintenance pairing interface and return its code, validity period and website URL; this is separate from the current six-digit Ideas lookup |
 
 ## Ideas file releases
 
@@ -75,16 +78,15 @@ python mosaico.py project package --project projects/my_app --output dist/releas
 python mosaico.py project validate dist/release.zip --json
 python mosaico.py account login
 python mosaico.py project upload dist/release.zip --create --yes --json
-# Use the current draft version returned by the last accepted upload:
-python mosaico.py project upload dist/release.zip --update APPLICATION_ID --expected-project-version 1 --yes --json
+# Use the target cloud project’s public ID:
+python mosaico.py project upload dist/release.zip --update PUBLIC_ID --yes --json
 ```
 
 Package/validate are offline. Upload takes an existing ZIP, does not rebuild it,
-and creates or replaces a draft; publishing is separate. Its receipt/idempotency
-state permits retry after a lost response. `--wait-timeout` preserves a pending
-validation receipt. Ordinary releases cannot contain Vibe Mode or bootloader
-components. See the [file release guide](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/ideas-file-release/README.zh-CN.md)
-for dependencies, resources, authentication and server validation.
+and creates or replaces an unsubmitted draft. Publishing is a separate step.
+Ordinary releases cannot contain Vibe Mode or bootloader components.
+For dependencies, resources, authentication and server validation, see the
+[file release guide](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/ideas-file-release/README.md).
 
 ## Build tool compatibility and diagnostics
 
@@ -135,10 +137,11 @@ python mosaico.py iris memory --project projects/my_app
 python mosaico.py iris crash --project projects/my_app --archive
 ```
 
-With a single available USB device, device selectors can be omitted. With multiple
-devices, use `--device-id` or `--endpoint`. Use a Device ID verified through a live
-connection. See [Gateway device selection](project-gateway.md#device-discovery-and-selection)
-for automatic selection order, reconnection waits and ownership restrictions.
+You can omit selectors for the sole available USB device or, when USB discovery
+finds no candidate, the sole live paired network device. With multiple devices,
+use `--device-id` or `--endpoint`. Use a Device ID verified through a live
+connection. The automatic selection order, reconnection waits and ownership
+restrictions are described in [Gateway device selection](project-gateway.md#device-discovery-and-selection).
 
 ## Select an update method
 
@@ -150,15 +153,20 @@ for automatic selection order, reconnection waits and ownership restrictions.
 
 `recover` prepares the reviewed base firmware and verifies that Vibe Mode is ready.
 The target application still needs to be installed and accepted afterward. It
-supports only a local Gateway and also manages the underlying recovery process.
+supports only a local Gateway and uses the reviewed bundle in `firmware/recovery/`
+inside utils by default. For a candidate build from a separate Vibe Mode firmware
+project, `recover --source current` requires `--source-path PATH`. To validate an
+app update against that candidate, use
+`iris app-update --recovery-source current --recovery-source-path PATH`. Both
+paths identify the firmware project and resolve relative to the working directory.
 
 A `system-update` bundle built from a project contains the application, partition
 table and resource images declared by the project. It preserves the fixed Vibe Mode
 prefix and bootloader. A reserved but unused `game_assets` partition needs no image;
 applications using external resources declare their images through CMake for inclusion
-in the bundle. Use `--bundle PATH` for an existing bundle. See the
-[Vibe Mode guide](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/esp-mosaico-vibe-mode/firmware/vibe-mode/README.md)
-for updates to Vibe Mode itself, HTTP(S)/NAND updates and base bundle constraints.
+in the bundle. Use `--bundle PATH` for an existing bundle. For Vibe Mode
+maintenance, see the [utils command guide](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/README.md)
+and [device modes](device-modes.md#ideas-and-firmware-maintenance).
 
 If the partition tables differ, `app-update` returns `partition_layout_mismatch`,
 the device and build SHA-256 hashes, and a `system-update` recommendation. It does
@@ -234,7 +242,7 @@ entry points above in new documentation and automation:
 | `memory/crash/rpc` | `iris memory/crash/rpc` |
 | `install` | `iris app-update` |
 | `system-update` | `iris system-update` |
-| `enter-recovery/recovery-wifi/bridge-code` | `iris test enter-recovery/recovery-wifi/bridge-code` |
+| `enter-recovery/recovery-wifi` | `iris test enter-recovery/recovery-wifi` |
 
 `recover`, `doctor` and the workspace's `game` entry remain. Internal operation
 identifiers in operation records, JSON result formats and evidence directory formats

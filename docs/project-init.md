@@ -49,7 +49,7 @@ omit it when validating application behavior.
 Project selection follows this order: explicit `--project`, the current project,
 a valid user-configured default project, then the sole created project. With no
 projects, the CLI prompts you to create one; with multiple projects, it requires
-a selection. The internal Vibe Mode firmware is never a candidate. Explicit `--project` paths
+a selection. Application selection excludes the Recovery staging project. Explicit `--project` paths
 are resolved relative to the calling directory. You can invoke the entry point
 from any nested directory in the workspace, or select a workspace with
 `--workspace PATH`.

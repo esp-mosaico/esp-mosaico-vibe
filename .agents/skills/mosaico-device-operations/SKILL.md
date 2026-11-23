@@ -45,6 +45,8 @@ To enter existing Vibe Mode from a reachable application, use
    write; never change boards after failed explicit selection or during reconnect.
 5. For a live operation, apply [device selection](../../../docs/project-gateway_CN.md#设备发现与选择)
    and [state evidence checks](../../../docs/project-gateway_CN.md#实时证据与下一步).
+   If no USB candidate is available, automatic selection can use a sole live
+   network device with saved TCP pairing.
    After coordinating ownership, use `iris run --project <project>` or `iris claim`
    for a handshake. Use `iris device-status --json` to confirm live identity, Boot ID
    and firmware mode; ROM identity is established by the product recovery workflow.
@@ -101,6 +103,9 @@ Follow [physical entry steps](../../../docs/device-modes.md#physical-entry)
 and [ROM operation tracking](../../../docs/project-gateway_CN.md#rom-恢复操作).
 Use `python mosaico.py recover` for blank/unverified devices or when neither normal
 nor Vibe Mode Iris is reachable. Preserve accessible evidence before proceeding.
+The default recovery uses the reviewed bundle under utils' `firmware/recovery/`.
+For authorized validation of a Vibe Mode candidate, supply the separate firmware
+project with `recover --source current --source-path PATH`.
 Manual ROM entry is the last resort: when required, give the documented physical
 sequence, wait for the developer to complete it, then detect and verify the connection
 and resume the product command. Never substitute direct flashing or whole-flash erase.

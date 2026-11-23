@@ -23,8 +23,8 @@ Vibe Mode，不安装固件。应用更新命令会自动管理这一切换。
 
 `python mosaico.py recover` 写入基础固件，再验证 Vibe Mode 就绪。
 它可从已连接设备开始执行，仅在流程要求时手动进入 ROM。初始化条件及应用
-更新方式统一见[更新方式](mosaico-cli_CN.md#选择更新方式)，Wi-Fi 和 Download Ideas
-命令见[CLI 参考](mosaico-cli_CN.md#命令职责)。
+更新方式见[更新方式](mosaico-cli_CN.md#选择更新方式)。Wi-Fi 配置见
+[CLI 参考](mosaico-cli_CN.md#命令职责)。
 
 ## 物理入口
 
@@ -44,8 +44,8 @@ Vibe Mode，不安装固件。应用更新命令会自动管理这一切换。
 
 Download Ideas 输入六位应用编号，保留开头的零；先查看名称、图标、描述和兼容
 版本，再确认下载到 NAND。下载与设为开机应用是两个操作。My Ideas 管理本地
-下载；About 提供需要确认的 Vibe Mode 在线固件更新。旧 Bridge 配对流程是独立
-的维护接口。详见[当前固件流程](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/esp-mosaico-vibe-mode/docs/vibe-mode-workflows.md)。
+下载；About 提供需要确认的 Vibe Mode 在线固件更新。下载与安装协议见
+[Ideas 文件发布](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/ideas-file-release/README.md)。
 
 0.2 产品使用 Recovery ABI 2 和保留 test 分区布局；普通应用位于 `main_app`
 （`app/ota_0`）。源码与已审查预构建包分别发布。旧设备或旧工作区使用当前工具前，

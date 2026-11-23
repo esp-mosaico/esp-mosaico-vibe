@@ -17,7 +17,6 @@ git submodule update --init submodule/esp-mosaico-utils submodule/esp-mosaico-bs
 python mosaico.py game create my_game
 python mosaico.py game sim --project projects/my_game
 python mosaico.py game sim --project projects/my_game --headless --frames 120
-# First builds may need the Board Manager setup below.
 python mosaico.py game build --project projects/my_game
 python mosaico.py iris system-update --project projects/my_game
 ```
@@ -42,10 +41,13 @@ adding gameplay; use `--state-output state.json` to save a headless run's state.
 
 ## Start with an engine example
 
-`game create/new` supports `--template shooter`, `--template sky-hop` and
-`--template tower-defense`. The engine currently contains seven reference games;
-the workspace creator exposes these three complete templates plus `blank`.
-Creation copies the selected native game with its private shared launcher/Board.
+`game create/new --template` offers `blank`, `shooter`, `sky-hop`,
+`tower-defense`, `last-zone`, `living-worlds`, and `neon-rift-rally`.
+On first use, the CLI uses the configured ESP-IDF to download a released
+example from the Component Registry and then copies it into a new project.
+Use `python mosaico.py game prepare --example sky-hop` to populate the cache
+before creating a project. This workspace's `dependencies.raylib` setting
+selects local Engine sources for the Host and the blank template.
 
 ```sh
 python mosaico.py game create my_platformer --template sky-hop
@@ -58,44 +60,24 @@ python mosaico.py iris system-update --project projects/my_platformer --bundle /
 `game build` defaults to `--target native`, which builds the source as supplied.
 `--target iris` adds product services and compatible partitions in a generated
 project under the workspace run directory, then emits a System Update bundle.
-It also accepts a named engine game, such as `game build sky_hop --target iris`.
+It also accepts a named Registry example, such as `game build sky_hop --target iris`.
 Build does not install firmware. Native and Iris outputs use separate directories.
-The wrapper references `main/` and optional `components/`; it does not use the
-source's top-level partition table or custom top-level CMake logic. Declare
+The wrapper references `main/` and optional `components/`. It generates its own
+Board Manager configuration, partition table and top-level CMake project. Declare
 resources in component CMake files. See the [integration contract](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/application-integration.md#user-owned-raylib-lite-games).
 
 All creators support `--dry-run`, refuse existing targets and initialize an
 independent Git repository plus quality configuration. See [project creation](project-init.md).
 
-## Generate Board Manager configuration
+## Board Manager configuration
 
-The current engine requires `components/gen_bmgr_codes`. The workspace game
-builder does not generate it automatically. On a fresh project, the first build
-resolves managed dependencies and can stop with `gen_bmgr_codes: unknown name`.
-Activate the pinned ESP-IDF environment and run the Board Manager extension:
-
-```sh
-# Run from the workspace root, after the first build has resolved dependencies.
-source /path/to/pinned-esp-idf/export.sh
-mosaico_workspace="$PWD"
-mosaico_game_project="$mosaico_workspace/projects/my_game"
-IDF_EXTRA_ACTIONS_PATH="$mosaico_game_project/managed_components/espressif__esp_board_manager" \
-  idf.py -C "$mosaico_game_project" bmgr \
-  -c "$mosaico_workspace/submodule/raylib-lite-engine/examples/boards/esp-mosaico/bmgr" \
-  -b esp_mosaico
-```
-
-Then repeat the original `mosaico.py game build` command. These commands only
-generate board sources/configuration; device installation still uses `mosaico.py`.
-Explicitly loading the extension avoids relying on `esp-bmgr-assist` project detection,
-which does not recognize the blank template's indirect `project.cmake` include.
-
-For `--target iris`, set `mosaico_game_project` to the generated project reported
-in the build log (`.codex-runs/mosaico/raylib-iris/<name-hash>/project` by default),
-then repeat the same build with `--target iris`. The generated project needs its
-own Board Manager configuration; generating it only in the original example
-is insufficient. Keep normal console output when building: this revision's
-successful `game build --json` does not emit a result object or bundle path.
+`mosaico.py game build` generates missing `components/gen_bmgr_codes` before
+configuring the application. The blank template uses the selected Engine's
+`esp_mosaico` profile. Registry examples use their bundled Board profile. The
+Iris wrapper has its own generated configuration. Product builds validate and
+preserve existing configuration. If the CLI reports an incomplete or mismatched
+component, back it up outside `components/` before retrying the build. Use
+normal console output to see the generated System Update bundle path.
 
 ## Validate behavior
 

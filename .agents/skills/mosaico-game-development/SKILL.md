@@ -11,8 +11,9 @@ Prefer the workspace's pinned Raylib Lite Engine for game applications.
 Initialize utils, BSP and Raylib Lite Engine. Start a new game with
 `python mosaico.py game create <name>` (the tools-owned `blank` template).
 It provides shared C state/update/rendering and Host/device adapters without
-example gameplay or assets. To extend a complete reference game, explicitly
-select `--template sky-hop`, `--template tower-defense` or `--template shooter`.
+example gameplay or assets. To extend a complete reference game, choose a
+Registry example using `game create --help`. Initialize the pinned ESP-IDF
+for the first download or prepare the example with `game prepare --example NAME`.
 User applications go under projects/; complete reference games, behavior replays,
 runtime, renderers and implementation tests belong to Raylib Lite Engine.
 Native example Board adapters use Board Manager; inspect their dependencies
@@ -26,9 +27,10 @@ collisions, scoring, win/loss and restart behavior. Fix and re-run affected
 flows in the simulator before device validation. A successful headless launch
 alone does not establish that the game looks or plays correctly.
 Never implement a separate Python or browser renderer.
-Generate Board Manager configuration in the effective build project as described
-in the workspace guide, including the generated wrapper for an Iris target. The
-current builder does not generate `gen_bmgr_codes` automatically.
+The CLI generates missing Board Manager configuration before application
+configuration. The Iris wrapper has its own generated configuration. If the
+CLI reports an incomplete or mismatched product configuration, preserve it
+outside `components/` before retrying the build.
 Build the integrated blank template through `python mosaico.py game build --project ...`.
 For a copied Engine example or a native game, use `game build --project ... --target iris`,
 then install the emitted System Update bundle through the product CLI. The default

@@ -17,11 +17,11 @@ owning repositories:
 - [Public application interfaces](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/application-integration.md)
 - [Hello World template](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/templates/hello_world/README.md)
 - [GSP preview](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/tools/gsp-sim/README.md)
-- [Vibe Mode firmware](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/esp-mosaico-vibe-mode/firmware/vibe-mode/README.md)
+- [Reviewed Vibe Mode bundle](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/firmware/recovery/manifest.json)
 - [BSP examples](https://github.com/esp-mosaico/esp-mosaico-bsp/blob/master/README.md#examples)
 - [Game engine](https://github.com/espressif2022/raylib-lite-engine/blob/main/README.md)
 
-- [Ideas file releases](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/ideas-file-release/README.zh-CN.md)
+- [Ideas file releases](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/ideas-file-release/README.md)
 - [Gateway storage and evidence](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/ESP-Iris/components/esp_iris/tools/README.md#runtime-and-storage-model)
 - [BSP expansion modules: ToF, thermal camera, matrix LED and EEPROM provisioning](https://github.com/esp-mosaico/esp-mosaico-bsp/blob/master/README.md#expansion-modules-and-provisioning)
 
