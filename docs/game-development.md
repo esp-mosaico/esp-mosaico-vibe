@@ -147,7 +147,7 @@ It also accepts a named Registry example, such as `game build sky_hop --target i
 Build does not install firmware. Native and Iris outputs use separate directories.
 The wrapper references `main/` and optional `components/`; it does not use the
 source's top-level partition table or custom top-level CMake logic. Declare
-resources in component CMake files. See the [integration contract](../submodule/esp-mosaico-utils/mosaico-tools/docs/application-integration.md#user-owned-raylib-lite-games).
+resources in component CMake files. See the [integration contract](https://github.com/esp-mosaico/esp-mosaico-utils/blob/f58f4f9e5363f908b17a8e1ea8fdf4dd77561ef1/mosaico-tools/docs/application-integration.md#user-owned-raylib-lite-games).
 
 All creators support `--dry-run`, refuse existing targets and initialize an
 independent Git repository plus quality configuration. See [project creation](project-init.md).
@@ -160,24 +160,13 @@ separate wrapper directories.
 
 ## Automatic Board Manager preparation
 
-`game build` generates missing `components/gen_bmgr_codes` before compiling. No
-initial failed build or global `esp-bmgr-assist` installation is needed. Tools
-resolve pinned Board Manager `0.7.5` in a separate minimal IDF project, run
-`idf.py bmgr`, validate the output and then publish the component. Failures keep
-complete logs and do not edit application sdkconfig.
-
-Blank games use `examples/boards/esp-mosaico/bmgr` in the pinned tool cache;
-Registry examples use their own `shared/boards/esp-mosaico/bmgr`. `--target iris`
-generates an independent `esp_mosaico` configuration in the wrapper and excludes
-the original game's `components/gen_bmgr_codes`. It does not change the original
-Board selection, generated files or build configuration. First preparation needs
-network access; complete existing configurations are reused.
-
-Native builds preserve an existing Board selection. Iris product builds check
-the Board, chip, configuration source and required files. Incomplete or mismatched
-existing configurations fail explicitly instead of being overwritten. To regenerate,
-preserve the old `gen_bmgr_codes` outside `components/` and repeat the build;
-do the same after editing Board YAML.
+`game build` prepares missing Board Manager configuration automatically; no initial
+failed build or global generator installation is needed. It preserves existing
+configuration, and Iris builds use a separate wrapper configuration.
+If the CLI reports incomplete or mismatched configuration, preserve
+`components/gen_bmgr_codes` outside `components/` and repeat the build. Do the
+same after editing Board YAML. See the [integration contract](https://github.com/esp-mosaico/esp-mosaico-utils/blob/f58f4f9e5363f908b17a8e1ea8fdf4dd77561ef1/mosaico-tools/docs/application-integration.md#user-owned-raylib-lite-games)
+for generation and validation details.
 
 Keep normal console output when building: this revision's successful
 `game build --target iris` prints the bundle path to the console; `--json`

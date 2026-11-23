@@ -45,8 +45,8 @@ obtain connection state from the app's own network service.
   failures and wake restoration. Verify global settings remain unchanged.
 
 The public ABI is in
-[`mosaico_recovery_contract.h`](../submodule/esp-mosaico-utils/mosaico-tools/include/mosaico_recovery_contract.h).
-See the [Hello World template](../submodule/esp-mosaico-utils/mosaico-tools/templates/hello_world/README.md)
+[`mosaico_recovery_contract.h`](https://github.com/esp-mosaico/esp-mosaico-utils/blob/f58f4f9e5363f908b17a8e1ea8fdf4dd77561ef1/mosaico-tools/include/mosaico_recovery_contract.h).
+See the [Hello World template](https://github.com/esp-mosaico/esp-mosaico-utils/blob/f58f4f9e5363f908b17a8e1ea8fdf4dd77561ef1/mosaico-tools/templates/hello_world/README.md)
 for Wi-Fi reading. Verify private preferences such as brightness and language in
 `components/app_settings/src/vibe_settings.c` and
 `components/app_network/src/factory_network.c` of the matching external Vibe

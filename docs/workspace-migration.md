@@ -28,7 +28,7 @@ integration layout. This workspace does not provide standalone application expor
 Vibe Mode sources are not shipped in utils; `firmware/recovery/` contains the
 reviewed bundle. Source builds require an explicit external firmware project.
 Update CMake includes, component paths,
-automation and fixtures to the public [application integration contract](../submodule/esp-mosaico-utils/mosaico-tools/docs/application-integration.md).
+automation and fixtures to the public [application integration contract](https://github.com/esp-mosaico/esp-mosaico-utils/blob/f58f4f9e5363f908b17a8e1ea8fdf4dd77561ef1/mosaico-tools/docs/application-integration.md).
 Recovery component names, command names, protocol fields and ABI identifiers remain.
 Do not replace every occurrence of `recovery` mechanically.
 

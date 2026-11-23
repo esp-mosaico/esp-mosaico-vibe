@@ -35,7 +35,9 @@ ESP_ERROR_CHECK(esp_pm_configure(&config));
 
 ## Vibe 实现与版本边界
 
-以下是 [功耗 MR !46](https://gitlab.espressif.cn:6688/ae_group/mosaico/esp-mosaico-vibe-mode/-/merge_requests/46) 的 `f84fc9a122f49ea48cf2b2697bb12412df959da1` 的历史实现参考；该 MR 已并入发布流程，以下细节仍只对应所列提交，不能替代所用固件版本的配置与实板验收。实现细节以该版本的[模式说明](https://gitlab.espressif.cn:6688/ae_group/mosaico/esp-mosaico-vibe-mode/-/blob/f84fc9a122f49ea48cf2b2697bb12412df959da1/vibe-mode/docs/power-tests/power-modes.zh-CN.md)为准。
+以下是具备 `CONFIG_VIBE_DFS_ENABLE`、`CONFIG_VIBE_LIGHT_SLEEP_ENABLE` 和
+`CONFIG_VIBE_USB_WAKEUP` 的 Vibe 固件配置参考。公开 utils 随附已审查固件包；
+具体开关、阈值和唤醒支持应按安装的固件版本核对。此表不表示其他 App 自动继承这些策略。
 
 | 状态 | 进入与配置 | 显示、通信与退出 |
 | --- | --- | --- |
@@ -45,5 +47,5 @@ ESP_ERROR_CHECK(esp_pm_configure(&config));
 | 手动 light sleep | 业务、存储、外设和唤醒源准备通过；USB 条件见[外设配置](sleep-peripherals.md#usb) | 停 Wi-Fi，面板保持供电与画面；AI、触摸或 USB host resume 唤醒同一进程，回首页并恢复用户亮度、联网 |
 
 自动息屏默认“永不”，已有 NVS 设置优先；可选 1/2/5/10 分钟。“永不”不禁用在线空闲或首页 AI 手动睡眠。15 秒在线空闲本身不触发硬件睡眠。
-该版本不初始化 IMU、不配置运动唤醒或周期定时查电量；睡前挂起未使用的 IMU。触摸维持正常扫描；睡眠唤醒的触摸/AI 消费到释放，避免回首页误操作。
-板级验收范围及尚缺的验证见 [USB](sleep-peripherals.md#usb)；历史电流不能用于证明该版本功耗。
+此配置不初始化 IMU、不配置运动唤醒或周期定时查电量；睡前挂起未使用的 IMU。触摸维持正常扫描；睡眠唤醒的触摸/AI 消费到释放，避免回首页误操作。
+USB 的进入条件与验收项见[外设配置](sleep-peripherals.md#usb)；历史电流不能用于证明所用固件版本的功耗。

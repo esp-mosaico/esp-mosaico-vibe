@@ -36,8 +36,8 @@ Vibe 私有设置源码；升级固件时应在对应固件工程中复核类型
 - 模拟器注入相同含义的设置快照；设备端再验证“Vibe 修改设置 → 启动应用”的继承，
   以及缺失值、范围错误、联网失败和唤醒恢复。验证全局设置保持不变，不以模拟器替代设备验收。
 
-公开 ABI 见 [`mosaico_recovery_contract.h`](../submodule/esp-mosaico-utils/mosaico-tools/include/mosaico_recovery_contract.h)；
-Wi-Fi 读取示例见 [Hello World 模板](../submodule/esp-mosaico-utils/mosaico-tools/templates/hello_world/README.md)。
+公开 ABI 见 [`mosaico_recovery_contract.h`](https://github.com/esp-mosaico/esp-mosaico-utils/blob/f58f4f9e5363f908b17a8e1ea8fdf4dd77561ef1/mosaico-tools/include/mosaico_recovery_contract.h)；
+Wi-Fi 读取示例见 [Hello World 模板](https://github.com/esp-mosaico/esp-mosaico-utils/blob/f58f4f9e5363f908b17a8e1ea8fdf4dd77561ef1/mosaico-tools/templates/hello_world/README.md)。
 亮度、语言等私有偏好的实现依据需在对应版本的独立 Vibe 固件工程中核对
 `components/app_settings/src/vibe_settings.c` 和 `components/app_network/src/factory_network.c`。
 不应将固件私有组件整体链接到普通应用。

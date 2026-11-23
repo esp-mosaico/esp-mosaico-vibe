@@ -22,7 +22,7 @@
 | 发布游戏及其自带启动器/Board 适配器 | `game prepare --example <name> --json` 返回的 Registry 示例缓存 |
 
 Vibe Mode 源码不随 utils 公开发布；`firmware/recovery/` 提供已审查固件包，源码构建需显式指定独立固件工程。
-根据[公共集成契约](../submodule/esp-mosaico-utils/mosaico-tools/docs/application-integration.md)
+根据[公共集成契约](https://github.com/esp-mosaico/esp-mosaico-utils/blob/f58f4f9e5363f908b17a8e1ea8fdf4dd77561ef1/mosaico-tools/docs/application-integration.md)
 更新 CMake include、组件路径、自动化脚本和测试夹具。Recovery 组件名、命令、协议字段
 与 ABI 标识继续保留，不要机械替换所有 `recovery` 字符串。
 

@@ -15,17 +15,17 @@
 Public implementations, APIs and protocol documentation are maintained by their
 owning repositories:
 
-- [Utils component boundaries](../submodule/esp-mosaico-utils/docs/component-boundaries.md)
-- [Public application interfaces](../submodule/esp-mosaico-utils/mosaico-tools/docs/application-integration.md)
-- [Hello World template](../submodule/esp-mosaico-utils/mosaico-tools/templates/hello_world/README.md)
-- [GSP preview](../submodule/esp-mosaico-utils/mosaico-tools/tools/gsp-sim/README.md)
-- [Vibe Mode firmware](../submodule/esp-mosaico-utils/firmware/recovery/manifest.json)
-- [BSP examples](../submodule/esp-mosaico-bsp/README.md#examples)
+- [Utils component boundaries](https://github.com/esp-mosaico/esp-mosaico-utils/blob/f58f4f9e5363f908b17a8e1ea8fdf4dd77561ef1/docs/component-boundaries.md)
+- [Public application interfaces](https://github.com/esp-mosaico/esp-mosaico-utils/blob/f58f4f9e5363f908b17a8e1ea8fdf4dd77561ef1/mosaico-tools/docs/application-integration.md)
+- [Hello World template](https://github.com/esp-mosaico/esp-mosaico-utils/blob/f58f4f9e5363f908b17a8e1ea8fdf4dd77561ef1/mosaico-tools/templates/hello_world/README.md)
+- [GSP preview](https://github.com/esp-mosaico/esp-mosaico-utils/blob/f58f4f9e5363f908b17a8e1ea8fdf4dd77561ef1/mosaico-tools/tools/gsp-sim/README.md)
+- [Vibe Mode firmware](https://github.com/esp-mosaico/esp-mosaico-utils/blob/f58f4f9e5363f908b17a8e1ea8fdf4dd77561ef1/firmware/recovery/manifest.json)
+- [BSP examples](https://github.com/esp-mosaico/esp-mosaico-bsp/blob/5f88b91e1be055d1d3674364123b2779a1758377/README.md#examples)
 - [Raylib Lite Engine source reference (Registry 0.1.1)](https://github.com/espressif2022/raylib-lite-engine/blob/040b84e75640c325bca45515a4135f4b1640fd82/README.md)
 
-- [Ideas file releases](../submodule/esp-mosaico-utils/mosaico-tools/docs/ideas-file-release/README.md)
-- [Gateway storage and evidence](../submodule/esp-mosaico-utils/ESP-Iris/components/esp_iris/tools/README.md#runtime-and-storage-model)
-- [BSP expansion modules: ToF, thermal camera, matrix LED and EEPROM provisioning](../submodule/esp-mosaico-bsp/README.md#expansion-modules-and-provisioning)
+- [Ideas file releases](https://github.com/esp-mosaico/esp-mosaico-utils/blob/f58f4f9e5363f908b17a8e1ea8fdf4dd77561ef1/mosaico-tools/docs/ideas-file-release/README.md)
+- [Gateway storage and evidence](https://github.com/esp-mosaico/esp-mosaico-utils/blob/f58f4f9e5363f908b17a8e1ea8fdf4dd77561ef1/ESP-Iris/components/esp_iris/tools/README.md#runtime-and-storage-model)
+- [BSP expansion modules: ToF, thermal camera, matrix LED and EEPROM provisioning](https://github.com/esp-mosaico/esp-mosaico-bsp/blob/5f88b91e1be055d1d3674364123b2779a1758377/README.md#expansion-modules-and-provisioning)
 
 Initialize the pinned utils/BSP submodules for their local implementation docs.
 Raylib uses a Registry component; obtain its pinned Host tools and technical docs
