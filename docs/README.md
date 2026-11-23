@@ -19,11 +19,11 @@ owning repositories:
 - [Public application interfaces](../submodule/esp-mosaico-utils/mosaico-tools/docs/application-integration.md)
 - [Hello World template](../submodule/esp-mosaico-utils/mosaico-tools/templates/hello_world/README.md)
 - [GSP preview](../submodule/esp-mosaico-utils/mosaico-tools/tools/gsp-sim/README.md)
-- [Vibe Mode firmware](../submodule/esp-mosaico-utils/esp-mosaico-vibe-mode/firmware/vibe-mode/README.md)
+- [Vibe Mode firmware](../submodule/esp-mosaico-utils/firmware/recovery/manifest.json)
 - [BSP examples](../submodule/esp-mosaico-bsp/README.md#examples)
 - [Raylib Lite Engine source reference (Registry 0.1.1)](https://github.com/espressif2022/raylib-lite-engine/blob/040b84e75640c325bca45515a4135f4b1640fd82/README.md)
 
-- [Ideas file releases](../submodule/esp-mosaico-utils/mosaico-tools/docs/ideas-file-release/README.zh-CN.md)
+- [Ideas file releases](../submodule/esp-mosaico-utils/mosaico-tools/docs/ideas-file-release/README.md)
 - [Gateway storage and evidence](../submodule/esp-mosaico-utils/ESP-Iris/components/esp_iris/tools/README.md#runtime-and-storage-model)
 - [BSP expansion modules: ToF, thermal camera, matrix LED and EEPROM provisioning](../submodule/esp-mosaico-bsp/README.md#expansion-modules-and-provisioning)
 

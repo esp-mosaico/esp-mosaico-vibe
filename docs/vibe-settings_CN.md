@@ -5,10 +5,11 @@
 Vibe Mode 保存设置，不代表另一个应用启动后已自动应用。开发 UI 或游戏时，先确认
 需要继承哪些设置，再在应用的设备适配层读取；便携模型不直接访问 NVS 或 Wi-Fi 驱动。
 
-## 当前存储与职责
+## 存储约定与职责
 
-以下是当前 utils 源码的存储实现，不是新的稳定公共 API。升级 utils 时复核类型与
-默认值；优先使用已有公共读取接口，没有接口时使用集中、只读的应用适配器。
+以下是既有 Vibe Mode 存储约定，不是新的稳定公共 API。utils v0.4.1 公开包不包含
+Vibe 私有设置源码；升级固件时应在对应固件工程中复核类型与默认值。
+优先使用已有公共读取接口，没有接口时使用集中、只读的应用适配器。
 分区名取自 `mosaico_recovery_contract.h` 的 `MOSAICO_SYSMETA_PARTITION`，当前为 `sysmeta`。
 
 | 内容 | namespace / key | 类型与语义 |
@@ -35,9 +36,9 @@ Vibe Mode 保存设置，不代表另一个应用启动后已自动应用。开�
 - 模拟器注入相同含义的设置快照；设备端再验证“Vibe 修改设置 → 启动应用”的继承，
   以及缺失值、范围错误、联网失败和唤醒恢复。验证全局设置保持不变，不以模拟器替代设备验收。
 
-实现依据：utils 中的
-[`vibe_settings.c`](../submodule/esp-mosaico-utils/esp-mosaico-vibe-mode/firmware/vibe-mode/components/app_settings/src/vibe_settings.c)、
-[`factory_network.c`](../submodule/esp-mosaico-utils/esp-mosaico-vibe-mode/firmware/vibe-mode/components/app_network/src/factory_network.c) 和
-[`mosaico_recovery_contract.h`](../submodule/esp-mosaico-utils/esp-mosaico-vibe-mode/include/mosaico_recovery_contract.h)。
-Vibe 私有 `app_settings` / `app_network` 组件管理自身任务与状态，不应整个链接到普通应用来获取配置。
+公开 ABI 见 [`mosaico_recovery_contract.h`](../submodule/esp-mosaico-utils/mosaico-tools/include/mosaico_recovery_contract.h)；
+Wi-Fi 读取示例见 [Hello World 模板](../submodule/esp-mosaico-utils/mosaico-tools/templates/hello_world/README.md)。
+亮度、语言等私有偏好的实现依据需在对应版本的独立 Vibe 固件工程中核对
+`components/app_settings/src/vibe_settings.c` 和 `components/app_network/src/factory_network.c`。
+不应将固件私有组件整体链接到普通应用。
 设备配网命令见 [CLI 文档](mosaico-cli_CN.md#命令职责)，设备写入仍仅通过 `mosaico.py`。

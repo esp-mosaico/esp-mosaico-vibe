@@ -6,10 +6,11 @@ Persisted Vibe Mode preferences are not automatically applied by another firmwar
 application. Select the settings the app needs and read them in its device adapter;
 keep NVS and Wi-Fi driver access out of portable game or UI models.
 
-## Current storage and ownership
+## Storage conventions and ownership
 
-These are the current utils implementation details, not a new stable public API.
-Recheck types and defaults when upgrading utils. Prefer an existing public reader;
+These are existing Vibe Mode storage conventions, not a new stable public API.
+The utils v0.4.1 public snapshot does not include private Vibe settings sources;
+check types and defaults in the matching firmware project when upgrading firmware. Prefer an existing public reader;
 otherwise centralize read-only access in the app adapter. The partition comes from
 `MOSAICO_SYSMETA_PARTITION` in `mosaico_recovery_contract.h`, currently `sysmeta`.
 
@@ -43,11 +44,12 @@ obtain connection state from the app's own network service.
   Vibe preference change followed by app launch, missing/invalid values, network
   failures and wake restoration. Verify global settings remain unchanged.
 
-Implementation sources in utils:
-[`vibe_settings.c`](../submodule/esp-mosaico-utils/esp-mosaico-vibe-mode/firmware/vibe-mode/components/app_settings/src/vibe_settings.c),
-[`factory_network.c`](../submodule/esp-mosaico-utils/esp-mosaico-vibe-mode/firmware/vibe-mode/components/app_network/src/factory_network.c),
-and [`mosaico_recovery_contract.h`](../submodule/esp-mosaico-utils/esp-mosaico-vibe-mode/include/mosaico_recovery_contract.h).
-Vibe's private settings/network components own firmware tasks and state; do not
-link them wholesale into an app just to read configuration. See the
-[CLI command guide](mosaico-cli.md#command-responsibilities) for provisioning;
+The public ABI is in
+[`mosaico_recovery_contract.h`](../submodule/esp-mosaico-utils/mosaico-tools/include/mosaico_recovery_contract.h).
+See the [Hello World template](../submodule/esp-mosaico-utils/mosaico-tools/templates/hello_world/README.md)
+for Wi-Fi reading. Verify private preferences such as brightness and language in
+`components/app_settings/src/vibe_settings.c` and
+`components/app_network/src/factory_network.c` of the matching external Vibe
+firmware project. Do not link those private firmware components wholesale into an app.
+See the [CLI command guide](mosaico-cli.md#command-responsibilities) for provisioning;
 device writes continue to use only `mosaico.py`.

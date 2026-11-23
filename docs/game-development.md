@@ -50,6 +50,9 @@ python mosaico.py game build --project projects/my_game
 python mosaico.py iris system-update --project projects/my_game
 ```
 
+The default `game build` compiles the firmware. For this Iris-ready project,
+`iris system-update --project` builds the `.irisfw` bundle and installs it.
+
 The default `blank` template starts with a black 480×480 RGB565 surface. It
 includes Host/device entry points, Iris services and the retained layout, with
 no example gameplay, GSP canvas placeholder, atlas, audio or game resource partition.
@@ -124,14 +127,23 @@ Use explicit project paths to work on your own copies.
 python mosaico.py game create my_platformer --template sky-hop
 python mosaico.py game sim --project projects/my_platformer
 python mosaico.py game build --project projects/my_platformer --target iris
-# Use the exact bundle path printed by the build:
-python mosaico.py iris system-update --project projects/my_platformer --bundle /path/to/my_platformer-system-update.irisfw
+```
+
+Install from the game project directory so the CLI selects its Gateway. Use the
+absolute bundle path printed by the build.
+
+```sh
+(
+    cd projects/my_platformer &&
+    python ../../mosaico.py iris system-update \
+        --bundle "/absolute/path/to/my_platformer-system-update.irisfw"
+)
 ```
 
 `game build` defaults to `--target native`, which builds the source as supplied.
 `--target iris` adds product services and compatible partitions in a generated
 project under the workspace run directory, then emits a System Update bundle.
-It also accepts a named engine game, such as `game build sky_hop --target iris`.
+It also accepts a named Registry example, such as `game build sky_hop --target iris`.
 Build does not install firmware. Native and Iris outputs use separate directories.
 The wrapper references `main/` and optional `components/`; it does not use the
 source's top-level partition table or custom top-level CMake logic. Declare
@@ -168,7 +180,8 @@ preserve the old `gen_bmgr_codes` outside `components/` and repeat the build;
 do the same after editing Board YAML.
 
 Keep normal console output when building: this revision's successful
-`game build --json` does not emit a result object or bundle path. Installation
+`game build --target iris` prints the bundle path to the console; `--json`
+does not emit a structured result object. Installation
 remains a separate `mosaico.py` operation.
 
 Default product game builds compile the application and resources without rebuilding

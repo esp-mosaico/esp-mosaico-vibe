@@ -105,6 +105,9 @@ Follow [physical entry steps](../../../docs/device-modes.md#physical-entry)
 and [ROM operation tracking](../../../docs/project-gateway_CN.md#rom-恢复操作).
 Use `python mosaico.py recover` for blank/unverified devices or when neither normal
 nor Vibe Mode Iris is reachable. Preserve accessible evidence before proceeding.
+The default recovery uses the reviewed bundle under utils' `firmware/recovery/`.
+For authorized validation of a Vibe Mode candidate, supply the separate firmware
+project with `recover --source current --source-path PATH`.
 Manual ROM entry is the last resort: when required, give the documented physical
 sequence, wait for the developer to complete it, then detect and verify the connection
 and resume the product command. Never substitute direct flashing or whole-flash erase.

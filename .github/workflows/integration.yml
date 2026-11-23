@@ -55,11 +55,6 @@ jobs:
           echo "IDF_PATH=$IDF_PATH" >> "$GITHUB_ENV"
           echo "IDF_TOOLS_PATH=$IDF_TOOLS_PATH" >> "$GITHUB_ENV"
 
-      - name: Prepare pinned GSP compiler
-        run: |
-          python -m pip install --disable-pip-version-check esp-gsp-tools==0.1.1
-          python submodule/esp-mosaico-utils/tools/ci/prepare_gsp.py --compiler-only
-
       - name: Verify pinned ESP-IDF revision
         shell: bash
         run: |
@@ -84,13 +79,16 @@ jobs:
           --project "projects/ci_hello"
           doctor
 
-      - name: Build firmware
+      - name: Build application and partition table
         shell: bash
-        run: >-
-          python3 submodule/esp-mosaico-utils/mosaico-tools/skills/idf-low-noise-build/scripts/idf_low_noise_build.py
-          --project "projects/ci_hello"
-          --log-dir "$RUNNER_TEMP/idf-logs/hello-world"
-          build
+        run: |
+          log="$RUNNER_TEMP/idf-logs/hello-world/raw.log"
+          runner=submodule/esp-mosaico-utils/mosaico-tools/skills/idf-low-noise-build/scripts/idf_low_noise_build.py
+          # The Vibe Mode firmware bundle supplies the retained bootloader.
+          if ! (source "$IDF_PATH/export.sh" && idf.py -C projects/ci_hello app partition-table) >"$log" 2>&1; then
+            python3 "$runner" analyze --log "$log"
+            exit 1
+          fi
 
       - name: Render GSP scene
         shell: bash
@@ -126,9 +124,7 @@ jobs:
             projects/ci_hello/build/*.bin
             projects/ci_hello/build/*.elf
             projects/ci_hello/build/*.map
-            projects/ci_hello/build/*.irisfw
             projects/ci_hello/build/sdkconfig
-            projects/ci_hello/build/bootloader/*.bin
             projects/ci_hello/build/partition_table/*.bin
           if-no-files-found: error
           retention-days: 14

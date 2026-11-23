@@ -35,7 +35,7 @@ ESP_ERROR_CHECK(esp_pm_configure(&config));
 
 ## Vibe 实现与版本边界
 
-以下对应 [功耗 MR !46](https://gitlab.espressif.cn:6688/ae_group/mosaico/esp-mosaico-vibe-mode/-/merge_requests/46) 的 `f84fc9a122f49ea48cf2b2697bb12412df959da1`；目标为 `feat/0.4.0`，不代表本仓库当前固定的 utils 或已安装固件已包含。实现细节以该版本的[模式说明](https://gitlab.espressif.cn:6688/ae_group/mosaico/esp-mosaico-vibe-mode/-/blob/f84fc9a122f49ea48cf2b2697bb12412df959da1/vibe-mode/docs/power-tests/power-modes.zh-CN.md)为准。
+以下是 [功耗 MR !46](https://gitlab.espressif.cn:6688/ae_group/mosaico/esp-mosaico-vibe-mode/-/merge_requests/46) 的 `f84fc9a122f49ea48cf2b2697bb12412df959da1` 的历史实现参考；该 MR 已并入发布流程，以下细节仍只对应所列提交，不能替代所用固件版本的配置与实板验收。实现细节以该版本的[模式说明](https://gitlab.espressif.cn:6688/ae_group/mosaico/esp-mosaico-vibe-mode/-/blob/f84fc9a122f49ea48cf2b2697bb12412df959da1/vibe-mode/docs/power-tests/power-modes.zh-CN.md)为准。
 
 | 状态 | 进入与配置 | 显示、通信与退出 |
 | --- | --- | --- |

@@ -40,6 +40,9 @@ python mosaico.py game build --project projects/my_game
 python mosaico.py iris system-update --project projects/my_game
 ```
 
+默认的 `game build` 编译固件。对于这个已集成 Iris 的工程，
+`iris system-update --project` 生成 `.irisfw` 更新包并安装。
+
 默认 `blank` 模板呈现黑色 480×480 RGB565 画布，包含 Host/设备入口、Iris 服务和
 保留分区布局，没有示例玩法、GSP 占位画布、atlas、音频或游戏资源分区。固件使用
 工作区固定 ESP-IDF；空白或未验证设备先按[更新方式](mosaico-cli_CN.md#选择更新方式)初始化。
@@ -101,8 +104,16 @@ python mosaico.py game prepare --example last_zone_extraction --json
 python mosaico.py game create my_platformer --template sky-hop
 python mosaico.py game sim --project projects/my_platformer
 python mosaico.py game build --project projects/my_platformer --target iris
-# 使用构建实际输出的完整更新包路径：
-python mosaico.py iris system-update --project projects/my_platformer --bundle /path/to/my_platformer-system-update.irisfw
+```
+
+在游戏工程目录下执行安装，CLI 会选用该工程的 Gateway。请使用构建输出的更新包绝对路径。
+
+```sh
+(
+    cd projects/my_platformer &&
+    python ../../mosaico.py iris system-update \
+        --bundle "/absolute/path/to/my_platformer-system-update.irisfw"
+)
 ```
 
 `game build` 默认为 `--target native`，按源工程原样构建。`--target iris` 在工作区
@@ -136,8 +147,8 @@ Board Manager `0.7.5`、执行 `idf.py bmgr`，验证生成结果后再发布到
 用户配置。确认需要重新生成时，将旧 `gen_bmgr_codes` 移到 `components/` 之外
 备份，再重跑构建；修改 Board YAML 后也按此方式重新生成。
 
-构建时保留普通控制台输出：当前版本的 `game build --json` 成功时不输出
-结果对象或包路径。设备安装仍单独使用 `mosaico.py`。
+`game build --target iris` 在控制台输出更新包路径；`--json` 不输出结构化
+结果对象。设备安装仍单独使用 `mosaico.py`。
 
 产品游戏默认只构建应用与资源，不重建设备上保留的 bootloader；显式 bootloader
 构建及兼容性检查仍保留，分区布局不变。

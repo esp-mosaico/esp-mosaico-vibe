@@ -13,16 +13,17 @@ mosaico.py
 ├── account login / status / logout
 ├── iris
 │   ├── run / status
-│   ├── list / claim / release / reconcile
+│   ├── list / claim / pair / forget-pairing / release / reconcile
 │   ├── takeover start / status / resume / abort / reconcile
 │   ├── logs / memory / crash / rpc
 │   ├── device-status / screenshot / operation-status
 │   ├── operation-reconcile
 │   ├── app-update
 │   ├── system-update
-│   └── test enter-recovery / recovery-wifi / bridge-code
+│   ├── flash / app-flash / run-app
+│   └── test enter-recovery / recovery-wifi
 ├── recover
-└── game create/new/sim/run/build（空白模板、引擎示例与 Host）
+└── game prepare/create/new/sim/run/build（空白模板、引擎示例与 Host）
 ```
 
 模式定义及 AI/Boot 按键区别见[设备模式](device-modes_CN.md)。
@@ -40,6 +41,7 @@ mosaico.py
 | `iris run` | 持续持有一个共享 Gateway 客户端；首次创建时尝试连接唯一设备，Ctrl+C 只释放自身客户端 |
 | `iris status [--all]` | 被动查询本项目或同用户跨工作区 Gateway、使用者及设备归属；不启动、不保活 |
 | `iris list` | 通过所选项目 Gateway 枚举端点和设备，必要时启动 Gateway；不认领或连接设备 |
+| `iris pair/forget-pairing` | 为已验证设备保存或移除本机 TCP 配对凭据。配对使用设备的 USB 数据接口 |
 | `iris claim/release/reconcile` | 认领、释放设备，或显式清理已确认失效的普通归属 |
 | `iris takeover start/status/resume/abort/reconcile` | 请求接管、查询记录、继续验证、撤销或核对归属 |
 | `iris logs` | 显示保留日志并持续跟随；`--snapshot` 只读取保留日志 |
@@ -52,6 +54,8 @@ mosaico.py
 | `iris operation-reconcile <operation-id>` | 继续验证；ROM 恢复按原记录中的身份重连，不重复写入或复位 |
 | `iris app-update` | 仅更新正常应用代码，要求完整分区表与设备一致 |
 | `iris system-update` | 新应用、分区布局或资源变化的推荐入口，按更新包清单写入 |
+| `iris run-app` | 从 Vibe Mode 重试已安装的应用，并通过 ESP-Iris 验证应用重新上线 |
+| `iris flash/app-flash` | 在明确需要原生 IDF 烧录的流程中，通过 Gateway 执行 |
 | `recover` | 初始化或恢复设备基础固件，包括 ESP-Iris 不可达时的恢复 |
 | `game` | 从空白模板或引擎示例创建游戏，调用 Host 仿真及 native/Iris 构建，见[游戏开发入口](game-development_CN.md) |
 
@@ -61,7 +65,6 @@ mosaico.py
 | --- | --- |
 | `enter-recovery` | 正常应用通过 ESP-Iris 响应，重启进入已有 Vibe Mode；等待同一 Device ID 以新的 Boot ID 重连。已经在 Vibe Mode 时返回当前状态 |
 | `recovery-wifi` | 已进入 Vibe Mode 且 ESP-Iris USB 可用；下发 Wi-Fi 名称和密码并等待联网成功 |
-| `bridge-code` | 已进入 Vibe Mode、USB 可用、已配置 Bridge 服务且能够联网；测试旧 Bridge 维护配对接口，返回配对码、有效期和网站地址；与当前六位 Ideas 编号查询分开 |
 
 ## Ideas 文件发布
 
@@ -73,14 +76,13 @@ python mosaico.py project package --project projects/my_app --output dist/releas
 python mosaico.py project validate dist/release.zip --json
 python mosaico.py account login
 python mosaico.py project upload dist/release.zip --create --yes --json
-# 使用上次上传被接受后返回的当前草稿版本：
-python mosaico.py project upload dist/release.zip --update APPLICATION_ID --expected-project-version 1 --yes --json
+# 使用目标云端项目的公开 ID
+python mosaico.py project upload dist/release.zip --update PUBLIC_ID --yes --json
 ```
 
-package/validate 离线执行；upload 接收已有 ZIP，不重新构建，只创建或替换草稿，
-正式发布是另一步操作。请求回执与幂等状态支持丢失响应后的重试，`--wait-timeout`
-超时保留待验证回执。普通发布不能包含 Vibe Mode 或 bootloader。
-依赖、资源、认证和服务端校验见[文件发布指南](../submodule/esp-mosaico-utils/mosaico-tools/docs/ideas-file-release/README.zh-CN.md)。
+package/validate 离线执行。upload 接收已有 ZIP，创建或替换未提交的草稿。
+正式发布是独立步骤。普通发布不能包含 Vibe Mode 或 bootloader。
+依赖、资源、认证和服务端校验见[文件发布指南](../submodule/esp-mosaico-utils/mosaico-tools/docs/ideas-file-release/README.md)。
 
 ## 构建工具兼容性与诊断
 
@@ -129,8 +131,8 @@ python mosaico.py iris memory --project projects/my_app
 python mosaico.py iris crash --project projects/my_app --archive
 ```
 
-只有一块可用 USB 设备时可省略设备选择器；多设备时使用 `--device-id` 或
-`--endpoint`。使用实时确认的 Device ID。自动选择顺序、等待重连和归属限制见
+只有一块可用 USB 设备时可省略选择器。USB 未发现候选时，也可自动选择唯一在线
+且已配对的网络设备。多设备时使用 `--device-id` 或 `--endpoint`。使用实时确认的 Device ID。自动选择顺序、等待重连和归属限制见
 [Gateway 设备选择](project-gateway_CN.md#设备发现与选择)。
 
 ## 选择更新方式
@@ -142,13 +144,17 @@ python mosaico.py iris crash --project projects/my_app --archive
 | 仅修改应用代码，且完整分区表与设备一致 | `python mosaico.py iris app-update --project projects/my_app` |
 
 `recover` 准备经过评审的基础固件并验证 Vibe Mode 就绪；之后还需安装并验收目标
-应用。它仅支持本机 Gateway，底层恢复过程也由该命令管理。
+应用。它仅支持本机 Gateway，默认使用 utils 中的 `firmware/recovery/` 已审查包。
+从单独的 Vibe Mode 固件工程构建候选包时，`recover --source current` 要求指定
+`--source-path PATH`。使用该候选包校验应用更新时，执行
+`iris app-update --recovery-source current --recovery-source-path PATH`。
+两个路径都指向固件工程，相对于当前目录解析。
 
 从工程构建的 `system-update` 包包含应用、分区表及工程声明的资源镜像，保留
 Vibe Mode 固定前缀和 bootloader。仅预留但未使用的 `game_assets` 不需要镜像；
 使用外部资源的应用通过 CMake 声明将镜像纳入包。已有包可使用 `--bundle PATH`。
-Vibe Mode 自身更新、HTTP(S)/NAND 更新及基础包约束见
-[Vibe Mode 说明](../submodule/esp-mosaico-utils/esp-mosaico-vibe-mode/firmware/vibe-mode/README.md)。
+Vibe Mode 维护方式见 [utils 命令指南](../submodule/esp-mosaico-utils/mosaico-tools/README.md)和
+[设备模式](device-modes_CN.md#ideas-与固件维护)。
 
 `app-update` 遇到分区表不同会返回 `partition_layout_mismatch`、设备/构建
 SHA-256 及 `system-update` 建议，不会自动扩大写入范围或修改工程分区表。
@@ -212,7 +218,7 @@ Vibe Mode 始终将 High-Speed USB 交给 ESP-Iris，normal 应用默认也如�
 | `memory/crash/rpc` | `iris memory/crash/rpc` |
 | `install` | `iris app-update` |
 | `system-update` | `iris system-update` |
-| `enter-recovery/recovery-wifi/bridge-code` | `iris test enter-recovery/recovery-wifi/bridge-code` |
+| `enter-recovery/recovery-wifi` | `iris test enter-recovery/recovery-wifi` |
 
 `recover`、`doctor` 和工作区的 `game` 入口保留。操作记录中的内部操作标识、
 JSON 业务结果及取证目录格式继续沿用；`iris status` 新增 `running` 字段。

@@ -12,15 +12,16 @@
 | 所属内容 | 路径 |
 | --- | --- |
 | 产品入口、模板与构建脚本 | `submodule/esp-mosaico-utils/mosaico-tools/` |
-| 保留固件与应用适配组件 | `submodule/esp-mosaico-utils/esp-mosaico-vibe-mode/` |
-| Vibe Mode 固件工程 | utils 内的 `esp-mosaico-vibe-mode/firmware/vibe-mode/` |
+| Vibe Mode 固件包 | `submodule/esp-mosaico-utils/firmware/recovery/` |
+| Recovery 暂存工程 | `submodule/esp-mosaico-utils/mosaico-tools/recovery/` |
+| 应用适配组件和 Recovery ABI | `submodule/esp-mosaico-utils/mosaico-tools/` |
 | 共享 GSP 获取与 Ideas 资源工具 | `submodule/esp-mosaico-utils/shared/` |
 | 产品板级支持与外设示例 | `submodule/esp-mosaico-bsp/` |
 | 游戏运行时 | Registry `espressif2022/raylib-lite-engine` `0.1.1` |
 | Host、空白游戏启动器与 Board 工具 | `game prepare --json` 返回的已校验源码缓存 |
 | 发布游戏及其自带启动器/Board 适配器 | `game prepare --example <name> --json` 返回的 Registry 示例缓存 |
 
-旧 `esp-mosaico-recovery/`、`firmware/recovery/` 源码目录及转发工具入口已移除。
+Vibe Mode 源码不随 utils 公开发布；`firmware/recovery/` 提供已审查固件包，源码构建需显式指定独立固件工程。
 根据[公共集成契约](../submodule/esp-mosaico-utils/mosaico-tools/docs/application-integration.md)
 更新 CMake include、组件路径、自动化脚本和测试夹具。Recovery 组件名、命令、协议字段
 与 ABI 标识继续保留，不要机械替换所有 `recovery` 字符串。

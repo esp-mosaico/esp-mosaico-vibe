@@ -16,16 +16,18 @@ integration layout. This workspace does not provide standalone application expor
 | Owner | Path |
 | --- | --- |
 | Product launcher, templates and build runner | `submodule/esp-mosaico-utils/mosaico-tools/` |
-| Retained firmware and application adapter | `submodule/esp-mosaico-utils/esp-mosaico-vibe-mode/` |
-| Vibe Mode firmware project | `esp-mosaico-vibe-mode/firmware/vibe-mode/` inside utils |
+| Vibe Mode firmware bundle | `submodule/esp-mosaico-utils/firmware/recovery/` |
+| Recovery staging project | `submodule/esp-mosaico-utils/mosaico-tools/recovery/` |
+| Application adapter and Recovery ABI | `submodule/esp-mosaico-utils/mosaico-tools/` |
 | Shared GSP acquisition and Ideas resources | `submodule/esp-mosaico-utils/shared/` |
 | Product board/peripheral examples | `submodule/esp-mosaico-bsp/` |
 | Game runtime | Registry `espressif2022/raylib-lite-engine` `0.1.1` |
 | Host and blank-game launcher/Board tools | Verified source cache reported by `game prepare --json` |
 | Published games and their private launcher/Board adapters | Registry example cache reported by `game prepare --example <name> --json` |
 
-The old `esp-mosaico-recovery/` and `firmware/recovery/` source locations and legacy
-forwarding tool entry points were removed. Update CMake includes, component paths,
+Vibe Mode sources are not shipped in utils; `firmware/recovery/` contains the
+reviewed bundle. Source builds require an explicit external firmware project.
+Update CMake includes, component paths,
 automation and fixtures to the public [application integration contract](../submodule/esp-mosaico-utils/mosaico-tools/docs/application-integration.md).
 Recovery component names, command names, protocol fields and ABI identifiers remain.
 Do not replace every occurrence of `recovery` mechanically.

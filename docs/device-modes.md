@@ -27,8 +27,8 @@ commands manage this transition automatically.
 `python mosaico.py recover` writes base firmware and then verifies Vibe Mode.
 It can start from a connected device; manual ROM entry is only needed when the
 workflow requests it. For provisioning conditions and application updates, follow
-[update selection](mosaico-cli.md#select-an-update-method); Wi-Fi and Download Ideas
-commands are in the [CLI reference](mosaico-cli.md#command-responsibilities).
+[update selection](mosaico-cli.md#select-an-update-method). For Wi-Fi setup, see the
+[CLI reference](mosaico-cli.md#command-responsibilities).
 
 ## Physical entry
 
@@ -53,8 +53,8 @@ Download Ideas accepts a six-digit application number, preserving leading zeros.
 View the app's name, icon, description and compatible release, then confirm the
 download to NAND. Downloading and selecting the boot application are separate
 operations. My Ideas manages local downloads; About provides a confirmed online
-Vibe Mode firmware update. The legacy Bridge pairing workflow is a separate
-maintenance interface. See the [current firmware workflows](../submodule/esp-mosaico-utils/esp-mosaico-vibe-mode/docs/vibe-mode-workflows.md).
+Vibe Mode firmware update. The download and installation protocol is described in
+[Ideas file releases](../submodule/esp-mosaico-utils/mosaico-tools/docs/ideas-file-release/README.md).
 
 The 0.2 product uses Recovery ABI 2 and the retained test-partition layout;
 normal firmware runs in `main_app` (`app/ota_0`). Source updates and reviewed
