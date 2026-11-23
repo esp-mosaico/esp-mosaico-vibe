@@ -245,7 +245,7 @@ failure does not fall back to a local instance.
 ## Component boundaries and version policy
 
 The host tools and public Recovery ABI live in
-`submodule/esp-mosaico-utils/mosaico-tools/`. The reviewed Vibe Mode bundle is
+`submodule/esp-mosaico-utils/mosaico-tools/`. The Vibe Mode firmware bundle is
 under `firmware/recovery/` inside utils, and `mosaico-tools/recovery/` stages it for
 ROM recovery. Use a fresh build directory after migrating paths. The CLI queries
 local state through the public ESP-Iris host API.

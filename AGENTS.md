@@ -11,7 +11,7 @@ for the chip’s download program. See [device modes](docs/device-modes.md).
 
 - User applications belong in `projects/`; settings in `.mosaico.json`.
   Public tooling/templates belong in `submodule/esp-mosaico-utils/mosaico-tools`;
-  The reviewed Vibe Mode bundle lives in utils' `firmware/recovery/`.
+  The Vibe Mode firmware bundle lives in utils' `firmware/recovery/`.
   Recovery staging, application integration, the public ABI and firmware
   fixtures belong in utils' `mosaico-tools/`. Current-source Vibe Mode work
   requires a separate firmware project.

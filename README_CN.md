@@ -47,7 +47,7 @@ GSP 预览与设备使用相同的可移植 C UI 和 GSP 1.5.1 场景。
 | 仓库 | 维护内容 |
 | --- | --- |
 | 本工作区 | 入口、配置、Agent 工作流、消费者集成验证 |
-| [utils](https://github.com/esp-mosaico/esp-mosaico-utils) | CLI、已审查的 Vibe Mode 固件包、公共应用组件、Hello World 模板 |
+| [utils](https://github.com/esp-mosaico/esp-mosaico-utils) | CLI、Vibe Mode 固件包、公共应用组件、Hello World 模板 |
 | [BSP](https://github.com/esp-mosaico/esp-mosaico-bsp) | 产品板级支持和外设示例 |
 | [Raylib Lite Engine](https://github.com/espressif2022/raylib-lite-engine) | 游戏运行时、完整参考游戏、Board 适配器和 Host 模拟器 |
 

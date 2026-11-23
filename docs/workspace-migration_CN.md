@@ -13,7 +13,7 @@
 | 所属内容 | 路径 |
 | --- | --- |
 | 产品入口、模板与构建脚本 | `submodule/esp-mosaico-utils/mosaico-tools/` |
-| 已审查的 Vibe Mode 固件包 | `submodule/esp-mosaico-utils/firmware/recovery/` |
+| Vibe Mode 固件包 | `submodule/esp-mosaico-utils/firmware/recovery/` |
 | Recovery 暂存工程 | `submodule/esp-mosaico-utils/mosaico-tools/recovery/` |
 | 应用适配组件和 Recovery ABI | `submodule/esp-mosaico-utils/mosaico-tools/` |
 | 共享 GSP 获取与 Ideas 资源工具 | `submodule/esp-mosaico-utils/shared/` |

@@ -185,7 +185,7 @@ Gateway 重启不会自动重放设备写操作。
 ## 组件边界与版本策略
 
 主机工具和公共 Recovery ABI 位于 `submodule/esp-mosaico-utils/mosaico-tools/`。
-已审查的 Vibe Mode 固件包位于 utils 内的 `firmware/recovery/`，ROM 恢复时由
+Vibe Mode 固件包位于 utils 内的 `firmware/recovery/`，ROM 恢复时由
 `mosaico-tools/recovery/` 工程暂存。迁移路径后使用新的构建目录。CLI 通过
 ESP-Iris 公开主机接口查询本机状态。
 

@@ -17,7 +17,7 @@ owning repositories:
 - [Public application interfaces](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/application-integration.md)
 - [Hello World template](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/templates/hello_world/README.md)
 - [GSP preview](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/tools/gsp-sim/README.md)
-- [Reviewed Vibe Mode bundle](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/firmware/recovery/manifest.json)
+- [Vibe Mode firmware bundle](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/firmware/recovery/manifest.json)
 - [BSP examples](https://github.com/esp-mosaico/esp-mosaico-bsp/blob/master/README.md#examples)
 - [Game engine](https://github.com/espressif2022/raylib-lite-engine/blob/main/README.md)
 

@@ -15,7 +15,7 @@ integration layout. This workspace does not provide standalone application expor
 | Owner | Path |
 | --- | --- |
 | Product launcher, templates and build runner | `submodule/esp-mosaico-utils/mosaico-tools/` |
-| Reviewed Vibe Mode bundle | `submodule/esp-mosaico-utils/firmware/recovery/` |
+| Vibe Mode firmware bundle | `submodule/esp-mosaico-utils/firmware/recovery/` |
 | Recovery staging project | `submodule/esp-mosaico-utils/mosaico-tools/recovery/` |
 | Application adapter and Recovery ABI | `submodule/esp-mosaico-utils/mosaico-tools/` |
 | Shared GSP acquisition and Ideas resources | `submodule/esp-mosaico-utils/shared/` |

@@ -84,7 +84,7 @@ jobs:
         run: |
           log="$RUNNER_TEMP/idf-logs/hello-world/raw.log"
           runner=submodule/esp-mosaico-utils/mosaico-tools/skills/idf-low-noise-build/scripts/idf_low_noise_build.py
-          # The reviewed Vibe Mode bundle supplies the retained bootloader.
+          # The Vibe Mode firmware bundle supplies the retained bootloader.
           if ! (source "$IDF_PATH/export.sh" && idf.py -C projects/ci_hello app partition-table) >"$log" 2>&1; then
             python3 "$runner" analyze --log "$log"
             exit 1
