@@ -21,6 +21,9 @@ python mosaico.py game build --project projects/my_game
 python mosaico.py iris system-update --project projects/my_game
 ```
 
+The default `game build` compiles the firmware. For this Iris-ready project,
+`iris system-update --project` builds the `.irisfw` bundle and installs it.
+
 The default `blank` template starts with a black 480×480 RGB565 surface. It
 includes Host/device entry points, Iris services and the retained layout, with
 no example gameplay, GSP canvas placeholder, atlas, audio or game resource partition.
@@ -53,8 +56,17 @@ selects local Engine sources for the Host and the blank template.
 python mosaico.py game create my_platformer --template sky-hop
 python mosaico.py game sim --project projects/my_platformer
 python mosaico.py game build --project projects/my_platformer --target iris
-# Use the exact bundle path printed by the build:
-python mosaico.py iris system-update --project projects/my_platformer --bundle /path/to/my_platformer-system-update.irisfw
+```
+
+Install from the game project directory so the CLI selects its Gateway. Use the
+absolute bundle path printed by the build.
+
+```sh
+(
+    cd projects/my_platformer &&
+    python ../../mosaico.py iris system-update \
+        --bundle "/absolute/path/to/my_platformer-system-update.irisfw"
+)
 ```
 
 `game build` defaults to `--target native`, which builds the source as supplied.
@@ -76,8 +88,8 @@ configuring the application. The blank template uses the selected Engine's
 `esp_mosaico` profile. Registry examples use their bundled Board profile. The
 Iris wrapper has its own generated configuration. Product builds validate and
 preserve existing configuration. If the CLI reports an incomplete or mismatched
-component, back it up outside `components/` before retrying the build. Use
-normal console output to see the generated System Update bundle path.
+component, back it up outside `components/` before retrying the build. The
+`game build --target iris` console output shows the generated bundle path.
 
 ## Validate behavior
 

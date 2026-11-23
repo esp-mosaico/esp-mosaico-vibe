@@ -19,6 +19,9 @@ python mosaico.py game build --project projects/my_game
 python mosaico.py iris system-update --project projects/my_game
 ```
 
+默认的 `game build` 编译固件。对于这个已集成 Iris 的工程，
+`iris system-update --project` 生成 `.irisfw` 更新包并安装。
+
 默认 `blank` 模板呈现黑色 480×480 RGB565 画布，包含 Host/设备入口、Iris 服务和
 保留分区布局，没有示例玩法、GSP 占位画布、atlas、音频或游戏资源分区。固件使用
 工作区固定 ESP-IDF；空白或未验证设备先按[更新方式](mosaico-cli_CN.md#选择更新方式)初始化。
@@ -46,8 +49,16 @@ Host 状态包含 `phase`、`tick`、指针坐标/按下状态和 `state_hash`�
 python mosaico.py game create my_platformer --template sky-hop
 python mosaico.py game sim --project projects/my_platformer
 python mosaico.py game build --project projects/my_platformer --target iris
-# 使用构建实际输出的完整更新包路径：
-python mosaico.py iris system-update --project projects/my_platformer --bundle /path/to/my_platformer-system-update.irisfw
+```
+
+在游戏工程目录下执行安装，CLI 会选用该工程的 Gateway。请使用构建输出的更新包绝对路径。
+
+```sh
+(
+    cd projects/my_platformer &&
+    python ../../mosaico.py iris system-update \
+        --bundle "/absolute/path/to/my_platformer-system-update.irisfw"
+)
 ```
 
 `game build` 默认为 `--target native`，按源工程原样构建。`--target iris` 在工作区
@@ -65,7 +76,7 @@ Registry 示例名，如 `game build sky_hop --target iris`。构建不安装固
 空白模板使用所选引擎的 `esp_mosaico` 配置，Registry 示例使用示例随附的板级配置。
 Iris 适配工程有独立的生成目录。产品构建会校验并保留已有配置。如果 CLI 报告配置
 不完整或板型不匹配，先把该目录备份到 `components/` 外，再重试原构建命令。
-构建时使用普通控制台输出查看生成的 System Update 包路径。
+`game build --target iris` 会在控制台输出生成的更新包路径。
 
 ## 验证行为
 
