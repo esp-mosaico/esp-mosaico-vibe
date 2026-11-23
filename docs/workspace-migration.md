@@ -4,9 +4,9 @@
 
 Move or clone the whole workspace, including each user application's independent
 Git repository and the pinned submodules. Hello World and blank projects reference
-utils and board/engine dependencies relatively. Engine example copies currently
-record an absolute engine `override_path` in `main/idf_component.yml`; update that
-reference when moving them. Build caches contain absolute paths;
+utils and board/engine dependencies relatively. Check existing Engine example
+copies for absolute `override_path` entries in `main/idf_component.yml` when
+moving them. Build caches contain absolute paths;
 configure fresh build directories after moving the workspace or changing the
 integration layout. This workspace does not provide standalone application export.
 
@@ -15,15 +15,15 @@ integration layout. This workspace does not provide standalone application expor
 | Owner | Path |
 | --- | --- |
 | Product launcher, templates and build runner | `submodule/esp-mosaico-utils/mosaico-tools/` |
-| Retained firmware and application adapter | `submodule/esp-mosaico-utils/esp-mosaico-vibe-mode/` |
-| Vibe Mode firmware project | `esp-mosaico-vibe-mode/firmware/vibe-mode/` inside utils |
+| Vibe Mode firmware bundle | `submodule/esp-mosaico-utils/firmware/recovery/` |
+| Recovery staging project | `submodule/esp-mosaico-utils/mosaico-tools/recovery/` |
+| Application adapter and Recovery ABI | `submodule/esp-mosaico-utils/mosaico-tools/` |
 | Shared GSP acquisition and Ideas resources | `submodule/esp-mosaico-utils/shared/` |
 | Product board/peripheral examples | `submodule/esp-mosaico-bsp/` |
 | Complete games, native Board adapters and Host | `submodule/raylib-lite-engine/` |
 
-The old `esp-mosaico-recovery/` and `firmware/recovery/` source locations and legacy
-forwarding tool entry points were removed. Update CMake includes, component paths,
-automation and fixtures to the public [application integration contract](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/application-integration.md).
+Update CMake includes, component paths, automation and fixtures according to the
+public [application integration contract](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/application-integration.md).
 Recovery component names, command names, protocol fields and ABI identifiers remain.
 Do not replace every occurrence of `recovery` mechanically.
 

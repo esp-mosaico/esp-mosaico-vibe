@@ -89,12 +89,13 @@ For a single device, selectors can be omitted. Selection follows this order:
 3. If none is connected, follow the current project's sole existing ownership,
    including waiting for an offline device to reconnect.
 4. With no existing ownership, enumerate local USB devices live and claim the sole
-   available candidate. Cached or disconnected TCP/mDNS endpoints, ROM interfaces
-   and USB Serial/JTAG interfaces do not participate in this automatic selection.
-5. With multiple candidates, list them and require an explicit target. Ownership by
-   another session, takeover reservations and orphaned ownership are never preempted
-   or cleared automatically. Once the handshake verifies a Device ID, the operation
-   continues to follow that identity.
+   available candidate. If USB discovery finds none, try the sole live mDNS device
+   with a saved pairing. Cached endpoints, unpaired network devices, ROM interfaces
+   and USB Serial/JTAG interfaces are excluded from automatic selection.
+5. With multiple eligible candidates, list them and require an explicit target.
+   Ownership by another session, takeover reservations and orphaned ownership
+   are never preempted or cleared automatically. Once the handshake verifies a
+   Device ID, the operation continues to follow that identity.
 
 `iris run` attempts automatic connection only once, when the session is first created.
 With no device or an ambiguous selection, the Gateway remains running; later device
@@ -126,6 +127,14 @@ submitted.
 When upgrading from a legacy random Device ID to an identity derived from the eFuse
 Base MAC, refresh saved selectors with `iris list`. Operation history for the old ID
 is retained. Normal and Vibe Mode firmware should use compatible identity rules.
+
+### TCP pairing
+
+Pair over the verified USB data interface using `iris pair --endpoint <usb-endpoint>`
+or the workbench. The host stores the credential by Device ID for use across
+projects. Use `iris forget-pairing --device-id <Device-ID>` to remove the saved
+credential for future connections. Existing sessions and explicit credentials
+remain valid.
 
 ## Project history and evidence
 
@@ -235,13 +244,11 @@ failure does not fall back to a local instance.
 
 ## Component boundaries and version policy
 
-The host product tools live in `submodule/esp-mosaico-utils/mosaico-tools`. Vibe Mode
-firmware, reviewed images and the shared persistent ABI belong to `esp-mosaico-vibe-mode`;
-its source project is `firmware/vibe-mode`. Old forwarding launchers, Python packages
-and build-runner entry points were removed. Update source paths and use fresh build
-caches after migrating. The CLI queries local
-state through the public ESP-Iris host API, without reading its SQLite tables or
-private lock structures.
+The host tools and public Recovery ABI live in
+`submodule/esp-mosaico-utils/mosaico-tools/`. The Vibe Mode firmware bundle is
+under `firmware/recovery/` inside utils, and `mosaico-tools/recovery/` stages it for
+ROM recovery. Use a fresh build directory after migrating paths. The CLI queries
+local state through the public ESP-Iris host API.
 
 By default, instance reuse depends on the Gateway API and capabilities required by
 the command, not on matching the entire tools repository's Git commit. To pin the

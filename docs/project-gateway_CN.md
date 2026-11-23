@@ -69,9 +69,10 @@ python mosaico.py iris logs --project projects/my_app --device-id '<Device-ID>'
 1. 显式 `--device-id` / `--endpoint` 优先，失败不改选其他设备。
 2. 使用当前项目已连接的唯一设备。
 3. 没有已连接设备时，跟随当前项目唯一的已有归属，包括等待离线设备重连。
-4. 没有已有归属时，实时枚举本机 USB 并认领唯一可用候选。缓存、未连接的
-   TCP/mDNS 端点、ROM 和 USB Serial/JTAG 接口不参与这个自动选择。
-5. 多个候选时直接列出候选并要求指定目标。其他会话占用、接管预约以及孤立
+4. 没有已有归属时，实时枚举本机 USB 并认领唯一可用候选。USB 无候选时，
+   尝试连接唯一在线且已保存配对凭据的 mDNS 设备。缓存端点、未配对网络设备、
+   ROM 和 USB Serial/JTAG 接口不参与自动选择。
+5. 多个符合条件的候选存在时，列出候选并要求指定目标。其他会话占用、接管预约以及孤立
    归属不会被自动抢占或清理。握手确认 Device ID 后，本次操作始终跟随该身份。
 
 `iris run` 只在首次创建会话时尝试一次自动连接。无设备或有歧义时仍保持 Gateway
@@ -92,6 +93,13 @@ Gateway 上已连接的设备，不从当前电脑自动认领 USB。
 
 从旧版随机 Device ID 升级为 eFuse Base MAC 派生身份时，用 `iris list` 刷新
 保存的选择器。旧 ID 的操作历史仍保留，normal 与 Vibe Mode 应使用兼容的身份规则。
+
+### TCP 配对
+
+通过已验证的 USB 数据接口执行 `iris pair --endpoint <USB 端点>`，也可在工作台
+发起配对。主机按 Device ID 存储凭据，多个项目可共用。执行
+`iris forget-pairing --device-id <Device-ID>` 可移除后续连接使用的已保存凭据。
+已建立的会话和显式提供的凭据仍有效。
 
 ## 项目历史与证据
 
@@ -176,11 +184,10 @@ Gateway 重启不会自动重放设备写操作。
 
 ## 组件边界与版本策略
 
-主机产品工具位于 `submodule/esp-mosaico-utils/mosaico-tools`；Vibe Mode 固件、
-已审查镜像与共享持久化 ABI 位于 `esp-mosaico-vibe-mode`，固件工程为
-`firmware/vibe-mode`。旧转发 launcher、Python 包和构建脚本入口已移除，迁移后
-更新源码路径并使用新的构建缓存。
-CLI 通过 ESP-Iris 公开主机接口查询本机状态，不读取其 SQLite 表或私有锁结构。
+主机工具和公共 Recovery ABI 位于 `submodule/esp-mosaico-utils/mosaico-tools/`。
+Vibe Mode 固件包位于 utils 内的 `firmware/recovery/`，ROM 恢复时由
+`mosaico-tools/recovery/` 工程暂存。迁移路径后使用新的构建目录。CLI 通过
+ESP-Iris 公开主机接口查询本机状态。
 
 默认按 Gateway API 和命令所需能力复用实例，不要求整个工具仓库的 Git 提交一致。
 需要固定实际运行源码时，可在 `.mosaico.json` 添加

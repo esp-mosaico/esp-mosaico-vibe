@@ -3,8 +3,8 @@
 [English](workspace-migration.md) | [返回索引](README_CN.md)
 
 移动或克隆整个工作区，包括各用户应用的独立 Git 仓库和固定版本子模组。生成工程
-中的 Hello World 与空白模板通过相对路径引用依赖；引擎示例副本当前在
-`main/idf_component.yml` 中写入绝对的引擎 `override_path`，移动后须更新该引用。
+中的 Hello World 与空白模板通过相对路径引用依赖。移动已有引擎示例副本时，
+检查 `main/idf_component.yml` 中是否有需要更新的绝对 `override_path`。
 构建缓存含绝对路径，移动工作区或改变集成布局
 后使用新的构建目录重新配置。本工作区不提供单应用独立导出。
 
@@ -13,13 +13,13 @@
 | 所属内容 | 路径 |
 | --- | --- |
 | 产品入口、模板与构建脚本 | `submodule/esp-mosaico-utils/mosaico-tools/` |
-| 保留固件与应用适配组件 | `submodule/esp-mosaico-utils/esp-mosaico-vibe-mode/` |
-| Vibe Mode 固件工程 | utils 内的 `esp-mosaico-vibe-mode/firmware/vibe-mode/` |
+| Vibe Mode 固件包 | `submodule/esp-mosaico-utils/firmware/recovery/` |
+| Recovery 暂存工程 | `submodule/esp-mosaico-utils/mosaico-tools/recovery/` |
+| 应用适配组件和 Recovery ABI | `submodule/esp-mosaico-utils/mosaico-tools/` |
 | 共享 GSP 获取与 Ideas 资源工具 | `submodule/esp-mosaico-utils/shared/` |
 | 产品板级支持与外设示例 | `submodule/esp-mosaico-bsp/` |
 | 完整游戏、原生 Board 适配器与 Host | `submodule/raylib-lite-engine/` |
 
-旧 `esp-mosaico-recovery/`、`firmware/recovery/` 源码目录及转发工具入口已移除。
 根据[公共集成契约](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/application-integration.md)
 更新 CMake include、组件路径、自动化脚本和测试夹具。Recovery 组件名、命令、协议字段
 与 ABI 标识继续保留，不要机械替换所有 `recovery` 字符串。
