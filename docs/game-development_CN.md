@@ -49,8 +49,16 @@ Host 状态包含 `phase`、`tick`、指针坐标/按下状态和 `state_hash`�
 python mosaico.py game create my_platformer --template sky-hop
 python mosaico.py game sim --project projects/my_platformer
 python mosaico.py game build --project projects/my_platformer --target iris
-# 使用构建实际输出的完整更新包路径：
-python mosaico.py iris system-update --bundle /path/to/my_platformer-system-update.irisfw
+```
+
+在游戏工程目录下执行安装，CLI 会选用该工程的 Gateway。请使用构建输出的更新包绝对路径。
+
+```sh
+(
+    cd projects/my_platformer &&
+    python ../../mosaico.py iris system-update \
+        --bundle "/absolute/path/to/my_platformer-system-update.irisfw"
+)
 ```
 
 `game build` 默认为 `--target native`，按源工程原样构建。`--target iris` 在工作区

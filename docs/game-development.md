@@ -56,8 +56,17 @@ selects local Engine sources for the Host and the blank template.
 python mosaico.py game create my_platformer --template sky-hop
 python mosaico.py game sim --project projects/my_platformer
 python mosaico.py game build --project projects/my_platformer --target iris
-# Use the exact bundle path printed by the build:
-python mosaico.py iris system-update --bundle /path/to/my_platformer-system-update.irisfw
+```
+
+Install from the game project directory so the CLI selects its Gateway. Use the
+absolute bundle path printed by the build.
+
+```sh
+(
+    cd projects/my_platformer &&
+    python ../../mosaico.py iris system-update \
+        --bundle "/absolute/path/to/my_platformer-system-update.irisfw"
+)
 ```
 
 `game build` defaults to `--target native`, which builds the source as supplied.
