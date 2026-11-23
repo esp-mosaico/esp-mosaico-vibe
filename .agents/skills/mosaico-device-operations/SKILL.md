@@ -45,8 +45,6 @@ To enter existing Vibe Mode from a reachable application, use
    write; never change boards after failed explicit selection or during reconnect.
 5. For a live operation, apply [device selection](../../../docs/project-gateway_CN.md#设备发现与选择)
    and [state evidence checks](../../../docs/project-gateway_CN.md#实时证据与下一步).
-   If no USB candidate is available, automatic selection can use a sole live
-   network device with saved TCP pairing.
    After coordinating ownership, use `iris run --project <project>` or `iris claim`
    for a handshake. Use `iris device-status --json` to confirm live identity, Boot ID
    and firmware mode; ROM identity is established by the product recovery workflow.

@@ -20,8 +20,7 @@
 | 产品板级支持与外设示例 | `submodule/esp-mosaico-bsp/` |
 | 完整游戏、原生 Board 适配器与 Host | `submodule/raylib-lite-engine/` |
 
-公开仓库提供已审查的固件包和暂存工程。从源码构建 Vibe Mode 时，通过
-`recover --source current --source-path PATH` 指定单独的固件工程。根据[公共集成契约](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/application-integration.md)
+根据[公共集成契约](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/application-integration.md)
 更新 CMake include、组件路径、自动化脚本和测试夹具。Recovery 组件名、命令、协议字段
 与 ABI 标识继续保留，不要机械替换所有 `recovery` 字符串。
 

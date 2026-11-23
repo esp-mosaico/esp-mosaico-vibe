@@ -22,10 +22,8 @@ integration layout. This workspace does not provide standalone application expor
 | Product board/peripheral examples | `submodule/esp-mosaico-bsp/` |
 | Complete games, native Board adapters and Host | `submodule/raylib-lite-engine/` |
 
-The public checkout ships the reviewed bundle and its staging project. Building
-Vibe Mode from source requires a separate firmware project supplied with
-`recover --source current --source-path PATH`. Update CMake includes, component paths,
-automation and fixtures to the public [application integration contract](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/application-integration.md).
+Update CMake includes, component paths, automation and fixtures according to the
+public [application integration contract](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/application-integration.md).
 Recovery component names, command names, protocol fields and ABI identifiers remain.
 Do not replace every occurrence of `recovery` mechanically.
 
