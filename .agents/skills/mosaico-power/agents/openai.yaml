@@ -1,0 +1,4 @@
+interface:
+  display_name: "ESP-Mosaico 功耗适配"
+  short_description: "验证 DFS、显示传输与 OLED 配色功耗，为其他设备 App 提供可复用的测流方法"
+  default_prompt: "使用 $mosaico-power 评估当前 App 的功耗，验证低频显示稳定性并整理同条件测流结果。"

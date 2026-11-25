@@ -28,9 +28,9 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Initialize launcher and native game Host dependencies
+      - name: Initialize launcher dependency
         run: >-
-          git -c url."https://github.com/".insteadOf=git@github.com: submodule update --init submodule/esp-mosaico-utils submodule/raylib-lite-engine
+          git -c url."https://github.com/".insteadOf=git@github.com: submodule update --init submodule/esp-mosaico-utils
 
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
@@ -39,6 +39,9 @@ jobs:
 
       - name: Install Host test dependencies
         run: python -m pip install --disable-pip-version-check pytest Pillow
+
+      - name: Prepare pinned native game Host tools
+        run: python mosaico.py game prepare
 
       - name: Check repository launcher
         run: python mosaico.py --version

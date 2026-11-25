@@ -112,13 +112,13 @@ Gateway 上已连接的设备，不从当前电脑自动认领 USB。
 已有 0.2 历史须显式迁移。升级前完成活动操作、结束所属 Gateway，独立备份完整状态
 （包括 WAL/SHM、日志、制品和事件分段）及凭据。打开 schema 200/201 数据库会升级到
 202，仅回退代码不能降级；回滚须恢复独立的升级前备份。旧源目录可能继续作为活动
-凭据库，不能把它当回滚备份，也不能在仍使用时删除。具体步骤见[存储迁移指南](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/ESP-Iris/components/esp_iris/tools/README.md#runtime-and-storage-model)。
+凭据库，不能把它当回滚备份，也不能在仍使用时删除。具体步骤见[存储迁移指南](https://github.com/esp-mosaico/esp-mosaico-utils/blob/f58f4f9e5363f908b17a8e1ea8fdf4dd77561ef1/ESP-Iris/components/esp_iris/tools/README.md#runtime-and-storage-model)。
 
 历史按容量和时间分段保留，默认事件上限为 7 天、200,000 行、512 MiB，持久化操作
 证据独立保存。慢订阅者、队列压力或存储故障可能产生显式历史缺口；应检查健康与丢失
 指标，不能假设保留日志完整。大型证据导出通过有限额的后台任务执行，工作台显示进度、
-支持取消，并在完成后下载 ZIP。协议详见[留存与存储故障](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/ESP-Iris/components/esp_iris/tools/README.md#diagnostic-retention-and-storage-failures)
-及[后台导出](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/ESP-Iris/components/esp_iris/tools/README.md#background-evidence-exports)。
+支持取消，并在完成后下载 ZIP。协议详见[留存与存储故障](https://github.com/esp-mosaico/esp-mosaico-utils/blob/f58f4f9e5363f908b17a8e1ea8fdf4dd77561ef1/ESP-Iris/components/esp_iris/tools/README.md#diagnostic-retention-and-storage-failures)
+及[后台导出](https://github.com/esp-mosaico/esp-mosaico-utils/blob/f58f4f9e5363f908b17a8e1ea8fdf4dd77561ef1/ESP-Iris/components/esp_iris/tools/README.md#background-evidence-exports)。
 Agent 获取设备证据仍使用 CLI 状态、日志、操作记录和保存的截图。
 
 ## 跨项目协调
@@ -196,7 +196,7 @@ ESP-Iris 公开主机接口查询本机状态。
 
 安装所需的 Vibe Mode 版本和分区哈希由产品 CLI 提交给 Gateway。Gateway 在同一个
 操作中完成切换、重新连接、校验、写入和健康验证；校验不通过不会开始写入。
-详细职责与接口见[组件边界说明](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/docs/component-boundaries.md)。
+详细职责与接口见[组件边界说明](https://github.com/esp-mosaico/esp-mosaico-utils/blob/f58f4f9e5363f908b17a8e1ea8fdf4dd77561ef1/docs/component-boundaries.md)。
 
 ## 设备状态与 ROM 恢复
 

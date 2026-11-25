@@ -13,3 +13,6 @@
 
 # Local agent experiments; shared skills and tools remain versioned.
 /.agents/analysis/
+
+# Optional developer checkout retained locally after Registry migration.
+/submodule/raylib-lite-engine/

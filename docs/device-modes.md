@@ -54,7 +54,7 @@ View the app's name, icon, description and compatible release, then confirm the
 download to NAND. Downloading and selecting the boot application are separate
 operations. My Ideas manages local downloads; About provides a confirmed online
 Vibe Mode firmware update. The download and installation protocol is described in
-[Ideas file releases](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/ideas-file-release/README.md).
+[Ideas file releases](https://github.com/esp-mosaico/esp-mosaico-utils/blob/f58f4f9e5363f908b17a8e1ea8fdf4dd77561ef1/mosaico-tools/docs/ideas-file-release/README.md).
 
 The 0.2 product uses Recovery ABI 2 and the retained test-partition layout;
 normal firmware runs in `main_app` (`app/ota_0`). Source updates and reviewed

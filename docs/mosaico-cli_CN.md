@@ -82,7 +82,7 @@ python mosaico.py project upload dist/release.zip --update PUBLIC_ID --yes --jso
 
 package/validate 离线执行。upload 接收已有 ZIP，创建或替换未提交的草稿。
 正式发布是独立步骤。普通发布不能包含 Vibe Mode 或 bootloader。
-依赖、资源、认证和服务端校验见[文件发布指南](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/ideas-file-release/README.md)。
+依赖、资源、认证和服务端校验见[文件发布指南](https://github.com/esp-mosaico/esp-mosaico-utils/blob/f58f4f9e5363f908b17a8e1ea8fdf4dd77561ef1/mosaico-tools/docs/ideas-file-release/README.md)。
 
 ## 构建工具兼容性与诊断
 
@@ -153,7 +153,7 @@ python mosaico.py iris crash --project projects/my_app --archive
 从工程构建的 `system-update` 包包含应用、分区表及工程声明的资源镜像，保留
 Vibe Mode 固定前缀和 bootloader。仅预留但未使用的 `game_assets` 不需要镜像；
 使用外部资源的应用通过 CMake 声明将镜像纳入包。已有包可使用 `--bundle PATH`。
-Vibe Mode 维护方式见 [utils 命令指南](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/README.md)和
+Vibe Mode 维护方式见 [utils 命令指南](https://github.com/esp-mosaico/esp-mosaico-utils/blob/f58f4f9e5363f908b17a8e1ea8fdf4dd77561ef1/mosaico-tools/README.md)和
 [设备模式](device-modes_CN.md#ideas-与固件维护)。
 
 `app-update` 遇到分区表不同会返回 `partition_layout_mismatch`、设备/构建

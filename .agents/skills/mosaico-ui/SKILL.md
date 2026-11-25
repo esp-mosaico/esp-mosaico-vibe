@@ -36,6 +36,22 @@ Design-only or review-only work does not authorize implementation or device
 writes. Complete device delivery needs device evidence; a simulator-only task
 can end with its runnable implementation and clearly stated hardware gaps.
 
+## Display safe area
+
+The ESP-Mosaico 480×480 display has four physical rounded corners with radius
+**60 native pixels (R60)**. Use that rounded rectangle as the visible-area mask,
+scaling the mask with the preview. Keep important text, status indicators,
+buttons and their complete touch targets inside the visible outline with
+comfortable clearance from the corner arcs. Backgrounds and nonessential
+decoration may extend to the edges. Do not apply a blanket 60-pixel inset to
+all four edges; their middle sections remain usable.
+
+Check corner clipping in design mockups and simulator review, especially
+headers, footers and edge controls. A rectangular framebuffer or screenshot
+does not establish physical visibility; account for the R60 mask even when the
+simulator displays a square surface. This radius describes the panel corners,
+not a required style for UI cards or buttons.
+
 ## 1. Design confirmation
 
 **Question:** What should the user see, and how should they operate it?
@@ -131,6 +147,10 @@ documents under `docs/`. Scale artifacts to the task without mandatory forms,
 image counts, or approval for decorative details.
 
 ## Repository execution support
+
+When an app needs Vibe brightness, Wi-Fi credentials, language or other shared
+settings, follow [settings reuse](../../../docs/vibe-settings.md). Read them in
+the device adapter; do not assume automatic inheritance or overwrite global preferences.
 
 - Follow [AGENTS.md](../../../AGENTS.md) for repository-wide constraints.
   Preserve the Recovery contract and resolve ESP-IDF before running its tools.

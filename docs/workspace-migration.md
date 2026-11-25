@@ -3,12 +3,34 @@
 [简体中文](workspace-migration_CN.md) | [Documentation index](README.md)
 
 Move or clone the whole workspace, including each user application's independent
-Git repository and the pinned submodules. Hello World and blank projects reference
-utils and board/engine dependencies relatively. Check existing Engine example
-copies for absolute `override_path` entries in `main/idf_component.yml` when
-moving them. Build caches contain absolute paths;
+Git repository and the pinned utils/BSP submodules. Hello World and blank projects reference
+utils, BSP and cached Engine tooling relatively. New games resolve the runtime
+from the Registry without a source override. Run `python mosaico.py game prepare`
+after cloning; see [game migration](game-development.md#registry-runtime-and-pinned-development-tools)
+for existing apps with source overrides. Build caches contain absolute paths;
 configure fresh build directories after moving the workspace or changing the
 integration layout. This workspace does not provide standalone application export.
+
+Previously generated Board Manager code also records an absolute `board_path` in
+`components/gen_bmgr_codes/gen_board_metadata.yaml`. Removing only `build/` is
+therefore insufficient for an already-built blank/product game. Preserve the
+generated component outside `components/`, then let `game build` regenerate it
+against the new workspace path. Preserve any custom Board YAML as source:
+
+```sh
+# After moving the whole workspace and discarding its old build caches:
+python mosaico.py game prepare
+# Only when this generated directory exists and refers to the old location:
+mv projects/my_game/components/gen_bmgr_codes projects/my_game/gen_bmgr_codes.before-move
+python mosaico.py game build --project projects/my_game --target native
+python mosaico.py game build --project projects/my_game --target iris
+```
+
+Do not edit generated paths or add an absolute Engine `override_path` to migrate a
+new Registry example. Iris wrappers are generated from the current source path;
+do not reuse an old wrapper's build directory or installation bundle. Existing
+apps that deliberately use an Engine checkout still need the source-override
+migration described in the game guide.
 
 ## Current source layout
 
@@ -20,10 +42,14 @@ integration layout. This workspace does not provide standalone application expor
 | Application adapter and Recovery ABI | `submodule/esp-mosaico-utils/mosaico-tools/` |
 | Shared GSP acquisition and Ideas resources | `submodule/esp-mosaico-utils/shared/` |
 | Product board/peripheral examples | `submodule/esp-mosaico-bsp/` |
-| Complete games, native Board adapters and Host | `submodule/raylib-lite-engine/` |
+| Game runtime | Registry `espressif2022/raylib-lite-engine` `0.1.1` |
+| Host and blank-game launcher/Board tools | Verified source cache reported by `game prepare --json` |
+| Published games and their private launcher/Board adapters | Registry example cache reported by `game prepare --example <name> --json` |
 
-Update CMake includes, component paths, automation and fixtures according to the
-public [application integration contract](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/application-integration.md).
+Vibe Mode sources are not shipped in utils; `firmware/recovery/` contains the
+reviewed bundle. Source builds require an explicit external firmware project.
+Update CMake includes, component paths,
+automation and fixtures to the public [application integration contract](https://github.com/esp-mosaico/esp-mosaico-utils/blob/f58f4f9e5363f908b17a8e1ea8fdf4dd77561ef1/mosaico-tools/docs/application-integration.md).
 Recovery component names, command names, protocol fields and ABI identifiers remain.
 Do not replace every occurrence of `recovery` mechanically.
 

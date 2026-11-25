@@ -3,8 +3,9 @@
 [简体中文](README_CN.md)
 
 A get-started workspace for developing ESP-Mosaico applications with an AI coding
-agent. The repository supplies the CLI entry, workspace settings, pinned
-submodules, documentation and Agent guidance. Applications are created on demand.
+agent. The repository supplies the CLI entry, workspace settings, documentation
+and Agent guidance. Utils and BSP use pinned submodules; Raylib Lite Engine uses
+a Registry component dependency. Applications are created on demand.
 
 ## Create an application
 
@@ -31,13 +32,14 @@ buttons and commands.
 
 ```sh
 git submodule update --init submodule/esp-mosaico-bsp
-# Activate the pinned ESP-IDF environment and build the generated application.
-python submodule/esp-mosaico-utils/mosaico-tools/skills/idf-low-noise-build/scripts/idf_low_noise_build.py --project projects/my_app doctor
-python submodule/esp-mosaico-utils/mosaico-tools/skills/idf-low-noise-build/scripts/idf_low_noise_build.py --project projects/my_app build
+# Activate the pinned ESP-IDF environment; resolve dependencies for native preview.
+git -C "$IDF_PATH" rev-parse HEAD
+idf.py -C projects/my_app -D IDF_TARGET=esp32s31 reconfigure
 python mosaico.py project sim --project projects/my_app --interactive
 ```
 
-GSP preview uses the same portable C UI and GSP 1.5.1 scene as the device.
+GSP preview builds the shared native C UI and uses GSP 1.5.1; it does not require
+a complete firmware build. See the [complete first-preview steps](docs/project-init.md#first-native-preview).
 After design confirmation, find and fix UI rendering and interaction problems
 in the simulator first, then validate on hardware; see [the workflow](docs/project-init.md).
 For the first installation on a blank or unverified board, run `python mosaico.py recover`,
@@ -47,16 +49,18 @@ and resources. Device operations always go through the product CLI.
 
 ## Workspace ownership
 
-| Repository | Maintains |
-| --- | --- |
-| This workspace | Entry, configuration, Agent workflows, consumer integration checks |
-| [utils](https://github.com/esp-mosaico/esp-mosaico-utils) | CLI, Vibe Mode firmware bundle, shared application components and Hello World template |
-| [BSP](https://github.com/esp-mosaico/esp-mosaico-bsp) | Product board support and peripheral examples |
-| [Raylib Lite Engine](https://github.com/espressif2022/raylib-lite-engine) | Game runtime, complete reference games, Board adapters and Host simulator |
+| Source | Integration | Maintains |
+| --- | --- | --- |
+| This workspace | Current repository | Entry, configuration, Agent workflows, consumer integration checks |
+| [utils](https://github.com/esp-mosaico/esp-mosaico-utils/tree/f58f4f9e5363f908b17a8e1ea8fdf4dd77561ef1) | Pinned submodule | CLI, Vibe Mode firmware, shared application components and Hello World template |
+| [BSP](https://github.com/esp-mosaico/esp-mosaico-bsp/tree/5f88b91e1be055d1d3674364123b2779a1758377) | Pinned submodule | Product board support and peripheral examples |
+| [Raylib Lite Engine](https://github.com/espressif2022/raylib-lite-engine) | Registry component `==0.1.1`; Host tools and examples downloaded on demand | Game runtime, complete reference games, Board adapters and Host simulator |
 
 Prefer Raylib Lite Engine for games, create a blank game or an engine example, and validate
 visuals and gameplay in its simulator first; see the [game entry](docs/game-development.md).
-Initialize the engine only when developing games. Hello World and blank games use
+IDF resolves the Engine runtime component. `python mosaico.py game prepare` downloads
+and verifies pinned Host tools; `game prepare --example <name>` downloads Registry examples.
+Hello World and blank games use
 relative references: move or clone the whole workspace, initialize its pinned
 dependencies and rebuild. Single-application export and old workspace path
 compatibility are outside this layout. See [migration notes](docs/workspace-migration.md).

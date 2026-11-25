@@ -22,7 +22,7 @@ The workspace `.mosaico.json` uses `schema_version: 2`; template descriptors
 retain schema 1. See [migration](workspace-migration.md) for existing workspaces.
 `workspace.init_template` can point to a custom descriptor.
 `workspace.projects_dir` can change the output location, which must remain within
-the workspace. See [application integration](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/application-integration.md)
+the workspace. See [application integration](https://github.com/esp-mosaico/esp-mosaico-utils/blob/f58f4f9e5363f908b17a8e1ea8fdf4dd77561ef1/mosaico-tools/docs/application-integration.md)
 for the template format and path variables.
 
 Creation initializes an independent Git repository on `main`, supplements missing
@@ -54,14 +54,28 @@ are resolved relative to the calling directory. You can invoke the entry point
 from any nested directory in the workspace, or select a workspace with
 `--workspace PATH`.
 
-Initialize BSP and prepare ESP-IDF `master` at the fixed commit
-`7b9cc1ac79f865983f59bb8ff3ff43eb74ff1dbe` for target `esp32s31`. Build the
-generated project, then run the preview below. Verify the full SHA with
-`git -C "$IDF_PATH" rev-parse HEAD`; do not follow the latest `master`:
+## First native preview
+
+Activate ESP-IDF at exactly `7b9cc1ac79f865983f59bb8ff3ff43eb74ff1dbe` for
+`esp32s31`; do not follow the latest `master`. From a fresh workspace root,
+the complete sequence is below. Skip creation if `my_app` already exists:
 
 ```sh
+git submodule update --init submodule/esp-mosaico-utils submodule/esp-mosaico-bsp
+python mosaico.py project init my_app
+git -C "$IDF_PATH" rev-parse HEAD
+idf.py -C projects/my_app -D IDF_TARGET=esp32s31 reconfigure
 python mosaico.py project sim --project projects/my_app --interactive
 ```
+
+`reconfigure` resolves the pinned ESP-GSP 1.5.1 and other component dependencies;
+it does not compile the firmware. The preview builds the application's native C
+backend in `build-sim/` and obtains the matching GSP tools automatically. A host C
+compiler, CMake and network access for uncached downloads are required. A full
+firmware build is needed for device delivery, not for this first preview.
+For a bounded smoke run, replace `--interactive` with `--headless --duration 3`.
+This runs C callbacks; scene-only rendering is not equivalent.
+For local/SSH browser access, see [preview troubleshooting](simulator-preview.md).
 
 Prefer GSP for UI applications. After design confirmation, use the simulator to
 find and fix layout, clipping, resource display, click feedback, page transitions,

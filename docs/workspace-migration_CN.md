@@ -2,11 +2,28 @@
 
 [English](workspace-migration.md) | [返回索引](README_CN.md)
 
-移动或克隆整个工作区，包括各用户应用的独立 Git 仓库和固定版本子模组。生成工程
-中的 Hello World 与空白模板通过相对路径引用依赖。移动已有引擎示例副本时，
-检查 `main/idf_component.yml` 中是否有需要更新的绝对 `override_path`。
-构建缓存含绝对路径，移动工作区或改变集成布局
-后使用新的构建目录重新配置。本工作区不提供单应用独立导出。
+移动或克隆整个工作区，包括用户应用的独立 Git 仓库和固定的 utils/BSP 子模块。
+游戏运行时改由 Registry 组件提供，Host 与 Board 工具运行 `python mosaico.py game prepare`
+下载并校验。旧游戏的 `override_path` 和工具路径按[游戏迁移](game-development_CN.md#registry-运行时与固定版本开发工具)
+更新。构建缓存含绝对路径，迁移工作区后使用新的构建目录；此布局不提供单应用独立导出。
+
+已有 Board Manager 生成代码的 `components/gen_bmgr_codes/gen_board_metadata.yaml`
+也记录绝对 `board_path`。对已构建的空白/产品游戏，只清理 `build/` 不够；
+需先将生成组件备份到 `components/` 外，再让 `game build` 按新路径自动生成。
+自定义 Board YAML 仍作为源码保留：
+
+```sh
+# 移动整个工作区，并清理旧构建缓存后：
+python mosaico.py game prepare
+# 仅当此生成目录存在，且仍指向旧位置时执行：
+mv projects/my_game/components/gen_bmgr_codes projects/my_game/gen_bmgr_codes.before-move
+python mosaico.py game build --project projects/my_game --target native
+python mosaico.py game build --project projects/my_game --target iris
+```
+
+新 Registry 示例迁移不需要编辑生成路径，也不应添加绝对 Engine `override_path`。
+Iris 包装工程按当前源码位置生成，不复用旧包装工程的构建目录或安装包。
+主动使用引擎源码 checkout 的旧应用，仍需按游戏指南迁移其源码覆盖配置。
 
 ## 当前源码布局
 
@@ -18,9 +35,12 @@
 | 应用适配组件和 Recovery ABI | `submodule/esp-mosaico-utils/mosaico-tools/` |
 | 共享 GSP 获取与 Ideas 资源工具 | `submodule/esp-mosaico-utils/shared/` |
 | 产品板级支持与外设示例 | `submodule/esp-mosaico-bsp/` |
-| 完整游戏、原生 Board 适配器与 Host | `submodule/raylib-lite-engine/` |
+| 游戏运行时 | Registry `espressif2022/raylib-lite-engine` `0.1.1` |
+| Host、空白游戏启动器与 Board 工具 | `game prepare --json` 返回的已校验源码缓存 |
+| 发布游戏及其自带启动器/Board 适配器 | `game prepare --example <name> --json` 返回的 Registry 示例缓存 |
 
-根据[公共集成契约](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/application-integration.md)
+Vibe Mode 源码不随 utils 公开发布；`firmware/recovery/` 提供已审查固件包，源码构建需显式指定独立固件工程。
+根据[公共集成契约](https://github.com/esp-mosaico/esp-mosaico-utils/blob/f58f4f9e5363f908b17a8e1ea8fdf4dd77561ef1/mosaico-tools/docs/application-integration.md)
 更新 CMake include、组件路径、自动化脚本和测试夹具。Recovery 组件名、命令、协议字段
 与 ABI 标识继续保留，不要机械替换所有 `recovery` 字符串。
 

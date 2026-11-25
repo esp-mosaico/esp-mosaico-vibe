@@ -18,7 +18,7 @@ python mosaico.py project init my_app
 工作区 `.mosaico.json` 使用 `schema_version: 2`，模板描述仍使用 schema 1。
 旧工作区见[迁移说明](workspace-migration_CN.md)。`workspace.init_template` 可指向自定义描述；
 `workspace.projects_dir` 可修改生成位置，仍须位于工作区内。模板格式及路径变量见
-[应用集成](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/application-integration.md)。
+[应用集成](https://github.com/esp-mosaico/esp-mosaico-utils/blob/f58f4f9e5363f908b17a8e1ea8fdf4dd77561ef1/mosaico-tools/docs/application-integration.md)。
 
 创建时会初始化分支为 `main` 的独立 Git 仓库，补齐 Git、编辑器和质量检查配置，
 保留模板已有设置；不会自动暂存、提交、设置远端或安装 hooks。在生成工程中按照
@@ -44,13 +44,26 @@ Hello World 按职责组织：
 显式 `--project` 相对调用目录解析。可从工作区内任意嵌套目录调用入口，
 或通过 `--workspace PATH` 指定工作区。
 
-初始化 BSP，准备 ESP-IDF `master` 固定提交
-`7b9cc1ac79f865983f59bb8ff3ff43eb74ff1dbe`（目标 `esp32s31`）后，构建生成工程并执行。
-用 `git -C "$IDF_PATH" rev-parse HEAD` 核对完整 SHA；不要直接跟随最新 `master`：
+## 首次原生预览
+
+激活 ESP-IDF 固定提交 `7b9cc1ac79f865983f59bb8ff3ff43eb74ff1dbe`，
+目标为 `esp32s31`；不要直接跟随最新 `master`。从全新工作区根目录执行以下连续命令；
+如果 `my_app` 已创建，跳过创建命令：
 
 ```sh
+git submodule update --init submodule/esp-mosaico-utils submodule/esp-mosaico-bsp
+python mosaico.py project init my_app
+git -C "$IDF_PATH" rev-parse HEAD
+idf.py -C projects/my_app -D IDF_TARGET=esp32s31 reconfigure
 python mosaico.py project sim --project projects/my_app --interactive
 ```
+
+`reconfigure` 解析固定版本 ESP-GSP 1.5.1 及其他组件依赖，不编译固件。
+预览会在 `build-sim/` 编译应用的原生 C 后端，并自动获取匹配的 GSP 工具；
+需要 Host C 编译器、CMake，缓存未命中时需要联网。首次预览不要求完整固件构建，
+设备交付时才构建固件。有限时长冒烟检查可将 `--interactive` 换成
+`--headless --duration 3`，此方式执行 C 回调，不等同于纯场景渲染。
+本机与 SSH 浏览器访问见[预览排查](simulator-preview_CN.md)。
 
 UI 类应用优先使用 GSP。设计确认后，先在仿真器中暴露并修复布局、裁切、资源显示、
 点击反馈、页面切换、计时器和状态变化问题，复验受影响的流程后再进入真机验证。

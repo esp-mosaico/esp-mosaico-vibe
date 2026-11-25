@@ -45,7 +45,7 @@ Vibe Mode，不安装固件。应用更新命令会自动管理这一切换。
 Download Ideas 输入六位应用编号，保留开头的零；先查看名称、图标、描述和兼容
 版本，再确认下载到 NAND。下载与设为开机应用是两个操作。My Ideas 管理本地
 下载；About 提供需要确认的 Vibe Mode 在线固件更新。下载与安装协议见
-[Ideas 文件发布](https://github.com/esp-mosaico/esp-mosaico-utils/blob/main/mosaico-tools/docs/ideas-file-release/README.md)。
+[Ideas 文件发布](https://github.com/esp-mosaico/esp-mosaico-utils/blob/f58f4f9e5363f908b17a8e1ea8fdf4dd77561ef1/mosaico-tools/docs/ideas-file-release/README.md)。
 
 0.2 产品使用 Recovery ABI 2 和保留 test 分区布局；普通应用位于 `main_app`
 （`app/ota_0`）。源码与已审查预构建包分别发布。旧设备或旧工作区使用当前工具前，
