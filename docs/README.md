@@ -30,5 +30,5 @@ owning repositories:
 Initialize the pinned utils/BSP submodules for their local implementation docs.
 Raylib uses a Registry component; obtain its pinned Host tools and technical docs
 with `python mosaico.py game prepare`, and examples with
-`game prepare --example <name>`. See the [game entry](game-development.md) for the
+`python mosaico.py game prepare --example <name>`. See the [game entry](game-development.md) for the
 versioned technical reading path. Other upstream links may follow default branches.

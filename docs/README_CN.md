@@ -28,5 +28,5 @@
 
 utils/BSP 的本地实现文档随固定版本子模块获取。Raylib 使用 Registry 组件，
 运行 `python mosaico.py game prepare` 获取固定版本 Host 工具与技术文档，
-`game prepare --example <name>` 获取示例。版本对应的技术阅读入口见[游戏开发](game-development_CN.md)；
+`python mosaico.py game prepare --example <name>` 获取示例。版本对应的技术阅读入口见[游戏开发](game-development_CN.md)；
 其他上游链接可能指向默认分支。

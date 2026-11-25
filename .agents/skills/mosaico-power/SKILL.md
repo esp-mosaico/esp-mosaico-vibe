@@ -8,7 +8,7 @@ description: >
 
 # ESP-Mosaico 功耗配置
 
-适用 ESP32-S31、CO5300 OLED、CST9220 触摸；其他硬件先核对驱动。
+适用 ESP32-S31、CO5300 OLED、CST9217 触摸（BSP 使用 CST9220 驱动接口）；其他硬件先核对型号与驱动。
 
 | 要查什么 | 入口 |
 | --- | --- |
@@ -17,5 +17,5 @@ description: >
 | 显示、触摸、Wi-Fi、USB 怎么省电和恢复 | [外设配置](references/sleep-peripherals.md) |
 | 各模式电流、亮度与颜色对照 | [功耗数据](references/measurements.md) |
 
-先核对应用实际依赖的固件版本；[Vibe 模式表](references/runtime-modes.md#vibe-实现与版本边界)注明了实现参考的版本，不能据此假定已安装设备支持。再选择需要保留的显示、联网与唤醒能力，配置对应模块。临时调暗或睡眠退出后恢复用户亮度；没有画面变化不提交帧，后台任务尽量等待事件。
+先核对应用实际依赖的固件版本；[Vibe 模式表](references/runtime-modes.md#vibe-实现与版本边界)说明了配置参考与版本边界，不能据此假定已安装设备支持。再选择需要保留的显示、联网与唤醒能力，配置对应模块。临时调暗或睡眠退出后恢复用户亮度；没有画面变化不提交帧，后台任务尽量等待事件。
 遵循工作区固定 SDK、构建和 `mosaico.py` 设备操作规则。
