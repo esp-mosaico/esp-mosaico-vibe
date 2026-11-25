@@ -7,6 +7,24 @@
 下载并校验。旧游戏的 `override_path` 和工具路径按[游戏迁移](game-development_CN.md#registry-运行时与固定版本开发工具)
 更新。构建缓存含绝对路径，迁移工作区后使用新的构建目录；此布局不提供单应用独立导出。
 
+已有 Board Manager 生成代码的 `components/gen_bmgr_codes/gen_board_metadata.yaml`
+也记录绝对 `board_path`。对已构建的空白/产品游戏，只清理 `build/` 不够；
+需先将生成组件备份到 `components/` 外，再让 `game build` 按新路径自动生成。
+自定义 Board YAML 仍作为源码保留：
+
+```sh
+# 移动整个工作区，并清理旧构建缓存后：
+python mosaico.py game prepare
+# 仅当此生成目录存在，且仍指向旧位置时执行：
+mv projects/my_game/components/gen_bmgr_codes projects/my_game/gen_bmgr_codes.before-move
+python mosaico.py game build --project projects/my_game --target native
+python mosaico.py game build --project projects/my_game --target iris
+```
+
+新 Registry 示例迁移不需要编辑生成路径，也不应添加绝对 Engine `override_path`。
+Iris 包装工程按当前源码位置生成，不复用旧包装工程的构建目录或安装包。
+主动使用引擎源码 checkout 的旧应用，仍需按游戏指南迁移其源码覆盖配置。
+
 ## 当前源码布局
 
 | 所属内容 | 路径 |

@@ -37,10 +37,13 @@ read the same documents and `include/` headers there.
 
 ## Start with a blank game
 
-Use Python 3.10+ and Git 2.28+. Initialize utils and BSP; the Engine is an ESP-IDF Component Registry dependency:
+Use Python 3.10+, Git 2.28+ and a Host C compiler. Install the Host dependencies
+in the Python environment used to run `mosaico.py`; NumPy is needed by example
+asset generators. Initialize utils and BSP; the Engine is a Registry dependency:
 
 ```sh
 git submodule update --init submodule/esp-mosaico-utils submodule/esp-mosaico-bsp
+python -m pip install Pillow numpy
 python mosaico.py game prepare
 python mosaico.py game create my_game
 python mosaico.py game sim --project projects/my_game
@@ -172,6 +175,8 @@ Keep normal console output when building: this revision's successful
 `game build --target iris` prints the bundle path to the console; `--json`
 does not emit a structured result object. Installation
 remains a separate `mosaico.py` operation.
+Native firmware artifacts stay under the source project's `build/` directory
+(`build/<CMake-project-name>.bin`); the native CLI summary does not print that path.
 
 Default product game builds compile the application and resources without rebuilding
 the retained base bootloader. Explicit bootloader builds and compatibility checks

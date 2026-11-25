@@ -11,6 +11,27 @@ for existing apps with source overrides. Build caches contain absolute paths;
 configure fresh build directories after moving the workspace or changing the
 integration layout. This workspace does not provide standalone application export.
 
+Previously generated Board Manager code also records an absolute `board_path` in
+`components/gen_bmgr_codes/gen_board_metadata.yaml`. Removing only `build/` is
+therefore insufficient for an already-built blank/product game. Preserve the
+generated component outside `components/`, then let `game build` regenerate it
+against the new workspace path. Preserve any custom Board YAML as source:
+
+```sh
+# After moving the whole workspace and discarding its old build caches:
+python mosaico.py game prepare
+# Only when this generated directory exists and refers to the old location:
+mv projects/my_game/components/gen_bmgr_codes projects/my_game/gen_bmgr_codes.before-move
+python mosaico.py game build --project projects/my_game --target native
+python mosaico.py game build --project projects/my_game --target iris
+```
+
+Do not edit generated paths or add an absolute Engine `override_path` to migrate a
+new Registry example. Iris wrappers are generated from the current source path;
+do not reuse an old wrapper's build directory or installation bundle. Existing
+apps that deliberately use an Engine checkout still need the source-override
+migration described in the game guide.
+
 ## Current source layout
 
 | Owner | Path |

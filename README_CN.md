@@ -29,13 +29,14 @@ python mosaico.py project init my_app
 
 ```sh
 git submodule update --init submodule/esp-mosaico-bsp
-# 激活固定提交的 ESP-IDF 环境，构建刚创建的应用。
-python submodule/esp-mosaico-utils/mosaico-tools/skills/idf-low-noise-build/scripts/idf_low_noise_build.py --project projects/my_app doctor
-python submodule/esp-mosaico-utils/mosaico-tools/skills/idf-low-noise-build/scripts/idf_low_noise_build.py --project projects/my_app build
+# 激活固定提交的 ESP-IDF 环境，为原生预览解析依赖。
+git -C "$IDF_PATH" rev-parse HEAD
+idf.py -C projects/my_app -D IDF_TARGET=esp32s31 reconfigure
 python mosaico.py project sim --project projects/my_app --interactive
 ```
 
-GSP 预览与设备使用相同的可移植 C UI 和 GSP 1.5.1 场景。
+GSP 预览编译共享的原生 C UI，使用 GSP 1.5.1，不要求先完成固件构建。
+完整连续命令见[首次原生预览](docs/project-init_CN.md#首次原生预览)。
 设计确认后，先在仿真器中发现并修复 UI 显示和交互问题，再做真机验证，
 详见[开发流程](docs/project-init_CN.md)。
 空白或未验证设备首次安装时，先执行 `python mosaico.py recover`，再执行

@@ -32,13 +32,14 @@ buttons and commands.
 
 ```sh
 git submodule update --init submodule/esp-mosaico-bsp
-# Activate the pinned ESP-IDF environment and build the generated application.
-python submodule/esp-mosaico-utils/mosaico-tools/skills/idf-low-noise-build/scripts/idf_low_noise_build.py --project projects/my_app doctor
-python submodule/esp-mosaico-utils/mosaico-tools/skills/idf-low-noise-build/scripts/idf_low_noise_build.py --project projects/my_app build
+# Activate the pinned ESP-IDF environment; resolve dependencies for native preview.
+git -C "$IDF_PATH" rev-parse HEAD
+idf.py -C projects/my_app -D IDF_TARGET=esp32s31 reconfigure
 python mosaico.py project sim --project projects/my_app --interactive
 ```
 
-GSP preview uses the same portable C UI and GSP 1.5.1 scene as the device.
+GSP preview builds the shared native C UI and uses GSP 1.5.1; it does not require
+a complete firmware build. See the [complete first-preview steps](docs/project-init.md#first-native-preview).
 After design confirmation, find and fix UI rendering and interaction problems
 in the simulator first, then validate on hardware; see [the workflow](docs/project-init.md).
 For the first installation on a blank or unverified board, run `python mosaico.py recover`,

@@ -27,10 +27,12 @@
 
 ## 从空白游戏开始
 
-使用 Python 3.10+、Git 2.28+，初始化 utils 和 BSP；引擎运行时通过 ESP-IDF Component Registry 获取：
+使用 Python 3.10+、Git 2.28+ 和 Host C 编译器。在运行 `mosaico.py` 的 Python 环境中
+安装 Host 依赖，示例资源生成器需要 NumPy。初始化 utils 和 BSP；引擎运行时通过 Registry 获取：
 
 ```sh
 git submodule update --init submodule/esp-mosaico-utils submodule/esp-mosaico-bsp
+python -m pip install Pillow numpy
 python mosaico.py game prepare
 python mosaico.py game create my_game
 python mosaico.py game sim --project projects/my_game
@@ -139,6 +141,8 @@ python mosaico.py game build --project projects/my_platformer --target iris
 
 `game build --target iris` 在控制台输出更新包路径；`--json` 不输出结构化
 结果对象。设备安装仍单独使用 `mosaico.py`。
+原生固件产物位于源工程的 `build/`（`build/<CMake工程名>.bin`）；
+当前 native CLI 摘要不打印该路径。
 
 产品游戏默认只构建应用与资源，不重建设备上保留的 bootloader；显式 bootloader
 构建及兼容性检查仍保留，分区布局不变。
